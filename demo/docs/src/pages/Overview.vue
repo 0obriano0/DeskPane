@@ -14,7 +14,7 @@
       <li>✅ {{ t('overview.feat4') }}</li>
       <li>✅ {{ t('overview.feat5') }}</li>
       <li>✅ <span v-html="t('overview.feat6')"></span></li>
-      <li>⬜ {{ t('overview.feat7') }}</li>
+      <li>✅ <span v-html="t('overview.feat7')"></span></li>
     </ul>
 
     <h2>{{ t('overview.h2CoreApi') }}</h2>
@@ -64,7 +64,7 @@
         <tr><td><code>id</code></td><td>string</td><td><span class="badge badge-blue">{{ t('common.required') }}</span></td><td>{{ t('overview.config.id') }}</td></tr>
         <tr><td><code>title</code></td><td>string</td><td><span class="badge badge-blue">{{ t('common.required') }}</span></td><td>{{ t('overview.config.title') }}</td></tr>
         <tr><td><code>content</code></td><td>HTMLElement | null</td><td><span class="badge badge-blue">{{ t('common.required') }}</span></td><td>{{ t('overview.config.content') }}</td></tr>
-        <tr><td><code>slotType</code></td><td>'dom' | 'vue'</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td v-html="t('overview.config.slotType')"></td></tr>
+        <tr><td><code>slotType</code></td><td>'dom' | 'vue' | 'react'</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td v-html="t('overview.config.slotType')"></td></tr>
         <tr><td><code>x, y</code></td><td>number</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td>{{ t('overview.config.xy') }}</td></tr>
         <tr><td><code>width, height</code></td><td>number</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td>{{ t('overview.config.wh') }}</td></tr>
         <tr><td><code>props</code></td><td>Record&lt;string, unknown&gt;</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td>{{ t('overview.config.props') }}</td></tr>
@@ -85,9 +85,11 @@ onMounted(() => setCode([
   {
     name: 'install.sh',
     lang: 'javascript',
-    code: `# Build the core library
-npm install          # in project root
-npm run build        # → dist/index.js
+    code: `# Type-check only (no JS output)
+npm run build
+
+# Build ES + UMD bundles → dist/
+npm run build:lib
 
 # Or import TypeScript source directly in a Vite project
 # (no build step needed)`,

@@ -69,7 +69,7 @@
         <tr><td><code>windows</code></td><td><code>ReactWindowEntry[]</code></td><td>{{ t('react.ret.windows') }}</td></tr>
         <tr><td><code>wm</code></td><td><code>WindowManager</code></td><td>{{ t('react.ret.wm') }}</td></tr>
         <tr><td><code>openReactWindow(config)</code></td><td>—</td><td>{{ t('react.ret.openReact') }}</td></tr>
-        <tr><td><code>close / minimize / maximize / restore / focus</code></td><td>—</td><td v-html="t('react.ret.proxies')"></td></tr>
+        <tr><td><code>close / minimize / maximize / restore / focus / setTitle</code></td><td>—</td><td v-html="t('react.ret.proxies')"></td></tr>
       </tbody>
     </table>
   </div>

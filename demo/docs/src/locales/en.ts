@@ -102,11 +102,11 @@ export const en: Record<string, string> = {
   'install.tabEsm': 'ES Module (ES6 / bundler)',
   'install.tabUmd': 'Script Tag (ES5 / CDN)',
   'install.esm.h2': 'ES Module — bundler or native <code>type="module"</code>',
-  'install.esm.intro': 'Use <code>dist/webos-core.es.js</code> (or import from source via your bundler alias). Includes tree-shaking, full TypeScript types, and the Vue 3 composable adapter.',
+  'install.esm.intro': 'Use <code>dist/webos-core.es.js</code> (or import from source via your bundler alias). Includes tree-shaking, full TypeScript types, and the Vue 3 and React 18 composable adapters.',
   'install.esm.h3Step1': '1 · Install / copy the dist file',
   'install.esm.h3Step2': '2 · Import &amp; use',
   'install.esm.h3Step3': '3 · Native browser module (no bundler)',
-  'install.esm.h3Step4': '4 · Vue 3 composable (ESM only)',
+  'install.esm.h3Step4': '4 · Vue 3 / React 18 composable (ESM only)',
   'install.esm.h3Types': 'TypeScript types',
   'install.umd.h2': 'Script Tag — ES5 / CDN / legacy pages',
   'install.umd.intro': 'Use <code>dist/webos-core.umd.js</code>. No build step needed. After the script loads, everything is available on <code>window.WebOS</code>.',
@@ -233,7 +233,7 @@ export const en: Record<string, string> = {
   'vuecomp.ret.windows': 'Reactive list of open windows',
   'vuecomp.ret.wm': 'Raw manager instance for advanced use',
   'vuecomp.ret.openVue': 'Open a Vue component window',
-  'vuecomp.ret.proxies': 'Proxies to <code>wm.*</code>',
+  'vuecomp.ret.proxies': 'Proxies to <code>wm.*</code> (close / minimize / maximize / restore / focus / setTitle)',
 
   // Vue KeepAlive
   'keepalive.badge': 'Vue 3',
@@ -321,7 +321,7 @@ export const en: Record<string, string> = {
   'react.ret.windows': 'Reactive list of open windows (<code>useState</code>)',
   'react.ret.wm': 'Raw manager instance for advanced use',
   'react.ret.openReact': 'Open a React component window',
-  'react.ret.proxies': 'Proxies to <code>wm.*</code>',
+  'react.ret.proxies': 'Proxies to <code>wm.*</code> (close / minimize / maximize / restore / focus / setTitle)',
 
   // Nav — React
   'nav.reactComposable': 'useWindowManager',

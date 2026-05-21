@@ -102,11 +102,11 @@ export const zhTW: Record<string, string> = {
   'install.tabEsm': 'ES Module（ES6 / 建置工具）',
   'install.tabUmd': 'Script Tag（ES5 / CDN）',
   'install.esm.h2': 'ES Module——建置工具或原生 <code>type="module"</code>',
-  'install.esm.intro': '使用 <code>dist/webos-core.es.js</code>（或透過建置工具 alias 引入原始碼）。支援 tree-shaking、完整 TypeScript 型別及 Vue 3 Composable 適配器。',
+  'install.esm.intro': '使用 <code>dist/webos-core.es.js</code>（或透過建置工具 alias 引入原始碼）。支援 tree-shaking、完整 TypeScript 型別及 Vue 3 / React 18 Composable 適配器。',
   'install.esm.h3Step1': '1 · 安裝 / 複製 dist 檔案',
   'install.esm.h3Step2': '2 · 引入並使用',
   'install.esm.h3Step3': '3 · 原生瀏覽器模組（不需建置工具）',
-  'install.esm.h3Step4': '4 · Vue 3 Composable（僅限 ESM）',
+  'install.esm.h3Step4': '4 · Vue 3 / React 18 Composable（僅限 ESM）',
   'install.esm.h3Types': 'TypeScript 型別',
   'install.umd.h2': 'Script Tag——ES5 / CDN / 傳統頁面',
   'install.umd.intro': '使用 <code>dist/webos-core.umd.js</code>，不需建置工具。載入後所有功能皆可透過 <code>window.WebOS</code> 存取。',
@@ -233,7 +233,7 @@ export const zhTW: Record<string, string> = {
   'vuecomp.ret.windows': '開啟視窗的響應式清單',
   'vuecomp.ret.wm': '底層管理器實例，供進階使用',
   'vuecomp.ret.openVue': '開啟 Vue 元件視窗',
-  'vuecomp.ret.proxies': '代理至 <code>wm.*</code>',
+  'vuecomp.ret.proxies': '代理至 <code>wm.*</code>（close / minimize / maximize / restore / focus / setTitle）',
 
   // Vue KeepAlive
   'keepalive.badge': 'Vue 3',
@@ -321,7 +321,7 @@ export const zhTW: Record<string, string> = {
   'react.ret.windows': '響應式視窗清單（<code>useState</code>）',
   'react.ret.wm': '底層管理器實例（進階使用）',
   'react.ret.openReact': '開啟 React 元件視窗',
-  'react.ret.proxies': '代理至 <code>wm.*</code>',
+  'react.ret.proxies': '代理至 <code>wm.*</code>（close / minimize / maximize / restore / focus / setTitle）',
 
   // Nav — React
   'nav.reactComposable': 'useWindowManager',

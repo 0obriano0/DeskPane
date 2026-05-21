@@ -51,7 +51,7 @@
         <tr><td><code>windows</code></td><td><code>ShallowRef&lt;VueWindowEntry[]&gt;</code></td><td>{{ t('vuecomp.ret.windows') }}</td></tr>
         <tr><td><code>wm</code></td><td><code>WindowManager</code></td><td>{{ t('vuecomp.ret.wm') }}</td></tr>
         <tr><td><code>openVueWindow(config)</code></td><td>—</td><td>{{ t('vuecomp.ret.openVue') }}</td></tr>
-        <tr><td><code>close / minimize / maximize / restore / focus</code></td><td>—</td><td v-html="t('vuecomp.ret.proxies')"></td></tr>
+        <tr><td><code>close / minimize / maximize / restore / focus / setTitle</code></td><td>—</td><td v-html="t('vuecomp.ret.proxies')"></td></tr>
       </tbody>
     </table>
   </div>

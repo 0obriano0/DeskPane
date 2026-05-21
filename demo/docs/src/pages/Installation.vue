@@ -264,26 +264,27 @@ wm.open({ id: 'w1', title: 'ESM Window', content: el })`,
 -->
 
 <template>
-  <div ref="desktop" class="desktop">
+  <div class="desktop">
     <button @click="openClock">Open Clock</button>
 
-    <Teleport v-for="win in windows" :key="win.id" :to="win.bodyEl">
-      <KeepAlive>
-        <ClockWindow />
-      </KeepAlive>
-    </Teleport>
+    <template v-for="win in windows" :key="win.id">
+      <Teleport v-if="win.component" :to="win.bodyEl">
+        <KeepAlive>
+          <component :is="win.component" />
+        </KeepAlive>
+      </Teleport>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Teleport } from 'vue'
 import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
 import ClockWindow from './ClockWindow.vue'
 
-const { wm, windows, desktop } = useWindowManager()
+const { windows, openVueWindow } = useWindowManager()
 
 function openClock() {
-  wm.value?.open({ id: 'clock', title: 'Clock' })
+  openVueWindow({ id: 'clock', title: 'Clock', component: ClockWindow })
 }
 <\/script>`,
     },
