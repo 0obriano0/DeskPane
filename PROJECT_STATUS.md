@@ -1,6 +1,6 @@
 # WebOS-Core — 專案狀態紀錄
 
-> 最後更新：2026-05-21（Snap 吸附功能 + Demo 更新）  
+> 最後更新：2026-05-21（Snap 吸附功能 + Demo 更新 + Docs Vite 6 升級）  
 > 用途：電腦重裝 / VS Code 重裝後快速恢復開發環境
 
 ---
@@ -508,6 +508,22 @@ npm run dev   # 預設 http://localhost:3008
 | 引導線懶建立 | 首次拖曳時才建立 DOM 節點，不提早污染 DOM |
 | 非 isolated 模式 | 容器大小使用 `window.innerWidth/Height` |
 | Snap 關閉 | `new WindowManager({ snap: false })` |
+
+### 19. 2026-05-21 Docs 工具鏈升級
+
+#### Vite 5 → 6 升級（demo/docs）
+
+- `demo/docs/package.json` 更新：
+  - `vite`: `^5.0.0` → `^6.0.0`
+  - `@vitejs/plugin-vue`: `^5.0.0` → `^5.2.0`（Vite 6 相容版本）
+- 本機 build 驗證通過（`npm run build` ✅）
+
+#### TypeScript 設定改進（demo/docs）
+
+- `demo/docs/tsconfig.json` 新增 `"skipLibCheck": true`
+  - 跳過 `node_modules` 中第三方套件的 `.d.ts` 型別檢查
+  - 避免外部套件型別聲明不完整導致 `vue-tsc` 報錯
+  - 根目錄 `tsconfig.json` 早已有此設定，docs 補齊一致
 
 ---
 
