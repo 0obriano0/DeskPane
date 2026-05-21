@@ -96,6 +96,24 @@ const BASE_CSS = `
   position: relative;
   background: #fff;
 }
+/* ── Snap guide lines ─────────────────────────────── */
+.wos-snap-guide {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2147483647;
+  display: none;
+  background: rgba(0, 120, 255, 0.55);
+}
+.wos-snap-guide--v {
+  width: 1px;
+  top: 0;
+  bottom: 0;
+}
+.wos-snap-guide--h {
+  height: 1px;
+  left: 0;
+  right: 0;
+}
 `;
 
 export function injectStyles(): void {

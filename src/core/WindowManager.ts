@@ -7,6 +7,7 @@ import { WindowConfig, WindowState, EventCallback } from './types.js';
 import { EventBus } from './EventBus.js';
 import { DragResizeHandler } from './DragResizeHandler.js';
 import { injectStyles, createWindowDOM, applyGeometry, WindowElements } from '../renderers/DOMRenderer.js';
+import { snapPosition, SnapRect, SnapGuide } from './SnapHelper.js';
 
 /** WindowManager 事件清單 */
 export type WinEvent =
@@ -35,6 +36,16 @@ export interface WindowManagerOptions {
    * 啟用後容器會自動加上 wos-isolated CSS class。
    */
   isolated?: boolean;
+  /**
+   * 啟用視窗拖曳時的 Snap 吸附功能，預設 true。
+   * 拖曳到容器邊緣或其他視窗邊緣時，自動對齊並顯示藍色 guide 線。
+   */
+  snap?: boolean;
+  /**
+   * Snap 吸附感應距離（px），預設 20。
+   * 視窗距離吸附目標小於此值時觸發吸附。
+   */
+  snapThreshold?: number;
 }
 
 interface ManagedWindow {
@@ -50,12 +61,18 @@ export class WindowManager {
   private readonly _container: HTMLElement;
   private readonly _throttleMs: number;
   private readonly _isolated: boolean;
+  private readonly _snapEnabled: boolean;
+  private readonly _snapThreshold: number;
+  private _guideV: HTMLElement | null = null;
+  private _guideH: HTMLElement | null = null;
   readonly events: EventBus;
 
   constructor(opts: WindowManagerOptions = {}) {
     this._container = opts.container ?? document.body;
     this._throttleMs = opts.throttleMs ?? 16;
     this._isolated = opts.isolated ?? false;
+    this._snapEnabled = opts.snap ?? true;
+    this._snapThreshold = opts.snapThreshold ?? 20;
     this.events = new EventBus();
     injectStyles();
     if (this._isolated) {
@@ -104,9 +121,25 @@ export class WindowManager {
       {
         throttleMs: this._throttleMs,
         containerEl: this._isolated ? this._container : undefined,
+        snapFn: this._snapEnabled ? (x, y, w, h) => {
+          const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+          const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+          const others: SnapRect[] = [];
+          this._wins.forEach((win2, wid) => {
+            if (wid !== state.id && !win2.state.isMinimized && !win2.state.isMaximized) {
+              others.push({ x: win2.state.x, y: win2.state.y, width: win2.state.width, height: win2.state.height });
+            }
+          });
+          const result = snapPosition({ x, y, width: w, height: h }, { width: cw, height: ch }, others, this._snapThreshold);
+          this._updateSnapGuides(result.guides);
+          return { x: result.x, y: result.y };
+        } : undefined,
         onDrag: (x, y) => {
           state.x = x; state.y = y;
           this.events.emit<WindowState>('window:moved', { ...state });
+        },
+        onDragEnd: () => {
+          this._hideSnapGuides();
         },
         onResize: (x, y, w, h) => {
           state.x = x; state.y = y; state.width = w; state.height = h;
@@ -272,6 +305,10 @@ export class WindowManager {
   destroy(): void {
     [...this._wins.keys()].forEach(id => this.close(id));
     this.events.clearAll();
+    this._guideV?.remove();
+    this._guideH?.remove();
+    this._guideV = null;
+    this._guideH = null;
     if (this._isolated) {
       this._container.classList.remove('wos-isolated');
     }
@@ -280,6 +317,46 @@ export class WindowManager {
   // ─────────────────────────────────────────
   // Private helpers
   // ─────────────────────────────────────────
+
+  /** 延遲建立 snap guide 元素（僅需要時才建立） */
+  private _ensureGuides(): void {
+    if (this._guideV) return;
+    this._guideV = document.createElement('div');
+    this._guideV.className = 'wos-snap-guide wos-snap-guide--v';
+    this._guideH = document.createElement('div');
+    this._guideH.className = 'wos-snap-guide wos-snap-guide--h';
+    this._container.appendChild(this._guideV);
+    this._container.appendChild(this._guideH);
+  }
+
+  /** 根據 SnapResult 顯示 / 隱藏 guide 線 */
+  private _updateSnapGuides(guides: SnapGuide[]): void {
+    this._ensureGuides();
+    const vGuide = guides.find(g => g.axis === 'v');
+    const hGuide = guides.find(g => g.axis === 'h');
+    if (this._guideV) {
+      if (vGuide !== undefined) {
+        this._guideV.style.left = `${vGuide.pos}px`;
+        this._guideV.style.display = 'block';
+      } else {
+        this._guideV.style.display = 'none';
+      }
+    }
+    if (this._guideH) {
+      if (hGuide !== undefined) {
+        this._guideH.style.top = `${hGuide.pos}px`;
+        this._guideH.style.display = 'block';
+      } else {
+        this._guideH.style.display = 'none';
+      }
+    }
+  }
+
+  /** 拖曳結束時隱藏所有 guide 線 */
+  private _hideSnapGuides(): void {
+    if (this._guideV) this._guideV.style.display = 'none';
+    if (this._guideH) this._guideH.style.display = 'none';
+  }
 
   private _deactivateOthers(exceptId: string): void {
     this._wins.forEach((win, id) => {

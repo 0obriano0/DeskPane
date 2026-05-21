@@ -17,6 +17,11 @@ export interface DragResizeOptions {
    * 搭配 WindowManager isolated 選項使用（視窗以 position:absolute 定位）。
    */
   containerEl?: HTMLElement;
+  /**
+   * Snap 吸附函數。拖曳時以「原始計算座標」呼叫，回傳吸附後座標。
+   * 若不傳則不做吸附。
+   */
+  snapFn?: (x: number, y: number, width: number, height: number) => { x: number; y: number };
   onDragStart?: () => void;
   onDrag?: (x: number, y: number) => void;
   onDragEnd?: () => void;
@@ -42,7 +47,7 @@ function throttle<T extends (...args: any[]) => void>(fn: T, ms: number): T {
 export class DragResizeHandler {
   private _winEl: HTMLElement;
   private _headerEl: HTMLElement;
-  private _opts: Required<Omit<DragResizeOptions, 'containerEl'>> & { containerEl?: HTMLElement };
+  private _opts: Required<Omit<DragResizeOptions, 'containerEl' | 'snapFn'>> & { containerEl?: HTMLElement; snapFn?: DragResizeOptions['snapFn'] };
 
   // 拖曳狀態
   private _dragging = false;
@@ -74,6 +79,7 @@ export class DragResizeHandler {
       minWidth: opts.minWidth ?? 200,
       minHeight: opts.minHeight ?? 120,
       containerEl: opts.containerEl,
+      snapFn: opts.snapFn,
       onDragStart: opts.onDragStart ?? (() => {}),
       onDrag: opts.onDrag ?? (() => {}),
       onDragEnd: opts.onDragEnd ?? (() => {}),
@@ -156,8 +162,13 @@ export class DragResizeHandler {
   private _handleMove(e: { clientX: number; clientY: number }): void {
     if (this._dragging) {
       const { left, top } = this._getContainerRect();
-      const x = e.clientX - this._dragOffX - left;
-      const y = e.clientY - this._dragOffY - top;
+      let x = e.clientX - this._dragOffX - left;
+      let y = e.clientY - this._dragOffY - top;
+      if (this._opts.snapFn) {
+        const snapped = this._opts.snapFn(x, y, this._winEl.offsetWidth, this._winEl.offsetHeight);
+        x = snapped.x;
+        y = snapped.y;
+      }
       this._winEl.style.left = `${x}px`;
       this._winEl.style.top = `${y}px`;
       this._opts.onDrag(x, y);
