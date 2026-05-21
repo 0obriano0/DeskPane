@@ -5,7 +5,7 @@ A **framework-agnostic** web virtual desktop window management engine.
 The core handles all window lifecycle, drag/resize, focus, and z-order — your UI framework handles the content.
 
 [![npm version](https://img.shields.io/npm/v/webos-core.svg)](https://www.npmjs.com/package/webos-core)
-[![license](https://img.shields.io/npm/l/webos-core.svg)](LICENSE)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 ---
 
@@ -16,9 +16,9 @@ The core handles all window lifecycle, drag/resize, focus, and z-order — your 
 - ✅ Focus / z-order management
 - ✅ Event bus — subscribe to any window lifecycle event
 - ✅ Isolated mode — embed a desktop inside any page element
-- ✅ Vue 3 adapter — `useWindowManager` composable + `KeepAlive` support
+- ✅ Vue 3 adapter — `useWindowManager` composable + `Teleport` support
+- ✅ React 18 adapter — `useWindowManager` hook + `createPortal` support
 - ✅ ES Module + UMD builds — works with bundlers or plain `<script>` tags
-- ⬜ React adapter (planned)
 
 ---
 
@@ -57,7 +57,7 @@ el.innerHTML = '<h3>Hello, World!</h3>'
 wm.open({ id: 'hello', title: 'My Window', content: el })
 ```
 
-### Script Tag (ES5 / no build step)
+### Script Tag (UMD / no build step)
 
 ```html
 <!DOCTYPE html>
@@ -84,34 +84,58 @@ wm.open({ id: 'hello', title: 'My Window', content: el })
 
 ### Vue 3
 
-```typescript
-// vite.config.ts — add alias
-// resolve: { alias: { '@webos': '/path/to/webos-core/src' } }
+Add a path alias in your `vite.config.ts`:
 
-import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
-import { Teleport, KeepAlive } from 'vue'
+```typescript
+// vite.config.ts
+resolve: { alias: { '@webos': '/path/to/webos-core/src' } }
 ```
 
 ```vue
 <template>
-  <div ref="desktop" class="desktop">
-    <button @click="wm?.open({ id: 'w1', title: 'Window', content: bodyEl })">
+  <div ref="desktopEl" class="desktop">
+    <button @click="openVueWindow({ id: 'w1', title: 'My Window', component: MyComp })">
       Open Window
     </button>
 
     <Teleport v-for="win in windows" :key="win.id" :to="win.bodyEl">
-      <KeepAlive>
-        <MyComponent />
-      </KeepAlive>
+      <component :is="win.component" v-bind="win.props ?? {}" />
     </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
+import MyComp from './MyComp.vue'
 
-const { wm, windows, desktop } = useWindowManager()
+const { windows, openVueWindow } = useWindowManager()
 </script>
+```
+
+### React 18
+
+```tsx
+import { createPortal } from 'react-dom'
+import { useWindowManager } from '@webos/adapters/react/useWindowManager'
+import MyComp from './MyComp'
+
+export default function App() {
+  const { windows, openReactWindow } = useWindowManager()
+
+  return (
+    <div className="desktop">
+      <button onClick={() => openReactWindow({ id: 'w1', title: 'My Window', component: MyComp })}>
+        Open Window
+      </button>
+
+      {windows.map(win =>
+        win.component
+          ? createPortal(<win.component {...(win.props ?? {})} />, win.bodyEl)
+          : null
+      )}
+    </div>
+  )
+}
 ```
 
 ---
@@ -126,7 +150,7 @@ const { wm, windows, desktop } = useWindowManager()
 | `isolated` | `boolean` | `false` | Constrain windows to container (`position: absolute`) |
 | `throttleMs` | `number` | `16` | Drag/resize throttle interval (ms) |
 
-### Methods
+### Core Methods
 
 | Method | Description |
 |--------|-------------|
@@ -136,22 +160,25 @@ const { wm, windows, desktop } = useWindowManager()
 | `wm.maximize(id)` | Maximize a window |
 | `wm.restore(id)` | Restore from minimized or maximized |
 | `wm.focus(id)` | Bring window to front |
+| `wm.setTitle(id, title)` | Update the window title bar |
 | `wm.getState(id)` | Get current `WindowState` |
 | `wm.getBodyElement(id)` | Get the window's content `HTMLElement` |
+| `wm.getWindowIds()` | Get all open window IDs |
 | `wm.destroy()` | Destroy all windows and clean up DOM |
 
 ### `WindowConfig`
 
 ```typescript
 interface WindowConfig {
-  id: string          // Unique window ID (required)
-  title: string       // Window title bar text
-  content: any        // HTMLElement (or Vue/React component)
-  x?: number          // Initial X position (px)
-  y?: number          // Initial Y position (px)
-  width?: number      // Initial width (px), default 640
-  height?: number     // Initial height (px), default 480
-  props?: Record<string, unknown>  // Props passed to component content
+  id: string           // Unique window ID (required)
+  title: string        // Window title bar text
+  content: any         // HTMLElement, or null when using framework adapters
+  slotType?: 'dom' | 'vue' | 'react'  // Renderer mode, default 'dom'
+  x?: number           // Initial X position (px)
+  y?: number           // Initial Y position (px)
+  width?: number       // Initial width (px), default 640
+  height?: number      // Initial height (px), default 480
+  props?: Record<string, unknown>
 }
 ```
 
@@ -168,15 +195,37 @@ wm.events.on('window:moved',     (state) => { /* ... */ })
 wm.events.on('window:resized',   (state) => { /* ... */ })
 ```
 
+### Vue 3 Adapter — `useWindowManager(opts?)`
+
+Returns:
+
+| Return | Type | Description |
+|--------|------|-------------|
+| `wm` | `WindowManager` | Underlying instance (advanced use) |
+| `windows` | `ShallowRef<VueWindowEntry[]>` | Reactive window list for `v-for` + `<Teleport>` |
+| `openVueWindow(config)` | `fn` | Open a Vue component window |
+| `close / minimize / maximize / restore / focus / setTitle` | `fn` | Shorthand methods |
+
+### React 18 Adapter — `useWindowManager(opts?)`
+
+Returns:
+
+| Return | Type | Description |
+|--------|------|-------------|
+| `wm` | `WindowManager` | Underlying instance (advanced use) |
+| `windows` | `ReactWindowEntry[]` | State array for `createPortal` mapping |
+| `openReactWindow(config)` | `fn` | Open a React component window |
+| `close / minimize / maximize / restore / focus / setTitle` | `fn` | Shorthand methods |
+
 ---
 
 ## Build Output
 
-| File | Format | Size | Use when |
-|------|--------|------|----------|
-| `dist/webos-core.es.js` | ESM | ~24 KB | Vite / Webpack / `type="module"` |
-| `dist/webos-core.umd.js` | UMD | ~26 KB | Script tag, jQuery, legacy pages |
-| `dist/index.d.ts` | TypeScript | ~4 KB | IDE autocomplete & type checking |
+| File | Format | Use when |
+|------|--------|----------|
+| `dist/webos-core.es.js` | ESM | Vite / Webpack / `type="module"` |
+| `dist/webos-core.umd.js` | UMD | Script tag, jQuery, legacy pages |
+| `dist/index.d.ts` | TypeScript declarations | IDE autocomplete & type checking |
 
 ---
 
@@ -186,24 +235,29 @@ wm.events.on('window:resized',   (state) => { /* ... */ })
 # Install dependencies
 npm install
 
-# Build ES + UMD bundles
+# Type-check only (no output)
+npm run build
+
+# Build ES + UMD bundles → dist/
 npm run build:lib
 
-# TypeScript compile only
-npm run build
+# Clean dist/ and rebuild + package release/
+npm run release
 ```
 
-> **Note:** Requires Node.js 18+. The library build uses Rollup and works on any Node 18+ version.
+> **Note:** Requires Node.js 18+. The library build uses Rollup.
 
 ---
 
 ## Browser Support
 
-Any modern browser supporting ES2017 (`async/await`, `Map`, `Set`).  
+Any modern browser supporting ES2020 (`optional chaining`, `nullish coalescing`, `Map`, `Set`).  
 UMD bundle also works in older environments when transpiled by your build tool.
 
 ---
 
 ## License
 
-MIT
+Apache-2.0 © 2026 Brian Cheng
+
+See [LICENSE](LICENSE) for full terms.
