@@ -8,6 +8,8 @@ import { EventBus } from './EventBus.js';
 import { DragResizeHandler } from './DragResizeHandler.js';
 import { injectStyles, createWindowDOM, applyGeometry, WindowElements } from '../renderers/DOMRenderer.js';
 import { snapPosition, SnapRect, SnapGuide } from './SnapHelper.js';
+import { BorderLayout } from '../layout/BorderLayout.js';
+import { Panel } from '../layout/Panel.js';
 
 /** WindowManager 事件清單 */
 export type WinEvent =
@@ -65,6 +67,8 @@ export class WindowManager {
   private readonly _snapThreshold: number;
   private _guideV: HTMLElement | null = null;
   private _guideH: HTMLElement | null = null;
+  /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
+  private readonly _layouts = new Map<string, BorderLayout | Panel>();
   readonly events: EventBus;
 
   constructor(opts: WindowManagerOptions = {}) {
@@ -114,6 +118,9 @@ export class WindowManager {
 
     const elements = createWindowDOM(state);
     this._container.appendChild(elements.root);
+
+    // ── Auto-detect BorderLayout / Panel in content ──────────
+    this._tryAutoLayout(state.id, state.content, elements.body);
 
     const dragResize = new DragResizeHandler(
       elements.root,
@@ -183,6 +190,9 @@ export class WindowManager {
     win.dragResize.destroy();
     win.elements.root.remove();
     this._wins.delete(id);
+    // 銷毀自動建立的 BorderLayout / Panel
+    this._layouts.get(id)?.destroy();
+    this._layouts.delete(id);
     this.events.emit('window:closed', { id });
     // 聚焦最後一個存活視窗
     this._focusTopWindow();
@@ -304,6 +314,8 @@ export class WindowManager {
   /** 銷毀所有視窗，清除事件 */
   destroy(): void {
     [...this._wins.keys()].forEach(id => this.close(id));
+    this._layouts.forEach(l => l.destroy());
+    this._layouts.clear();
     this.events.clearAll();
     this._guideV?.remove();
     this._guideH?.remove();
@@ -356,6 +368,48 @@ export class WindowManager {
   private _hideSnapGuides(): void {
     if (this._guideV) this._guideV.style.display = 'none';
     if (this._guideH) this._guideH.style.display = 'none';
+  }
+
+  // ── Layout auto-detection ─────────────────────────────────
+
+  /**
+   * 偵測 content 是否包含 BorderLayout 或 Panel 宣告，並自動初始化。
+   * - content 有 [data-region] 直接子元素 → BorderLayout（body 作為容器）
+   * - content 本身有 data-panel 屬性 → Panel（body 作為容器）
+   */
+  private _tryAutoLayout(id: string, content: unknown, body: HTMLElement): void {
+    if (!(content instanceof HTMLElement)) return;
+
+    const hasRegions = Array.from(content.children).some(
+      c => (c as HTMLElement).dataset.region !== undefined
+    );
+
+    if (hasRegions) {
+      // Move [data-region] children from content into body, use body as layout container
+      while (content.firstChild) body.appendChild(content.firstChild);
+      content.remove();
+      body.classList.add('wos-has-layout');
+      const layout = new BorderLayout({ container: body });
+      this._layouts.set(id, layout);
+      return;
+    }
+
+    if ('panel' in content.dataset) {
+      // Move content's children into body, use body as Panel container
+      const panelTitle        = content.dataset.panelTitle ?? content.dataset.title ?? '';
+      const panelCollapsible  = 'collapsible' in content.dataset;
+      const panelCollapsed    = 'collapsed'   in content.dataset;
+      while (content.firstChild) body.appendChild(content.firstChild);
+      content.remove();
+      body.classList.add('wos-has-layout');
+      const panel = new Panel({
+        container:   body,
+        title:       panelTitle || undefined,
+        collapsible: panelCollapsible,
+        collapsed:   panelCollapsed,
+      });
+      this._layouts.set(id, panel);
+    }
   }
 
   private _deactivateOthers(exceptId: string): void {

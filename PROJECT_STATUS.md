@@ -1,6 +1,6 @@
 # WebOS-Core — 專案狀態紀錄
 
-> 最後更新：2026-05-21（Snap 吸附功能 + Demo 更新 + Docs Vite 6 升級 + UI 主題切換全 Demo）  
+> 最後更新：2026-05-22（BorderLayout 折疊 Strip UX 改版 + Theme Editor 加入 Layout 預覽）  
 > 用途：電腦重裝 / VS Code 重裝後快速恢復開發環境
 
 ---
@@ -43,6 +43,9 @@ WebOS/
 │   │   ├── light.css           ← 亮色主題（14 個 :root CSS 自訂屬性）
 │   │   ├── dark.css            ← 暗色主題（14 個 :root CSS 自訂屬性）
 │   │   └── setTheme.ts         ← setTheme(preset, options?) 工具函式（管理 <link> 元素）
+│   ├── layout/
+│   │   ├── BorderLayout.ts     ← 東南西北中 五區域佈局（position:absolute，拖曳分割線，巢狀遞迴）
+│   │   └── Panel.ts            ← 可折疊標題+內容面板（data-panel 宣告式）
 │   └── adapters/
 │       ├── vue/
 │       │   ├── useWindowManager.ts  ← Vue 3 Composable
@@ -94,6 +97,8 @@ WebOS/
 │   │           └── FormApp.tsx
 │   ├── theme-editor/
 │   │   └── index.html          ← 🎨 Theme Editor（免建置單檔，可視化編輯 14 個 --wos-* CSS 變數 + 即時預覽 + 匯出 CSS）
+│   ├── layout/
+│   │   └── index.html          ← 📐 Layout Demo（BorderLayout 東南西北中 + 巢狀 + Panel，HTML-first 宣告）
 │   └── docs/                   ← 開發手冊（Wijmo 風格，獨立 Vite + Vue 3）
 │       ├── package.json
 │       ├── vite.config.ts      ← port:3002，cacheDir→tmpdir（Dropbox 安全）
@@ -646,6 +651,7 @@ dist/
 - 匯出 CSS：生成 `:root { }` 格式字串，提供「複製到剪貼簿」＋「下載 .css 檔案」
 - 背景切換：深色 / 深色格線 / 淺色三種預覽背景
 - 已更新 `demo/index.html`，加入 🎨 Theme Editor 入口卡片
+- **2026-05-22 更新**：新增第三個預覽視窗「📐 BorderLayout 示範」（North/West/East/South/Center 五區域，可折疊，帶圖示），讓使用者直接在 Theme Editor 中看到 layout region header 的樣式隨 CSS 變數即時更新
 
 #### 技術細節
 
@@ -659,6 +665,108 @@ dist/
 
 ---
 
+### 22. 2026-05-22 BorderLayout / Panel 元件（HTML-first 佈局宣告）
+
+#### 功能總覽
+
+- 新增 `src/layout/BorderLayout.ts`：東南西北中五區域佈局管理
+  - HTML-first 宣告：在 `data-region` 子元素上設定屬性，`wm.open()` 自動偵測並渲染
+  - `position: absolute` 精確座標計算，各 region 零縫隙排列
+  - 分割線（splitter）可拖曳調整 N/S/E/W 尺寸，尊重 `data-min-size`
+  - 折疊按鈕嵌入分割線（▶◀▲▼，依 region 方向自動切換）
+  - 可選標題列（`data-title`）：`.wos-region-header`（28px）+ `.wos-region-body`
+  - `ResizeObserver` 監聽容器大小變化，自動重算座標
+  - 巢狀遞迴：任意 region 的 body 若含 `[data-region]` 子元素，自動建立子 `BorderLayout`
+  - CSS 完全使用 `var(--wos-*)` 變數，繼承當前主題
+- 新增 `src/layout/Panel.ts`：可折疊標題+內容面板
+  - `data-panel` 屬性 + `data-panel-title` / `data-collapsible` / `data-collapsed` 宣告
+  - `wm.open()` 自動偵測並將 body 轉為 Panel 容器
+- **`src/core/WindowManager.ts`** 自動偵測整合：
+  - `open()` 後偵測 content 子元素：有 `[data-region]` → `BorderLayout`；有 `data-panel` → `Panel`
+  - 子元素搬移至 `elements.body`，`elements.body` 加入 `.wos-has-layout`
+  - 儲存於 `_layouts: Map<string, BorderLayout | Panel>`
+  - `close()` / `destroy()` 自動呼叫 `layout.destroy()`
+- **`src/renderers/DOMRenderer.ts`** 新增 `.wos-body.wos-has-layout { overflow: hidden }`
+- **`src/index.ts`** 新增 `BorderLayout` / `Panel` 及其 TypeScript 型別 export
+
+#### HTML-first 宣告 API
+
+| 屬性 | 用途 |
+|------|------|
+| `data-region="north\|south\|east\|west\|center"` | 宣告區域方向 |
+| `data-size="200"` | E/W 寬度 或 N/S 高度（px） |
+| `data-min-size="50"` | 最小拖曳限制（px） |
+| `data-collapsible` | 允許折疊（presence flag） |
+| `data-collapsed` | 初始折疊狀態 |
+| `data-title="Label"` | 顯示 region 標題列 |
+| `data-icon="🔧"` | Region 圖示（emoji 或文字），顯示在標題前 |
+| `data-panel-title="..."` | Panel 標題文字 |
+
+預設大小：north/south 分別 48/120px（min 24px）；east/west 200px（min 60px）；center 填滿剩餘空間。
+
+#### 使用範例
+
+```html
+<!-- HTML-first 宣告（wm.open() 自動渲染） -->
+<script>
+  const content = document.createElement('div');
+  // north
+  const n = document.createElement('div');
+  n.dataset.region = 'north';
+  n.dataset.size   = '40';
+  n.dataset.title  = '工具列';
+  content.appendChild(n);
+  // ... west / center / east / south 同理
+
+  wm.open({ title: '我的應用', width: 800, height: 600, content });
+</script>
+```
+
+#### 技術細節
+
+| 項目 | 說明 |
+|------|------|
+| 座標計算 | `position: absolute` 精確像素，center 填滿剩餘 |
+| 分割線折疊 | 折疊按鈕嵌入 splitter DOM；折疊時 size → 0，展開還原 |
+| 巢狀支援 | `_initChildLayouts()` 遞迴偵測，`_childLayouts[]` 統一 destroy |
+| CSS 注入 | 一次注入（`LAYOUT_STYLE_ID` sentinel），不重複 `<style>` |
+| 主題繼承 | 全部色值使用 `var(--wos-*)` fallback |
+
+---
+
+### 23. 2026-05-22 BorderLayout 折疊 Strip UX 改版
+
+#### 問題
+折疊後 region 寬/高設為 0px，整個面板消失，無法重新展開。
+
+#### 解決方案：EasyUI 風格 Mini Strip
+
+折疊後改為顯示 **28px（`headerSize`）寬/高的迷你條帶**，包含展開按鈕、圖示、旋轉標題。
+
+| 元素 | 位置 | 說明 |
+|------|------|------|
+| 展開按鈕 | 最上方（`order: 0`） | 全寬 36px 高，字體 14px，明顯可點擊 |
+| 圖示 | 按鈕下方（`order: 1`） | `data-icon` 設定，字體 15px |
+| 標題 | 最下方（`order: 2`） | `writing-mode: vertical-lr; transform: rotate(180deg)` 旋轉顯示 |
+
+#### 技術細節
+
+- `_applyLayout()`：折疊時使用 `headerSize`（28px）取代 0，保留 strip 空間
+- `.wos-layout-region--collapsed` CSS class：
+  - `body { display: none }` 隱藏內容
+  - W/E 折疊時：header `position: absolute; inset: 0; flex-direction: column`，佔滿整條 strip
+  - 按鈕 `border-bottom` 分隔線取代原本的 `border-left`
+- 初始折疊（`data-collapsed`）和 `toggleCollapse()` 均同步 `.wos-layout-region--collapsed` class
+- 拖曳保護：`_startDrag()` 在 `state.collapsed` 時直接 return，避免折疊狀態下誤觸 splitter
+
+#### 影響檔案
+
+| 檔案 | 變更 |
+|------|------|
+| `src/layout/BorderLayout.ts` | collapsed strip CSS、`_applyLayout()` 折疊尺寸邏輯、`toggleCollapse()` + 初始化加 CSS class、`_startDrag()` 折疊保護 |
+
+---
+
 ## 九、待開發功能（Roadmap）
 
 - [x] **React 包裝層** ✅ `src/adapters/react/` + `demo/react/` + Docs `ReactPage.vue`
@@ -666,6 +774,7 @@ dist/
 - [x] **視窗 Snap 吸附功能** ✅ `src/core/SnapHelper.ts` + `WindowManager` + 全 demo 更新
 - [x] **UI 主題切換** ✅ `src/themes/*.css` → `dist/themes/` 純 CSS 獨立輸出；`setTheme()` 工具函式隨 bundle export；全 4 個 Demo 均已整合（Vanilla / jQuery / Vue / React）
 - [x] **主題設計編輯器** ✅ `demo/theme-editor/index.html`（免建置單檔）；14 個 `--wos-*` 變數可視化編輯；color picker + hex 輸入雙向同步；shadow/rgba 文字輸入；即時預覽（WebOS UMD）；Light/Dark 預設切換；匯出 CSS（複製 / 下載）
+- [x] **BorderLayout / Panel 佈局元件** ✅ `src/layout/BorderLayout.ts` + `src/layout/Panel.ts`；HTML-first `data-region` / `data-panel` 宣告；`wm.open()` 自動偵測渲染；巢狀遞迴；可拖曳分割線 + 折疊；`demo/layout/index.html`；EasyUI 風格折疊 strip（展開按鈕在上 → 圖示 → 旋轉標題）；`demo/vanilla` + `demo/jquery` 均含 Layout 示範
 - [ ] **工作區（虛擬桌面）多頁切換**
 - [ ] **視窗狀態序列化 / 還原**（localStorage）
 - [ ] **Docs 補充**：Snap / 主題 / 工作區功能頁面

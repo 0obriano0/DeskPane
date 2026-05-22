@@ -96,6 +96,9 @@ const BASE_CSS = `
   position: relative;
   background: var(--wos-body-bg, #ffffff);
 }
+.wos-body.wos-has-layout {
+  overflow: hidden;
+}
 /* ── Snap guide lines ─────────────────────────────── */
 .wos-snap-guide {
   position: absolute;

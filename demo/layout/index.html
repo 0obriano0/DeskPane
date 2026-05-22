@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebOS · Layout Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; height: 100vh; overflow: hidden; }
+    #desktop { position: relative; width: 100%; height: 100%; }
+
+    /* ── Toolbar ─────────────────────────────────────── */
+    #toolbar {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      z-index: 9999; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    }
+    button {
+      padding: 7px 16px; border: none; border-radius: 6px; cursor: pointer;
+      background: #4a5568; color: #fff; font-size: 13px;
+      transition: background .15s;
+    }
+    button:hover { background: #2d3748; }
+
+    /* demo region content styling */
+    .demo-content {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; font-size: 13px; color: #666; user-select: none;
+    }
+
+    a.back { position: absolute; top: 14px; left: 16px; z-index: 9999;
+      color: #aaa; font-size: 13px; text-decoration: none; }
+    a.back:hover { color: #fff; }
+  </style>
+</head>
+<body>
+  <div id="desktop"></div>
+  <a class="back" href="../index.html">← 返回</a>
+
+  <div id="toolbar">
+    <button onclick="openBorderLayout()">📐 BorderLayout 視窗</button>
+    <button onclick="openNestedLayout()">🗂 巢狀 BorderLayout</button>
+    <button onclick="openPanel()">📦 Panel 視窗</button>
+    <button onclick="openSimple()">🪟 一般視窗（對比）</button>
+  </div>
+
+  <script src="../../dist/webos-core.umd.js"></script>
+  <script>
+    const { WindowManager, setTheme } = WebOS;
+    setTheme('dark', { basePath: '../../dist/themes' });
+
+    const wm = new WindowManager({
+      container: document.getElementById('desktop'),
+      snapEnabled: true,
+    });
+
+    /* ── 1. Basic BorderLayout ─────────────────────────────── */
+    function openBorderLayout() {
+      // Build HTML-first content element
+      const content = document.createElement('div');
+
+      // North
+      const north = document.createElement('div');
+      north.dataset.region    = 'north';
+      north.dataset.size      = '40';
+      north.dataset.title     = '頂部工具列';
+      north.dataset.icon      = '🔧';
+      north.innerHTML = '<div class="demo-content">North — 工具列</div>';
+      content.appendChild(north);
+
+      // South
+      const south = document.createElement('div');
+      south.dataset.region    = 'south';
+      south.dataset.size      = '28';
+      south.dataset.title     = '狀態列';
+      south.innerHTML = '<div class="demo-content">South — 狀態列</div>';
+      content.appendChild(south);
+
+      // West
+      const west = document.createElement('div');
+      west.dataset.region     = 'west';
+      west.dataset.size       = '180';
+      west.dataset.collapsible = '';
+      west.dataset.title      = '檔案樹';
+      west.dataset.icon       = '📁';
+      west.innerHTML = '<div class="demo-content">West<br>側邊欄</div>';
+      content.appendChild(west);
+
+      // East
+      const east = document.createElement('div');
+      east.dataset.region     = 'east';
+      east.dataset.size       = '160';
+      east.dataset.collapsible = '';
+      east.dataset.title      = '屬性';
+      east.dataset.icon       = '🔍';
+      east.innerHTML = '<div class="demo-content">East<br>屬性面板</div>';
+      content.appendChild(east);
+
+      // Center
+      const center = document.createElement('div');
+      center.dataset.region   = 'center';
+      center.dataset.title    = '主內容';
+      center.innerHTML = '<div class="demo-content">Center — 主編輯區</div>';
+      content.appendChild(center);
+
+      wm.open({
+        title: 'BorderLayout Demo',
+        width: 720, height: 480,
+        x: 60, y: 80,
+        content,
+      });
+    }
+
+    /* ── 2. Nested BorderLayout ────────────────────────────── */
+    function openNestedLayout() {
+      const content = document.createElement('div');
+
+      // North
+      const north = document.createElement('div');
+      north.dataset.region = 'north';
+      north.dataset.size   = '36';
+      north.dataset.title  = '主工具列';
+      north.innerHTML = '<div class="demo-content">North</div>';
+      content.appendChild(north);
+
+      // West sidebar
+      const west = document.createElement('div');
+      west.dataset.region     = 'west';
+      west.dataset.size       = '160';
+      west.dataset.collapsible = '';
+      west.dataset.title      = '導航';
+      west.innerHTML = '<div class="demo-content">West</div>';
+      content.appendChild(west);
+
+      // Center — itself a nested BorderLayout
+      const center = document.createElement('div');
+      center.dataset.region = 'center';
+      // No title on outer center, inner layout fills completely
+
+      const centerNorth = document.createElement('div');
+      centerNorth.dataset.region = 'north';
+      centerNorth.dataset.size   = '30';
+      centerNorth.dataset.title  = '分頁列';
+      centerNorth.innerHTML = '<div class="demo-content">Inner North — 分頁</div>';
+
+      const centerSouth = document.createElement('div');
+      centerSouth.dataset.region = 'south';
+      centerSouth.dataset.size   = '80';
+      centerSouth.dataset.collapsible = '';
+      centerSouth.dataset.title  = '輸出';
+      centerSouth.innerHTML = '<div class="demo-content">Inner South — 輸出</div>';
+
+      const centerCenter = document.createElement('div');
+      centerCenter.dataset.region = 'center';
+      centerCenter.dataset.title  = '編輯器';
+      centerCenter.innerHTML = '<div class="demo-content">Inner Center<br>主編輯器</div>';
+
+      center.appendChild(centerNorth);
+      center.appendChild(centerSouth);
+      center.appendChild(centerCenter);
+      content.appendChild(center);
+
+      wm.open({
+        title: '巢狀 BorderLayout',
+        width: 760, height: 520,
+        x: 100, y: 60,
+        content,
+      });
+    }
+
+    /* ── 3. Standalone Panel ───────────────────────────────── */
+    function openPanel() {
+      const content = document.createElement('div');
+      content.dataset.panel      = '';
+      content.dataset.panelTitle = '可折疊面板';
+      content.dataset.collapsible = '';
+      content.innerHTML = `
+        <div style="padding:14px;font-size:13px;line-height:1.6">
+          <p>這是一個使用 <code>data-panel</code> 屬性宣告的 Panel 元件。</p>
+          <p style="margin-top:8px">點擊上方標題列旁的按鈕即可折疊 / 展開。</p>
+        </div>`;
+
+      wm.open({
+        title: 'Panel Demo',
+        width: 420, height: 260,
+        x: 200, y: 200,
+        content,
+      });
+    }
+
+    /* ── 4. Normal window (contrast) ───────────────────────── */
+    function openSimple() {
+      const content = document.createElement('div');
+      content.style.cssText = 'padding:20px;font-size:13px;line-height:1.7';
+      content.innerHTML = '<p>這是一個<strong>普通視窗</strong>（無 Layout 宣告），內容區可捲動。</p>';
+
+      wm.open({
+        title: '一般視窗',
+        width: 360, height: 200,
+        x: 320, y: 250,
+        content,
+      });
+    }
+
+    // Open the main demo immediately
+    openBorderLayout();
+  </script>
+</body>
+</html>

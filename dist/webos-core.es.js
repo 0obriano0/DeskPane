@@ -360,6 +360,9 @@ const BASE_CSS = `
   position: relative;
   background: var(--wos-body-bg, #ffffff);
 }
+.wos-body.wos-has-layout {
+  overflow: hidden;
+}
 /* ── Snap guide lines ─────────────────────────────── */
 .wos-snap-guide {
   position: absolute;
@@ -492,6 +495,671 @@ function snapPosition(drag, containerSize, others, threshold) {
 }
 
 // ============================================================
+// WebOS-Core — Border Layout Manager
+// EasyUI 風格東南西北+中間佈局，支援：
+//   • HTML data-region 宣告式初始化
+//   • 任意層巢狀（region 內再放 data-region）
+//   • Splitter 拖曳 resize
+//   • 可折疊面板（折疊按鈕在 header 右端，EasyUI 風格）
+//   • Region 標題列（data-title）+ 圖示（data-icon）
+//   • ResizeObserver 自動重排
+// ============================================================
+const LAYOUT_STYLE_ID = 'wos-layout-styles';
+const LAYOUT_CSS = `
+.wos-layout {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+}
+.wos-layout-region {
+  position: absolute;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+/* Region header (when data-title is set) */
+.wos-region-header {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 0 0 8px;
+  background: var(--wos-header-bg, #f5f5f5);
+  border-bottom: 1px solid var(--wos-header-border, #e0e0e0);
+  flex-shrink: 0;
+  user-select: none;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.wos-region-icon {
+  font-size: 13px;
+  margin-right: 5px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.wos-region-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wos-title-color, #333);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Collapse button — lives in header right end (EasyUI style) */
+.wos-region-collapse-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 28px;
+  border: none;
+  border-left: 1px solid var(--wos-header-border, #e0e0e0);
+  background: var(--wos-header-bg, #f5f5f5);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--wos-btn-color, #555);
+  transition: background 0.1s, color 0.1s;
+  z-index: 11;
+  line-height: 1;
+  margin-left: auto;
+  padding: 0;
+}
+.wos-region-collapse-btn:hover {
+  background: var(--wos-btn-hover-bg, #d8e4f0);
+  color: var(--wos-title-color, #333);
+}
+.wos-region-body {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  overflow: auto;
+  box-sizing: border-box;
+}
+/* ── Collapsed strip ───────────────────────────────────────── */
+.wos-layout-region--collapsed .wos-region-body {
+  display: none;
+}
+/* East/West collapsed: header fills the full vertical strip */
+.wos-layout-region--collapsed.wos-layout-region--west > .wos-region-header,
+.wos-layout-region--collapsed.wos-layout-region--east > .wos-region-header {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  height: auto;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  border-bottom: none;
+  overflow: hidden;
+}
+/* Collapse btn → top, full-width, larger */
+.wos-layout-region--collapsed.wos-layout-region--west .wos-region-collapse-btn,
+.wos-layout-region--collapsed.wos-layout-region--east .wos-region-collapse-btn {
+  order: 0;
+  width: 100%;
+  height: 28px;
+  font-size: 14px;
+  border-left: none;
+  border-bottom: 1px solid var(--wos-header-border, #e0e0e0);
+  margin-left: 0;
+  flex-shrink: 0;
+}
+/* Icon → below button */
+.wos-layout-region--collapsed.wos-layout-region--west .wos-region-icon,
+.wos-layout-region--collapsed.wos-layout-region--east .wos-region-icon {
+  order: 1;
+  margin-right: 0;
+  margin-top: 8px;
+  font-size: 15px;
+}
+/* Title → below icon, rotated */
+.wos-layout-region--collapsed.wos-layout-region--west .wos-region-title,
+.wos-layout-region--collapsed.wos-layout-region--east .wos-region-title {
+  order: 2;
+  writing-mode: vertical-lr;
+  flex: 1;
+  margin: 6px 0 4px;
+  min-height: 0;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+/* Splitters */
+.wos-layout-splitter {
+  position: absolute;
+  background: var(--wos-border, #d0d0d0);
+  box-sizing: border-box;
+  z-index: 10;
+  user-select: none;
+  transition: background 0.1s;
+}
+.wos-layout-splitter:hover,
+.wos-layout-splitter.wos-splitter-dragging {
+  background: var(--wos-border-active, #b0b8c8);
+}
+.wos-layout-splitter--v {
+  cursor: col-resize;
+}
+.wos-layout-splitter--h {
+  cursor: row-resize;
+}
+`;
+function injectLayoutStyles() {
+    if (document.getElementById(LAYOUT_STYLE_ID))
+        return;
+    const style = document.createElement('style');
+    style.id = LAYOUT_STYLE_ID;
+    style.textContent = LAYOUT_CSS;
+    document.head.appendChild(style);
+}
+const REGION_DEFAULTS = {
+    north: { size: 48, minSize: 24 },
+    south: { size: 120, minSize: 24 },
+    east: { size: 200, minSize: 60 },
+    west: { size: 200, minSize: 60 },
+    center: { size: 0, minSize: 40 },
+};
+class BorderLayout {
+    constructor(options) {
+        this.regions = new Map();
+        this.splitterEls = new Map();
+        this._childLayouts = [];
+        this.resizeObserver = null;
+        this.cleanups = [];
+        injectLayoutStyles();
+        // Resolve container
+        this.container = typeof options.container === 'string'
+            ? (() => {
+                const el = document.querySelector(options.container);
+                if (!el)
+                    throw new Error(`[BorderLayout] Container not found: ${options.container}`);
+                return el;
+            })()
+            : options.container;
+        this.splitterSize = options.splitterSize ?? 5;
+        this.headerSize = options.headerSize ?? 28;
+        // Parse HTML data-region children
+        const htmlMap = this._parseHTMLRegions();
+        // Build merged region states
+        const ALL_REGIONS = ['north', 'south', 'east', 'west', 'center'];
+        for (const name of ALL_REGIONS) {
+            const opt = options[name];
+            const html = htmlMap[name];
+            if (!opt && !html)
+                continue;
+            const merged = { ...html?.cfg, ...opt };
+            const def = REGION_DEFAULTS[name];
+            const size = merged.size ?? def.size;
+            // Create outer region el
+            const el = document.createElement('div');
+            el.className = `wos-layout-region wos-layout-region--${name}`;
+            el.dataset.wosRegion = name;
+            // Optional region header
+            const hasHeader = !!merged.title;
+            let headerEl = null;
+            if (hasHeader) {
+                headerEl = document.createElement('div');
+                headerEl.className = 'wos-region-header';
+                // Optional icon
+                if (merged.icon) {
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'wos-region-icon';
+                    iconSpan.textContent = merged.icon;
+                    headerEl.appendChild(iconSpan);
+                }
+                // Title
+                const ttl = document.createElement('span');
+                ttl.className = 'wos-region-title';
+                ttl.textContent = merged.title;
+                headerEl.appendChild(ttl);
+                // Collapse button (right end of header)
+                if (merged.collapsible) {
+                    const btn = document.createElement('button');
+                    btn.className = 'wos-region-collapse-btn';
+                    btn.dataset.wosCollapseFor = name;
+                    btn.setAttribute('aria-label', `切換 ${name} 面板`);
+                    btn.textContent = this._collapseIcon(name, merged.collapsed ?? false);
+                    headerEl.appendChild(btn);
+                }
+                el.appendChild(headerEl);
+            }
+            // Body (scrollable inner)
+            const bodyEl = document.createElement('div');
+            bodyEl.className = 'wos-region-body';
+            // Move content in
+            if (html?.contentEl) {
+                while (html.contentEl.firstChild)
+                    bodyEl.appendChild(html.contentEl.firstChild);
+            }
+            else if (merged.content) {
+                bodyEl.appendChild(merged.content);
+            }
+            el.appendChild(bodyEl);
+            this.regions.set(name, {
+                el, bodyEl, headerEl, size,
+                minSize: merged.minSize ?? def.minSize,
+                collapsible: merged.collapsible ?? false,
+                collapsed: merged.collapsed ?? false,
+                savedSize: size,
+                hasHeader,
+            });
+            // Apply initial collapsed class
+            if (merged.collapsed)
+                el.classList.add('wos-layout-region--collapsed');
+        }
+        this._buildDOM();
+        this._applyLayout();
+        this._attachEvents();
+        this._initChildLayouts();
+    }
+    // ── Parse HTML [data-region] direct children ───────────────
+    _parseHTMLRegions() {
+        const result = {};
+        const children = Array.from(this.container.children);
+        for (const child of children) {
+            const name = child.dataset.region;
+            if (!name || !REGION_DEFAULTS[name])
+                continue;
+            const cfg = {};
+            if (child.dataset.size)
+                cfg.size = +child.dataset.size;
+            if (child.dataset.minSize)
+                cfg.minSize = +child.dataset.minSize;
+            if ('collapsible' in child.dataset)
+                cfg.collapsible = true;
+            if ('collapsed' in child.dataset)
+                cfg.collapsed = true;
+            if (child.dataset.title)
+                cfg.title = child.dataset.title;
+            if (child.dataset.icon)
+                cfg.icon = child.dataset.icon;
+            result[name] = { cfg, contentEl: child };
+        }
+        return result;
+    }
+    // ── Build DOM ──────────────────────────────────────────────
+    _buildDOM() {
+        this.container.innerHTML = '';
+        this.container.classList.add('wos-layout');
+        // Append region elements
+        for (const state of this.regions.values()) {
+            this.container.appendChild(state.el);
+        }
+        // Create splitters between defined non-center regions
+        const splitterRegions = ['north', 'south', 'east', 'west'];
+        for (const name of splitterRegions) {
+            if (!this.regions.has(name))
+                continue;
+            const isV = name === 'east' || name === 'west';
+            const sp = document.createElement('div');
+            sp.className = `wos-layout-splitter wos-layout-splitter--${isV ? 'v' : 'h'}`;
+            sp.dataset.wosSplitter = name;
+            this.splitterEls.set(name, sp);
+            this.container.appendChild(sp);
+        }
+    }
+    // ── Compute & apply all positions ─────────────────────────
+    _applyLayout() {
+        const W = this.container.clientWidth;
+        const H = this.container.clientHeight;
+        const sp = this.splitterSize;
+        this.headerSize;
+        const north = this.regions.get('north');
+        const south = this.regions.get('south');
+        const east = this.regions.get('east');
+        const west = this.regions.get('west');
+        const center = this.regions.get('center');
+        const nH = north ? (north.collapsed ? this.headerSize : north.size) : 0;
+        const sH = south ? (south.collapsed ? this.headerSize : south.size) : 0;
+        const eW = east ? (east.collapsed ? this.headerSize : east.size) : 0;
+        const wW = west ? (west.collapsed ? this.headerSize : west.size) : 0;
+        const nSp = north ? sp : 0;
+        const sSp = south ? sp : 0;
+        const eSp = east ? sp : 0;
+        const wSp = west ? sp : 0;
+        // ── North
+        if (north) {
+            this._setRegionRect(north, 0, 0, W, nH);
+            const spEl = this.splitterEls.get('north');
+            this._applyRect(spEl, { top: nH, left: 0, width: W, height: sp });
+        }
+        // ── South
+        if (south) {
+            this._setRegionRect(south, 0, H - sH, W, sH);
+            const spEl = this.splitterEls.get('south');
+            this._applyRect(spEl, { top: H - sH - sp, left: 0, width: W, height: sp });
+        }
+        // Vertical band
+        const bandTop = nH + nSp;
+        const bandH = H - nH - nSp - sH - sSp;
+        // ── West
+        if (west) {
+            this._setRegionRect(west, 0, bandTop, wW, bandH);
+            const spEl = this.splitterEls.get('west');
+            this._applyRect(spEl, { top: bandTop, left: wW, width: sp, height: bandH });
+        }
+        // ── East
+        if (east) {
+            this._setRegionRect(east, W - eW, bandTop, eW, bandH);
+            const spEl = this.splitterEls.get('east');
+            this._applyRect(spEl, { top: bandTop, left: W - eW - sp, width: sp, height: bandH });
+        }
+        // ── Center
+        if (center) {
+            const cLeft = wW + wSp;
+            const cW = W - cLeft - eW - eSp;
+            this._setRegionRect(center, cLeft, bandTop, cW, bandH);
+        }
+    }
+    /** Set region outer el + inner body positions */
+    _setRegionRect(state, x, y, w, h) {
+        const el = state.el;
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        el.style.width = `${Math.max(0, w)}px`;
+        el.style.height = `${Math.max(0, h)}px`;
+        // body offset: leave room for header if present
+        const bodyTop = state.hasHeader ? this.headerSize : 0;
+        state.bodyEl.style.top = `${bodyTop}px`;
+        state.bodyEl.style.height = `${Math.max(0, h - bodyTop)}px`;
+    }
+    _applyRect(el, r) {
+        el.style.top = `${r.top}px`;
+        el.style.left = `${r.left}px`;
+        el.style.width = `${Math.max(0, r.width)}px`;
+        el.style.height = `${Math.max(0, r.height)}px`;
+    }
+    // ── Recursive child layout detection ──────────────────────
+    _initChildLayouts() {
+        for (const state of this.regions.values()) {
+            const hasNested = Array.from(state.bodyEl.children).some(c => c.dataset.region !== undefined);
+            if (hasNested) {
+                const child = new BorderLayout({
+                    container: state.bodyEl,
+                    splitterSize: this.splitterSize,
+                    headerSize: this.headerSize,
+                });
+                this._childLayouts.push(child);
+            }
+        }
+    }
+    // ── Event Listeners ───────────────────────────────────────
+    _attachEvents() {
+        // Splitter drag
+        for (const [name, spEl] of this.splitterEls) {
+            const onDown = (e) => {
+                if (e.target.closest('.wos-region-collapse-btn'))
+                    return;
+                this._startDrag(e, name);
+            };
+            spEl.addEventListener('mousedown', onDown);
+            this.cleanups.push(() => spEl.removeEventListener('mousedown', onDown));
+        }
+        // Collapse buttons — delegated on container (button lives in region header)
+        const onCollapseClick = (e) => {
+            const btn = e.target.closest('[data-wos-collapse-for]');
+            if (!btn)
+                return;
+            this.toggleCollapse(btn.dataset.wosCollapseFor);
+        };
+        this.container.addEventListener('click', onCollapseClick);
+        this.cleanups.push(() => this.container.removeEventListener('click', onCollapseClick));
+        // ResizeObserver
+        if (typeof ResizeObserver !== 'undefined') {
+            this.resizeObserver = new ResizeObserver(() => this._applyLayout());
+            this.resizeObserver.observe(this.container);
+        }
+    }
+    _startDrag(e, name) {
+        e.preventDefault();
+        const state = this.regions.get(name);
+        if (state.collapsed)
+            return;
+        const spEl = this.splitterEls.get(name);
+        const isV = name === 'east' || name === 'west';
+        const startPos = isV ? e.clientX : e.clientY;
+        const startSize = state.size;
+        const totalSize = isV ? this.container.clientWidth : this.container.clientHeight;
+        spEl.classList.add('wos-splitter-dragging');
+        const onMove = (ev) => {
+            const delta = isV ? (ev.clientX - startPos) : (ev.clientY - startPos);
+            let newSize = (name === 'east' || name === 'south')
+                ? startSize - delta
+                : startSize + delta;
+            newSize = Math.max(state.minSize, Math.min(totalSize * 0.85, newSize));
+            state.size = newSize;
+            state.savedSize = newSize;
+            this._applyLayout();
+        };
+        const onUp = () => {
+            spEl.classList.remove('wos-splitter-dragging');
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    }
+    // ── Collapse / Expand ──────────────────────────────────────
+    toggleCollapse(name) {
+        const state = this.regions.get(name);
+        if (!state?.collapsible)
+            return;
+        state.collapsed = !state.collapsed;
+        state.el.classList.toggle('wos-layout-region--collapsed', state.collapsed);
+        if (!state.collapsed && state.size < state.minSize) {
+            state.size = state.savedSize > 0 ? state.savedSize : REGION_DEFAULTS[name].size;
+        }
+        // Update button icon — button lives in headerEl
+        const btn = state.headerEl?.querySelector('[data-wos-collapse-for]');
+        if (btn)
+            btn.textContent = this._collapseIcon(name, state.collapsed);
+        this._applyLayout();
+    }
+    _collapseIcon(name, collapsed) {
+        if (name === 'west')
+            return collapsed ? '»' : '«';
+        if (name === 'east')
+            return collapsed ? '«' : '»';
+        if (name === 'north')
+            return collapsed ? '⋁' : '⋀';
+        if (name === 'south')
+            return collapsed ? '⋀' : '⋁';
+        return '';
+    }
+    // ── Public API ─────────────────────────────────────────────
+    /** 取得指定 region 的 body 元素（內容區） */
+    getRegionEl(name) {
+        return this.regions.get(name)?.bodyEl;
+    }
+    /** 手動觸發重新計算（容器尺寸已改變時使用） */
+    resize() {
+        this._applyLayout();
+    }
+    /** 銷毀：移除事件、observer；child layouts 遞迴 destroy */
+    destroy() {
+        this._childLayouts.forEach(c => c.destroy());
+        this._childLayouts = [];
+        this.cleanups.forEach(fn => fn());
+        this.cleanups = [];
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = null;
+        this.container.classList.remove('wos-layout');
+    }
+}
+
+// ============================================================
+// WebOS-Core — Panel Component
+// 為任意元素加上可折疊的標題列（EasyUI panel 風格）
+// 支援：
+//   • data-panel 宣告式自動初始化
+//   • JS-first: new Panel({ container, title, collapsible })
+//   • 折疊 / 展開（動畫 height）
+// ============================================================
+const PANEL_STYLE_ID = 'wos-panel-styles';
+const PANEL_CSS = `
+.wos-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+}
+.wos-panel-header {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 8px;
+  background: var(--wos-header-bg, #f5f5f5);
+  border-bottom: 1px solid var(--wos-header-border, #e0e0e0);
+  user-select: none;
+  flex-shrink: 0;
+  cursor: default;
+}
+.wos-panel-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wos-title-color, #333);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wos-panel-toggle {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--wos-btn-color, #555);
+  flex-shrink: 0;
+  transition: background 0.1s;
+  line-height: 1;
+}
+.wos-panel-toggle:hover {
+  background: var(--wos-btn-hover-bg, #e0e0e0);
+  border-color: var(--wos-border, #d0d0d0);
+}
+.wos-panel-body {
+  flex: 1;
+  overflow: auto;
+  box-sizing: border-box;
+  transition: max-height 0.2s ease;
+}
+.wos-panel-body.wos-panel-collapsed {
+  max-height: 0 !important;
+  overflow: hidden;
+}
+`;
+function injectPanelStyles() {
+    if (document.getElementById(PANEL_STYLE_ID))
+        return;
+    const style = document.createElement('style');
+    style.id = PANEL_STYLE_ID;
+    style.textContent = PANEL_CSS;
+    document.head.appendChild(style);
+}
+class Panel {
+    constructor(options) {
+        this.headerEl = null;
+        this.toggleBtn = null;
+        this.cleanups = [];
+        injectPanelStyles();
+        this.container = typeof options.container === 'string'
+            ? (() => {
+                const el = document.querySelector(options.container);
+                if (!el)
+                    throw new Error(`[Panel] Container not found: ${options.container}`);
+                return el;
+            })()
+            : options.container;
+        this._collapsed = options.collapsed ?? false;
+        this._collapsible = options.collapsible ?? false;
+        // Collect existing children to move into body
+        const children = Array.from(this.container.childNodes);
+        // Clear container
+        this.container.innerHTML = '';
+        this.container.classList.add('wos-panel');
+        // Header (always shown when title provided; or when collapsible)
+        const hasHeader = !!options.title || this._collapsible;
+        if (hasHeader) {
+            const hdr = document.createElement('div');
+            hdr.className = 'wos-panel-header';
+            const ttl = document.createElement('span');
+            ttl.className = 'wos-panel-title';
+            ttl.textContent = options.title ?? '';
+            hdr.appendChild(ttl);
+            if (this._collapsible) {
+                const btn = document.createElement('button');
+                btn.className = 'wos-panel-toggle';
+                btn.setAttribute('aria-label', '切換面板');
+                btn.textContent = this._collapsed ? '▶' : '▼';
+                hdr.appendChild(btn);
+                this.toggleBtn = btn;
+                const onToggle = () => this.toggle();
+                btn.addEventListener('click', onToggle);
+                // Also allow clicking title to toggle
+                hdr.style.cursor = 'pointer';
+                hdr.addEventListener('click', (e) => {
+                    if (e.target.closest('.wos-panel-toggle'))
+                        return;
+                    this.toggle();
+                });
+                this.cleanups.push(() => btn.removeEventListener('click', onToggle));
+            }
+            this.container.appendChild(hdr);
+            this.headerEl = hdr;
+        }
+        // Body
+        const body = document.createElement('div');
+        body.className = 'wos-panel-body';
+        // Restore original children
+        children.forEach(c => body.appendChild(c));
+        if (this._collapsed) {
+            body.classList.add('wos-panel-collapsed');
+        }
+        this.container.appendChild(body);
+        this.bodyEl = body;
+    }
+    // ── Public API ─────────────────────────────────────────────
+    get collapsed() { return this._collapsed; }
+    toggle() {
+        this._collapsed = !this._collapsed;
+        this.bodyEl.classList.toggle('wos-panel-collapsed', this._collapsed);
+        if (this.toggleBtn) {
+            this.toggleBtn.textContent = this._collapsed ? '▶' : '▼';
+        }
+    }
+    expand() {
+        if (this._collapsed)
+            this.toggle();
+    }
+    collapse() {
+        if (!this._collapsed)
+            this.toggle();
+    }
+    setTitle(title) {
+        const ttl = this.headerEl?.querySelector('.wos-panel-title');
+        if (ttl)
+            ttl.textContent = title;
+    }
+    /** 取得內容區元素 */
+    getBodyEl() {
+        return this.bodyEl;
+    }
+    destroy() {
+        this.cleanups.forEach(fn => fn());
+        this.cleanups = [];
+        this.container.classList.remove('wos-panel');
+    }
+}
+
+// ============================================================
 // WebOS-Core — WindowManager
 // 核心大腦：管理所有視窗的生命週期與狀態
 // ============================================================
@@ -506,6 +1174,8 @@ class WindowManager {
         this._cascadeCount = 0;
         this._guideV = null;
         this._guideH = null;
+        /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
+        this._layouts = new Map();
         this._container = opts.container ?? document.body;
         this._throttleMs = opts.throttleMs ?? 16;
         this._isolated = opts.isolated ?? false;
@@ -548,6 +1218,8 @@ class WindowManager {
         };
         const elements = createWindowDOM(state);
         this._container.appendChild(elements.root);
+        // ── Auto-detect BorderLayout / Panel in content ──────────
+        this._tryAutoLayout(state.id, state.content, elements.body);
         const dragResize = new DragResizeHandler(elements.root, elements.header, {
             throttleMs: this._throttleMs,
             containerEl: this._isolated ? this._container : undefined,
@@ -612,6 +1284,9 @@ class WindowManager {
         win.dragResize.destroy();
         win.elements.root.remove();
         this._wins.delete(id);
+        // 銷毀自動建立的 BorderLayout / Panel
+        this._layouts.get(id)?.destroy();
+        this._layouts.delete(id);
         this.events.emit('window:closed', { id });
         // 聚焦最後一個存活視窗
         this._focusTopWindow();
@@ -730,6 +1405,8 @@ class WindowManager {
     /** 銷毀所有視窗，清除事件 */
     destroy() {
         [...this._wins.keys()].forEach(id => this.close(id));
+        this._layouts.forEach(l => l.destroy());
+        this._layouts.clear();
         this.events.clearAll();
         this._guideV?.remove();
         this._guideH?.remove();
@@ -783,6 +1460,44 @@ class WindowManager {
             this._guideV.style.display = 'none';
         if (this._guideH)
             this._guideH.style.display = 'none';
+    }
+    // ── Layout auto-detection ─────────────────────────────────
+    /**
+     * 偵測 content 是否包含 BorderLayout 或 Panel 宣告，並自動初始化。
+     * - content 有 [data-region] 直接子元素 → BorderLayout（body 作為容器）
+     * - content 本身有 data-panel 屬性 → Panel（body 作為容器）
+     */
+    _tryAutoLayout(id, content, body) {
+        if (!(content instanceof HTMLElement))
+            return;
+        const hasRegions = Array.from(content.children).some(c => c.dataset.region !== undefined);
+        if (hasRegions) {
+            // Move [data-region] children from content into body, use body as layout container
+            while (content.firstChild)
+                body.appendChild(content.firstChild);
+            content.remove();
+            body.classList.add('wos-has-layout');
+            const layout = new BorderLayout({ container: body });
+            this._layouts.set(id, layout);
+            return;
+        }
+        if ('panel' in content.dataset) {
+            // Move content's children into body, use body as Panel container
+            const panelTitle = content.dataset.panelTitle ?? content.dataset.title ?? '';
+            const panelCollapsible = 'collapsible' in content.dataset;
+            const panelCollapsed = 'collapsed' in content.dataset;
+            while (content.firstChild)
+                body.appendChild(content.firstChild);
+            content.remove();
+            body.classList.add('wos-has-layout');
+            const panel = new Panel({
+                container: body,
+                title: panelTitle || undefined,
+                collapsible: panelCollapsible,
+                collapsed: panelCollapsed,
+            });
+            this._layouts.set(id, panel);
+        }
     }
     _deactivateOthers(exceptId) {
         this._wins.forEach((win, id) => {
@@ -848,5 +1563,5 @@ function setTheme(preset, options = {}) {
     }
 }
 
-export { EventBus, WindowManager, eventBus, setTheme, snapPosition };
+export { BorderLayout, EventBus, Panel, WindowManager, eventBus, setTheme, snapPosition };
 //# sourceMappingURL=webos-core.es.js.map

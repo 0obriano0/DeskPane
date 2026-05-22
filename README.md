@@ -22,6 +22,7 @@ The core handles all window lifecycle, drag/resize, focus, and z-order — your 
 - ✅ ES Module + UMD builds — works with bundlers or plain `<script>` tags
 - ✅ Minified builds — `webos-core.es.min.js` / `webos-core.umd.min.js`
 - ✅ **Theme system** — built-in light/dark CSS themes with CSS custom properties; `setTheme()` utility for runtime switching
+- ✅ **BorderLayout** — EasyUI-style N/S/E/W/Center docking layout; HTML-first `data-region` declaration; collapsible panels with mini strip; draggable splitters; nested layouts
 
 ---
 
@@ -275,6 +276,61 @@ All 14 window style properties can be overridden to create your own theme:
   --wos-snap-guide-color: rgba(74,144,226,0.4);
 }
 ```
+
+---
+
+## BorderLayout
+
+Embed an EasyUI-style docking layout inside any window. Declare regions with `data-region` attributes — `WindowManager.open()` auto-detects and renders the layout.
+
+### HTML-first declaration
+
+```html
+<script>
+const content = document.createElement('div')
+content.innerHTML = `
+  <div data-region="north" data-title="Toolbar"  data-icon="🔧" data-size="40" data-collapsible></div>
+  <div data-region="west"  data-title="Nav"      data-icon="📁" data-size="200" data-collapsible>
+    <p>Sidebar content</p>
+  </div>
+  <div data-region="east"  data-title="Props"    data-icon="🔍" data-size="180" data-collapsible></div>
+  <div data-region="south" data-title="Status"   data-size="28"  data-collapsible></div>
+  <div data-region="center">
+    <p>Main content</p>
+  </div>
+`
+wm.open({ id: 'my-app', title: 'My App', width: 900, height: 600, content })
+</script>
+```
+
+### JS-first declaration
+
+```typescript
+import { BorderLayout } from 'webos-core'
+
+const layout = new BorderLayout({
+  container: myElement,
+  west:   { size: 200, minSize: 80, collapsible: true, title: 'Nav',   icon: '📁' },
+  center: { },
+  east:   { size: 180, minSize: 80, collapsible: true, title: 'Props', icon: '🔍' },
+})
+```
+
+### `data-*` attributes
+
+| Attribute | Description |
+|-----------|-------------|
+| `data-region="north\|south\|east\|west\|center"` | Region direction |
+| `data-size="200"` | Width (E/W) or height (N/S) in px |
+| `data-min-size="60"` | Minimum drag size in px |
+| `data-collapsible` | Allow collapsing (presence flag) |
+| `data-collapsed` | Initially collapsed |
+| `data-title="Label"` | Show region header bar |
+| `data-icon="🔧"` | Icon shown before title |
+
+### Collapsed strip
+
+When collapsed, a region shrinks to a **28px mini strip** (EasyUI style): expand button at top → icon → rotated title. Click the button to expand.
 
 ---
 

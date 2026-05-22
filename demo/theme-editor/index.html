@@ -581,6 +581,54 @@ function initPreview() {
     y: 80,
     content: buildPreviewContent('sub'),
   });
+
+  // BorderLayout 示範視窗
+  wm.open({
+    id: 'preview-layout',
+    title: '📐 BorderLayout 示範',
+    width: 580,
+    height: 340,
+    x: 80,
+    y: 370,
+    content: buildLayoutPreviewContent(),
+  });
+}
+
+function buildLayoutPreviewContent() {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'width:100%;height:100%;position:relative;';
+
+  wrap.innerHTML = `
+    <div data-region="north" data-title="工具列" data-icon="🔧" data-size="36" data-collapsible></div>
+    <div data-region="west"  data-title="導航" data-icon="📁" data-size="130" data-collapsible>
+      <div style="padding:8px;font-size:0.78rem;opacity:.7;line-height:2">
+        <div>📄 文件一</div><div>📄 文件二</div><div>📄 文件三</div>
+      </div>
+    </div>
+    <div data-region="east"  data-title="屬性" data-icon="🔍" data-size="120" data-collapsible>
+      <div style="padding:8px;font-size:0.78rem;opacity:.7;line-height:2">
+        <div>寬度: 100px</div><div>高度: 80px</div><div>顏色: #333</div>
+      </div>
+    </div>
+    <div data-region="south" data-title="狀態列" data-size="30" data-collapsible>
+      <div style="padding:4px 8px;font-size:0.75rem;opacity:.6;">就緒</div>
+    </div>
+    <div data-region="center">
+      <div style="padding:16px;font-size:0.82rem;opacity:.75;line-height:1.8;">
+        <b>Center 內容區</b><br>
+        拖曳分隔線調整大小，<br>點擊標題列按鈕折疊面板。
+      </div>
+    </div>
+  `;
+
+  // 初始化 BorderLayout（DOM 插入後延遲執行）
+  setTimeout(() => {
+    if (WebOS.BorderLayout) {
+      new WebOS.BorderLayout({ container: wrap, splitterSize: 4 });
+    }
+  }, 0);
+
+  return wrap;
 }
 
 function buildPreviewContent(type) {

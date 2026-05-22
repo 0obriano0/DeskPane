@@ -210,6 +210,9 @@
   <button class="dock-item" data-app="jq-table">
     📊<span class="dock-label">表格</span>
   </button>
+  <button class="dock-item" data-app="jq-layout">
+    📐<span class="dock-label">Layout</span>
+  </button>
   <div class="dock-separator"></div>
   <button class="dock-item" id="dock-destroy" title="關閉全部">
     💣<span class="dock-label">關閉全部</span>
@@ -247,6 +250,7 @@
     'jq-search': { icon: '🔍', title: '即時搜尋',   label: '搜尋' },
     'jq-accord': { icon: '🎨', title: '摺疊面板',   label: '摺疊' },
     'jq-table':  { icon: '📊', title: '資料表格',   label: '表格' },
+    'jq-layout': { icon: '📐', title: 'BorderLayout Demo', label: 'Layout' },
   };
 
   // ── 任務列更新 ──
@@ -513,6 +517,33 @@
     return $el[0];
   }
 
+  function createBorderLayout() {
+    var wrap = document.createElement('div');
+
+    function region(dir, opts) {
+      opts = opts || {};
+      var el = document.createElement('div');
+      el.dataset.region = dir;
+      if (opts.size)        el.dataset.size        = String(opts.size);
+      if (opts.minSize)     el.dataset.minSize      = String(opts.minSize);
+      if (opts.title)       el.dataset.title        = opts.title;
+      if (opts.icon)        el.dataset.icon         = opts.icon;
+      if (opts.collapsible) el.dataset.collapsible  = '';
+      var inner = document.createElement('div');
+      inner.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;color:#888;user-select:none;text-align:center;';
+      inner.textContent = opts.label || dir;
+      el.appendChild(inner);
+      return el;
+    }
+
+    wrap.appendChild(region('north', { size: 40,  title: '工具列',  label: 'North — 工具列', icon: '🔧' }));
+    wrap.appendChild(region('south', { size: 28,  title: '狀態列',  label: 'South — 狀態列' }));
+    wrap.appendChild(region('west',  { size: 180, title: '導航',    label: 'West 側邊欄', collapsible: true, icon: '📁' }));
+    wrap.appendChild(region('east',  { size: 160, title: '屬性',    label: 'East 屬性', collapsible: true, icon: '🔍' }));
+    wrap.appendChild(region('center',{ title: '主內容', label: 'Center 主編輯區' }));
+    return wrap;
+  }
+
   // ── App 設定 ──
   var APP_CONFIGS = {
     'jq-text':   { width: 500, height: 360, factory: createTextEditor },
@@ -520,6 +551,7 @@
     'jq-search': { width: 360, height: 360, factory: createLiveSearch },
     'jq-accord': { width: 460, height: 340, factory: createAccordion  },
     'jq-table':  { width: 560, height: 340, factory: createDataTable  },
+    'jq-layout': { width: 720, height: 480, factory: createBorderLayout },
   };
 
   function openApp(id) {

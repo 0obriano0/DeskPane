@@ -91,6 +91,8 @@ declare class WindowManager {
     private readonly _snapThreshold;
     private _guideV;
     private _guideH;
+    /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
+    private readonly _layouts;
     readonly events: EventBus;
     constructor(opts?: WindowManagerOptions);
     /**
@@ -136,6 +138,12 @@ declare class WindowManager {
     private _updateSnapGuides;
     /** 拖曳結束時隱藏所有 guide 線 */
     private _hideSnapGuides;
+    /**
+     * 偵測 content 是否包含 BorderLayout 或 Panel 宣告，並自動初始化。
+     * - content 有 [data-region] 直接子元素 → BorderLayout（body 作為容器）
+     * - content 本身有 data-panel 屬性 → Panel（body 作為容器）
+     */
+    private _tryAutoLayout;
     private _deactivateOthers;
     private _focusTopWindow;
 }
@@ -206,5 +214,91 @@ interface SetThemeOptions {
  */
 declare function setTheme(preset: WosThemePreset, options?: SetThemeOptions): void;
 
-export { EventBus, WindowManager, eventBus, setTheme, snapPosition };
-export type { EventCallback, SetThemeOptions, SlotType, SnapGuide, SnapRect, SnapResult, WinEvent, WindowConfig, WindowState, WosThemePreset };
+type LayoutRegion = 'north' | 'south' | 'east' | 'west' | 'center';
+type SplitterKey = Exclude<LayoutRegion, 'center'>;
+interface RegionConfig {
+    /** Width (east/west) or height (north/south) in px */
+    size?: number;
+    minSize?: number;
+    collapsible?: boolean;
+    collapsed?: boolean;
+    /** Title shown in region header bar */
+    title?: string;
+    /** Icon shown before title (emoji or text) */
+    icon?: string;
+    /** Content element (used in JS-first mode) */
+    content?: HTMLElement;
+}
+interface BorderLayoutOptions {
+    /** Container element or CSS selector */
+    container: HTMLElement | string;
+    /** Splitter thickness in px (default: 5) */
+    splitterSize?: number;
+    /** Region header height in px (default: 28) */
+    headerSize?: number;
+    north?: RegionConfig;
+    south?: RegionConfig;
+    east?: RegionConfig;
+    west?: RegionConfig;
+    center?: RegionConfig;
+}
+declare class BorderLayout {
+    private container;
+    private splitterSize;
+    private headerSize;
+    private regions;
+    private splitterEls;
+    private _childLayouts;
+    private resizeObserver;
+    private cleanups;
+    constructor(options: BorderLayoutOptions);
+    private _parseHTMLRegions;
+    private _buildDOM;
+    private _applyLayout;
+    /** Set region outer el + inner body positions */
+    private _setRegionRect;
+    private _applyRect;
+    private _initChildLayouts;
+    private _attachEvents;
+    private _startDrag;
+    toggleCollapse(name: SplitterKey): void;
+    private _collapseIcon;
+    /** 取得指定 region 的 body 元素（內容區） */
+    getRegionEl(name: LayoutRegion): HTMLElement | undefined;
+    /** 手動觸發重新計算（容器尺寸已改變時使用） */
+    resize(): void;
+    /** 銷毀：移除事件、observer；child layouts 遞迴 destroy */
+    destroy(): void;
+}
+
+interface PanelOptions {
+    /** Container element or CSS selector */
+    container: HTMLElement | string;
+    /** Title text shown in the header bar */
+    title?: string;
+    /** Show collapse/expand toggle button (default: false) */
+    collapsible?: boolean;
+    /** Initially collapsed (default: false) */
+    collapsed?: boolean;
+}
+declare class Panel {
+    private container;
+    private headerEl;
+    private bodyEl;
+    private toggleBtn;
+    private _collapsed;
+    private _collapsible;
+    private cleanups;
+    constructor(options: PanelOptions);
+    get collapsed(): boolean;
+    toggle(): void;
+    expand(): void;
+    collapse(): void;
+    setTitle(title: string): void;
+    /** 取得內容區元素 */
+    getBodyEl(): HTMLElement;
+    destroy(): void;
+}
+
+export { BorderLayout, EventBus, Panel, WindowManager, eventBus, setTheme, snapPosition };
+export type { BorderLayoutOptions, EventCallback, LayoutRegion, PanelOptions, RegionConfig, SetThemeOptions, SlotType, SnapGuide, SnapRect, SnapResult, WinEvent, WindowConfig, WindowState, WosThemePreset };

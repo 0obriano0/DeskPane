@@ -170,6 +170,9 @@
   <button class="dock-item" data-app="counter-win">
     🔢<span class="dock-label">計數器</span>
   </button>
+  <button class="dock-item" data-app="layout-win">
+    📐<span class="dock-label">Layout</span>
+  </button>
   <div class="dock-separator"></div>
   <button class="dock-item" id="dock-destroy" title="關閉全部">
     💣<span class="dock-label">關閉全部</span>
@@ -213,6 +216,7 @@
     'text-win':    '📝',
     'form-win':    '📋',
     'counter-win': '🔢',
+    'layout-win':  '📐',
   };
 
   function getIcon(id) {
@@ -329,6 +333,32 @@
     return div;
   }
 
+  function makeBorderLayoutContent() {
+    const wrap = document.createElement('div');
+
+    function region(dir, opts = {}) {
+      const el = document.createElement('div');
+      el.dataset.region = dir;
+      if (opts.size)        el.dataset.size        = String(opts.size);
+      if (opts.minSize)     el.dataset.minSize      = String(opts.minSize);
+      if (opts.title)       el.dataset.title        = opts.title;
+      if (opts.icon)        el.dataset.icon         = opts.icon;
+      if (opts.collapsible) el.dataset.collapsible  = '';
+      const inner = document.createElement('div');
+      inner.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;color:#888;user-select:none;';
+      inner.textContent = opts.label ?? dir;
+      el.appendChild(inner);
+      return el;
+    }
+
+    wrap.appendChild(region('north', { size: 40,  title: '工具列',   label: 'North — 工具列', icon: '🔧' }));
+    wrap.appendChild(region('south', { size: 28,  title: '狀態列',   label: 'South — 狀態列' }));
+    wrap.appendChild(region('west',  { size: 180, title: '導航',     label: 'West\n側邊欄', collapsible: true, icon: '📁' }));
+    wrap.appendChild(region('east',  { size: 160, title: '屬性',     label: 'East\n屬性', collapsible: true, icon: '🔍' }));
+    wrap.appendChild(region('center',{ title: '主內容', label: 'Center\n主編輯區' }));
+    return wrap;
+  }
+
   function makeCounterContent() {
     const div = document.createElement('div');
     div.style.cssText = 'padding:24px;text-align:center;';
@@ -355,6 +385,7 @@
     'text-win':    () => ({ id: 'text-win',    title: '文字視窗',            content: makeTextContent(),   width: 400, height: 280, x: 140, y: 80 }),
     'form-win':    () => ({ id: 'form-win',    title: '員工資料表單',         content: makeFormContent(),   width: 340, height: 300, x: 180, y: 100 }),
     'counter-win': () => ({ id: 'counter-win', title: 'Keep-Alive 計數器',   content: makeCounterContent(),width: 300, height: 240, x: 220, y: 120 }),
+    'layout-win':  () => ({ id: 'layout-win',  title: 'BorderLayout Demo',    content: makeBorderLayoutContent(), width: 720, height: 480, x: 80, y: 60 }),
   };
 
   document.querySelectorAll('.dock-item[data-app]').forEach(el => {
