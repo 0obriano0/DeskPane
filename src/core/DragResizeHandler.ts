@@ -22,6 +22,11 @@ export interface DragResizeOptions {
    * 若不傳則不做吸附。
    */
   snapFn?: (x: number, y: number, width: number, height: number) => { x: number; y: number };
+  /**
+   * 縮放吸附函數。縮放時呼叫，回傳吸附後的位置與大小。
+   * 若不傳則縮放時不做吸附。
+   */
+  resizeSnapFn?: (x: number, y: number, width: number, height: number, edge: string) => { x: number; y: number; width: number; height: number };
   onDragStart?: () => void;
   onDrag?: (x: number, y: number) => void;
   onDragEnd?: () => void;
@@ -47,7 +52,7 @@ function throttle<T extends (...args: any[]) => void>(fn: T, ms: number): T {
 export class DragResizeHandler {
   private _winEl: HTMLElement;
   private _headerEl: HTMLElement;
-  private _opts: Required<Omit<DragResizeOptions, 'containerEl' | 'snapFn'>> & { containerEl?: HTMLElement; snapFn?: DragResizeOptions['snapFn'] };
+  private _opts: Required<Omit<DragResizeOptions, 'containerEl' | 'snapFn' | 'resizeSnapFn'>> & { containerEl?: HTMLElement; snapFn?: DragResizeOptions['snapFn']; resizeSnapFn?: DragResizeOptions['resizeSnapFn'] };
 
   // 拖曳狀態
   private _dragging = false;
@@ -80,6 +85,7 @@ export class DragResizeHandler {
       minHeight: opts.minHeight ?? 120,
       containerEl: opts.containerEl,
       snapFn: opts.snapFn,
+      resizeSnapFn: opts.resizeSnapFn,
       onDragStart: opts.onDragStart ?? (() => {}),
       onDrag: opts.onDrag ?? (() => {}),
       onDragEnd: opts.onDragEnd ?? (() => {}),
@@ -199,11 +205,22 @@ export class DragResizeHandler {
 
     // 轉換為容器相對座標（isolated 模式下 newX/newY 是 viewport 座標）
     const { left: cLeft, top: cTop } = this._getContainerRect();
-    this._winEl.style.left = `${newX - cLeft}px`;
-    this._winEl.style.top = `${newY - cTop}px`;
+    let cx = newX - cLeft;
+    let cy = newY - cTop;
+
+    if (this._opts.resizeSnapFn) {
+      const snapped = this._opts.resizeSnapFn(cx, cy, newW, newH, edge);
+      cx = snapped.x;
+      cy = snapped.y;
+      newW = snapped.width;
+      newH = snapped.height;
+    }
+
+    this._winEl.style.left = `${cx}px`;
+    this._winEl.style.top = `${cy}px`;
     this._winEl.style.width = `${newW}px`;
     this._winEl.style.height = `${newH}px`;
-    this._opts.onResize(newX - cLeft, newY - cTop, newW, newH);
+    this._opts.onResize(cx, cy, newW, newH);
   }
 
   private _handleUp(): void {

@@ -10,7 +10,7 @@ A **framework-agnostic** web virtual desktop window management engine.
 
 - ✅ Open / close / minimize / maximize / restore windows
 - ✅ Drag & resize with throttling (60 fps default)
-- ✅ **Snap alignment** — windows snap to edges and each other while dragging
+- ✅ **Snap alignment** — windows snap to edges and each other while **dragging and resizing**; configurable gap between windows
 - ✅ Focus / z-order management
 - ✅ Event bus — subscribe to any window lifecycle event
 - ✅ Isolated mode — embed a desktop inside any container element
@@ -133,8 +133,9 @@ export default function App() {
 | `container` | `HTMLElement` | `document.body` | Desktop container element |
 | `isolated` | `boolean` | `false` | Constrain windows to container (`position: absolute`) |
 | `throttleMs` | `number` | `16` | Drag/resize throttle interval (ms) |
-| `snap` | `boolean` | `true` | Enable snap alignment while dragging |
+| `snap` | `boolean` | `true` | Enable snap alignment while dragging **and resizing** |
 | `snapThreshold` | `number` | `20` | Snap trigger distance (px) |
+| `snapGap` | `number` | `0` | Gap between windows when snapping (px). Container edges are not affected. |
 
 > **RWD**: Automatically monitors container size via `ResizeObserver` and clamps all windows back into view when the viewport shrinks.
 
@@ -149,6 +150,7 @@ export default function App() {
 | `wm.restore(id)` | Restore from minimized or maximized |
 | `wm.focus(id)` | Bring window to front |
 | `wm.setTitle(id, title)` | Update the window title bar |
+| `wm.setSnapGap(gap)` | Dynamically update the window-to-window snap gap (px) |
 | `wm.getState(id)` | Get current `WindowState` |
 | `wm.getBodyElement(id)` | Get the window's content `HTMLElement` |
 | `wm.getWindowIds()` | Get all open window IDs |

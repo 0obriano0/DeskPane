@@ -7,7 +7,7 @@ import { WindowConfig, WindowState, EventCallback } from './types.js';
 import { EventBus } from './EventBus.js';
 import { DragResizeHandler } from './DragResizeHandler.js';
 import { injectStyles, createWindowDOM, applyGeometry, WindowElements } from '../renderers/DOMRenderer.js';
-import { snapPosition, SnapRect, SnapGuide } from './SnapHelper.js';
+import { snapPosition, snapResize, SnapRect, SnapGuide } from './SnapHelper.js';
 import { BorderLayout } from '../layout/BorderLayout.js';
 import { Panel } from '../layout/Panel.js';
 
@@ -156,6 +156,19 @@ export class WindowManager {
           this._updateSnapGuides(result.guides);
           return { x: result.x, y: result.y };
         } : undefined,
+        resizeSnapFn: this._snapEnabled ? (x, y, w, h, edge) => {
+          const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+          const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+          const others: SnapRect[] = [];
+          this._wins.forEach((win2, wid) => {
+            if (wid !== state.id && !win2.state.isMinimized && !win2.state.isMaximized) {
+              others.push({ x: win2.state.x, y: win2.state.y, width: win2.state.width, height: win2.state.height });
+            }
+          });
+          const result = snapResize({ x, y, width: w, height: h }, edge, { width: cw, height: ch }, others, this._snapThreshold, this._snapGap);
+          this._updateSnapGuides(result.guides);
+          return { x: result.x, y: result.y, width: result.width, height: result.height };
+        } : undefined,
         onDrag: (x, y) => {
           state.x = x; state.y = y;
           this.events.emit<WindowState>('window:moved', { ...state });
@@ -166,6 +179,9 @@ export class WindowManager {
         onResize: (x, y, w, h) => {
           state.x = x; state.y = y; state.width = w; state.height = h;
           this.events.emit<WindowState>('window:resized', { ...state });
+        },
+        onResizeEnd: () => {
+          this._hideSnapGuides();
         },
       }
     );

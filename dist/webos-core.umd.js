@@ -84,6 +84,7 @@
                 minHeight: opts.minHeight ?? 120,
                 containerEl: opts.containerEl,
                 snapFn: opts.snapFn,
+                resizeSnapFn: opts.resizeSnapFn,
                 onDragStart: opts.onDragStart ?? (() => { }),
                 onDrag: opts.onDrag ?? (() => { }),
                 onDragEnd: opts.onDragEnd ?? (() => { }),
@@ -194,11 +195,20 @@
             }
             // 轉換為容器相對座標（isolated 模式下 newX/newY 是 viewport 座標）
             const { left: cLeft, top: cTop } = this._getContainerRect();
-            this._winEl.style.left = `${newX - cLeft}px`;
-            this._winEl.style.top = `${newY - cTop}px`;
+            let cx = newX - cLeft;
+            let cy = newY - cTop;
+            if (this._opts.resizeSnapFn) {
+                const snapped = this._opts.resizeSnapFn(cx, cy, newW, newH, edge);
+                cx = snapped.x;
+                cy = snapped.y;
+                newW = snapped.width;
+                newH = snapped.height;
+            }
+            this._winEl.style.left = `${cx}px`;
+            this._winEl.style.top = `${cy}px`;
             this._winEl.style.width = `${newW}px`;
             this._winEl.style.height = `${newH}px`;
-            this._opts.onResize(newX - cLeft, newY - cTop, newW, newH);
+            this._opts.onResize(cx, cy, newW, newH);
         }
         _handleUp() {
             if (this._dragging) {
@@ -509,6 +519,86 @@
         if (guideY !== null)
             guides.push({ axis: 'h', pos: guideY });
         return { x: snapX, y: snapY, guides };
+    }
+    /**
+     * 找最近的吸附目標。
+     */
+    function nearestSnap(value, targets, threshold) {
+        let best = threshold;
+        let snapped = value;
+        let guide = null;
+        for (const t of targets) {
+            const d = Math.abs(value - t);
+            if (d < best) {
+                best = d;
+                snapped = t;
+                guide = t;
+            }
+        }
+        return { snapped, guide };
+    }
+    /**
+     * 計算縮放視窗時的吸附結果。
+     *
+     * @param rect          縮放中視窗目前的位置與大小（容器相對座標）
+     * @param edge          正在移動的邊：'n'|'s'|'e'|'w'|'ne'|'nw'|'se'|'sw'
+     * @param containerSize 容器寬高
+     * @param others        其他非最小化 / 非最大化視窗
+     * @param threshold     吸附感應距離（px）
+     * @param gap           視窗間距（px），預設 0；容器邊緣不套用
+     */
+    function snapResize(rect, edge, containerSize, others, threshold, gap = 0) {
+        let { x, y, width, height } = rect;
+        const guides = [];
+        if (edge.includes('e')) {
+            const right = x + width;
+            const targets = [
+                containerSize.width,
+                ...others.flatMap(o => [o.x - gap, o.x + o.width]),
+            ];
+            const { snapped, guide } = nearestSnap(right, targets, threshold);
+            width = Math.max(1, snapped - x);
+            if (guide !== null)
+                guides.push({ axis: 'v', pos: guide });
+        }
+        if (edge.includes('w')) {
+            const left = x;
+            const right = x + width;
+            const targets = [
+                0,
+                ...others.flatMap(o => [o.x + o.width + gap, o.x]),
+            ];
+            const { snapped, guide } = nearestSnap(left, targets, threshold);
+            x = snapped;
+            width = Math.max(1, right - x);
+            if (guide !== null)
+                guides.push({ axis: 'v', pos: guide });
+        }
+        if (edge.includes('s')) {
+            const bottom = y + height;
+            const targets = [
+                containerSize.height,
+                ...others.flatMap(o => [o.y - gap, o.y + o.height]),
+            ];
+            const { snapped, guide } = nearestSnap(bottom, targets, threshold);
+            height = Math.max(1, snapped - y);
+            if (guide !== null)
+                guides.push({ axis: 'h', pos: guide });
+        }
+        if (edge.includes('n')) {
+            const top = y;
+            const bottom = y + height;
+            const targets = [
+                0,
+                ...others.flatMap(o => [o.y + o.height + gap, o.y]),
+            ];
+            const { snapped, guide } = nearestSnap(top, targets, threshold);
+            y = snapped;
+            height = Math.max(1, bottom - y);
+            if (guide !== null)
+                guides.push({ axis: 'h', pos: guide });
+        }
+        return { x, y, width, height, guides };
     }
 
     // ============================================================
@@ -1262,6 +1352,19 @@
                     this._updateSnapGuides(result.guides);
                     return { x: result.x, y: result.y };
                 } : undefined,
+                resizeSnapFn: this._snapEnabled ? (x, y, w, h, edge) => {
+                    const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+                    const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+                    const others = [];
+                    this._wins.forEach((win2, wid) => {
+                        if (wid !== state.id && !win2.state.isMinimized && !win2.state.isMaximized) {
+                            others.push({ x: win2.state.x, y: win2.state.y, width: win2.state.width, height: win2.state.height });
+                        }
+                    });
+                    const result = snapResize({ x, y, width: w, height: h }, edge, { width: cw, height: ch }, others, this._snapThreshold, this._snapGap);
+                    this._updateSnapGuides(result.guides);
+                    return { x: result.x, y: result.y, width: result.width, height: result.height };
+                } : undefined,
                 onDrag: (x, y) => {
                     state.x = x;
                     state.y = y;
@@ -1276,6 +1379,9 @@
                     state.width = w;
                     state.height = h;
                     this.events.emit('window:resized', { ...state });
+                },
+                onResizeEnd: () => {
+                    this._hideSnapGuides();
                 },
             });
             // 綁定標題列按鈕

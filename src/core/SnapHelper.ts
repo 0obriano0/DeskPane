@@ -23,6 +23,14 @@ export interface SnapResult {
   guides: SnapGuide[];
 }
 
+export interface SnapResizeResult {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  guides: SnapGuide[];
+}
+
 /**
  * 計算單軸的吸附結果。
  * nearTargets：近邊（left/top）匹配用目標。
@@ -104,4 +112,94 @@ export function snapPosition(
   if (guideY !== null) guides.push({ axis: 'h', pos: guideY });
 
   return { x: snapX, y: snapY, guides };
+}
+
+/**
+ * 找最近的吸附目標。
+ */
+function nearestSnap(
+  value: number,
+  targets: number[],
+  threshold: number,
+): { snapped: number; guide: number | null } {
+  let best = threshold;
+  let snapped = value;
+  let guide: number | null = null;
+  for (const t of targets) {
+    const d = Math.abs(value - t);
+    if (d < best) { best = d; snapped = t; guide = t; }
+  }
+  return { snapped, guide };
+}
+
+/**
+ * 計算縮放視窗時的吸附結果。
+ *
+ * @param rect          縮放中視窗目前的位置與大小（容器相對座標）
+ * @param edge          正在移動的邊：'n'|'s'|'e'|'w'|'ne'|'nw'|'se'|'sw'
+ * @param containerSize 容器寬高
+ * @param others        其他非最小化 / 非最大化視窗
+ * @param threshold     吸附感應距離（px）
+ * @param gap           視窗間距（px），預設 0；容器邊緣不套用
+ */
+export function snapResize(
+  rect: SnapRect,
+  edge: string,
+  containerSize: { width: number; height: number },
+  others: SnapRect[],
+  threshold: number,
+  gap: number = 0,
+): SnapResizeResult {
+  let { x, y, width, height } = rect;
+  const guides: SnapGuide[] = [];
+
+  if (edge.includes('e')) {
+    const right = x + width;
+    const targets = [
+      containerSize.width,
+      ...others.flatMap(o => [o.x - gap, o.x + o.width]),
+    ];
+    const { snapped, guide } = nearestSnap(right, targets, threshold);
+    width = Math.max(1, snapped - x);
+    if (guide !== null) guides.push({ axis: 'v', pos: guide });
+  }
+
+  if (edge.includes('w')) {
+    const left = x;
+    const right = x + width;
+    const targets = [
+      0,
+      ...others.flatMap(o => [o.x + o.width + gap, o.x]),
+    ];
+    const { snapped, guide } = nearestSnap(left, targets, threshold);
+    x = snapped;
+    width = Math.max(1, right - x);
+    if (guide !== null) guides.push({ axis: 'v', pos: guide });
+  }
+
+  if (edge.includes('s')) {
+    const bottom = y + height;
+    const targets = [
+      containerSize.height,
+      ...others.flatMap(o => [o.y - gap, o.y + o.height]),
+    ];
+    const { snapped, guide } = nearestSnap(bottom, targets, threshold);
+    height = Math.max(1, snapped - y);
+    if (guide !== null) guides.push({ axis: 'h', pos: guide });
+  }
+
+  if (edge.includes('n')) {
+    const top = y;
+    const bottom = y + height;
+    const targets = [
+      0,
+      ...others.flatMap(o => [o.y + o.height + gap, o.y]),
+    ];
+    const { snapped, guide } = nearestSnap(top, targets, threshold);
+    y = snapped;
+    height = Math.max(1, bottom - y);
+    if (guide !== null) guides.push({ axis: 'h', pos: guide });
+  }
+
+  return { x, y, width, height, guides };
 }
