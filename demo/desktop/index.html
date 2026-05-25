@@ -156,11 +156,11 @@
         make: () => makeCalc(),
       },
       settings: {
-        title: '⚙️ 系統設定', width: 480, height: 340,
+        title: '⚙️ 系統設定', width: 480, height: 400,
         html: '<div style="padding:20px;font-family:system-ui"><h3 style="margin-bottom:16px;font-size:16px">系統設定</h3><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">主題</label><select onchange="document.querySelector(\'link[rel=stylesheet]\').href=\'../../dist/themes/\'+this.value+\'.css\'" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px"><option value="dark">Dark 深色</option><option value="light">Light 淺色</option></select></div><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">桌面背景</label><div style="display:flex;gap:8px;flex-wrap:wrap">' +
         ['linear-gradient(135deg,#1a2a4a,#0d1b2a)','linear-gradient(135deg,#2d1b4e,#1a0a2e)','linear-gradient(135deg,#0d3b2a,#051a14)','linear-gradient(135deg,#3b1a0d,#1a0805)'].map((bg,i)=>
           '<div onclick="document.querySelector(\'.wos-desktop\').style.background=\''+bg+'\'" style="width:48px;height:32px;border-radius:6px;cursor:pointer;border:2px solid rgba(255,255,255,0.2);background:'+bg+'"></div>'
-        ).join('') + '</div></div></div>'
+        ).join('') + '</div></div><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">視窗吸附間距（px）</label><div style="display:flex;align-items:center;gap:10px"><input id="snap-gap-input" type="number" min="0" max="50" value="0" style="width:80px;padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px" oninput="wm.setSnapGap(parseInt(this.value)||0)" /><span style="font-size:13px;color:#888">0 = 緊貼，設定後立即生效</span></div></div></div>'
       },
       terminal: {
         title: '💻 終端機', width: 560, height: 360,

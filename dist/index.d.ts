@@ -79,6 +79,11 @@ interface WindowManagerOptions {
      * 視窗距離吸附目標小於此值時觸發吸附。
      */
     snapThreshold?: number;
+    /**
+     * 視窗與視窗之間的吸附間距（px），預設 0。
+     * 大於 0 時，兩視窗對齊後會保留指定像素的空隙；容器邊緣不受影響。
+     */
+    snapGap?: number;
 }
 declare class WindowManager {
     private readonly _wins;
@@ -89,6 +94,7 @@ declare class WindowManager {
     private readonly _isolated;
     private readonly _snapEnabled;
     private readonly _snapThreshold;
+    private _snapGap;
     private _guideV;
     private _guideH;
     /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
@@ -131,6 +137,11 @@ declare class WindowManager {
     getWindowIds(): string[];
     /** 更新視窗標題 */
     setTitle(id: string, title: string): void;
+    /**
+     * 動態更新視窗與視窗之間的吸附間距（px）。
+     * 設為 0 表示緊貼（預設行為）。
+     */
+    setSnapGap(gap: number): void;
     /** 銷毀所有視窗，清除事件 */
     destroy(): void;
     /** 延遲建立 snap guide 元素（僅需要時才建立） */
@@ -177,11 +188,12 @@ interface SnapResult {
  * @param containerSize 容器的寬高（isolated 用容器；否則用 viewport）
  * @param others        其他非最小化 / 非最大化視窗的位置與大小
  * @param threshold     吸附感應距離（px）
+ * @param gap           視窗與視窗之間的間距（px），預設 0；容器邊緣不套用
  */
 declare function snapPosition(drag: SnapRect, containerSize: {
     width: number;
     height: number;
-}, others: SnapRect[], threshold: number): SnapResult;
+}, others: SnapRect[], threshold: number, gap?: number): SnapResult;
 
 /** 內建主題名稱 */
 type WosThemePreset = 'light' | 'dark';

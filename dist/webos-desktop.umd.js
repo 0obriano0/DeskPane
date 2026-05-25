@@ -561,25 +561,25 @@
     // ============================================================
     /**
      * 計算單軸的吸附結果。
-     * 同時檢查「近邊」(pos) 和「遠邊」(pos+size) 是否接近任一 target。
-     * 回傳最近一次命中的吸附後座標與 guide 位置。
+     * nearTargets：近邊（left/top）匹配用目標。
+     * farTargets ：遠邊（right/bottom）匹配用目標。
      */
-    function snapAxis(pos, size, targets, threshold) {
+    function snapAxis(pos, size, nearTargets, farTargets, threshold) {
         let bestDist = threshold;
         let snapped = pos;
         let guidePos = null;
-        for (const t of targets) {
-            // 近邊 (left / top)
-            const dNear = Math.abs(pos - t);
-            if (dNear < bestDist) {
-                bestDist = dNear;
+        for (const t of nearTargets) {
+            const d = Math.abs(pos - t);
+            if (d < bestDist) {
+                bestDist = d;
                 snapped = t;
                 guidePos = t;
             }
-            // 遠邊 (right / bottom)
-            const dFar = Math.abs(pos + size - t);
-            if (dFar < bestDist) {
-                bestDist = dFar;
+        }
+        for (const t of farTargets) {
+            const d = Math.abs(pos + size - t);
+            if (d < bestDist) {
+                bestDist = d;
                 snapped = t - size;
                 guidePos = t;
             }
@@ -593,18 +593,28 @@
      * @param containerSize 容器的寬高（isolated 用容器；否則用 viewport）
      * @param others        其他非最小化 / 非最大化視窗的位置與大小
      * @param threshold     吸附感應距離（px）
+     * @param gap           視窗與視窗之間的間距（px），預設 0；容器邊緣不套用
      */
-    function snapPosition(drag, containerSize, others, threshold) {
-        // X 軸吸附目標：容器左邊、右邊，以及所有其他視窗的左右邊
-        const xTargets = [0, containerSize.width];
-        // Y 軸吸附目標：容器頂邊、底邊，以及所有其他視窗的上下邊
-        const yTargets = [0, containerSize.height];
+    function snapPosition(drag, containerSize, others, threshold, gap = 0) {
+        // 容器邊緣：不套用 gap
+        const xNear = [0, containerSize.width];
+        const xFar = [0, containerSize.width];
+        const yNear = [0, containerSize.height];
+        const yFar = [0, containerSize.height];
         for (const o of others) {
-            xTargets.push(o.x, o.x + o.width);
-            yTargets.push(o.y, o.y + o.height);
+            // 近邊（drag.left / drag.top）對齊：
+            //   同側對齊（left→left, top→top）：無間距
+            //   跨側對齊（left 緊接 other.right）：+gap
+            xNear.push(o.x, o.x + o.width + gap);
+            yNear.push(o.y, o.y + o.height + gap);
+            // 遠邊（drag.right / drag.bottom）對齊：
+            //   跨側對齊（right 緊接 other.left）：-gap
+            //   同側對齊（right→right）：無間距
+            xFar.push(o.x - gap, o.x + o.width);
+            yFar.push(o.y - gap, o.y + o.height);
         }
-        const { snapped: snapX, guidePos: guideX } = snapAxis(drag.x, drag.width, xTargets, threshold);
-        const { snapped: snapY, guidePos: guideY } = snapAxis(drag.y, drag.height, yTargets, threshold);
+        const { snapped: snapX, guidePos: guideX } = snapAxis(drag.x, drag.width, xNear, xFar, threshold);
+        const { snapped: snapY, guidePos: guideY } = snapAxis(drag.y, drag.height, yNear, yFar, threshold);
         const guides = [];
         if (guideX !== null)
             guides.push({ axis: 'v', pos: guideX });

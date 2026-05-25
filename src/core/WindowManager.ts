@@ -48,6 +48,11 @@ export interface WindowManagerOptions {
    * 視窗距離吸附目標小於此值時觸發吸附。
    */
   snapThreshold?: number;
+  /**
+   * 視窗與視窗之間的吸附間距（px），預設 0。
+   * 大於 0 時，兩視窗對齊後會保留指定像素的空隙；容器邊緣不受影響。
+   */
+  snapGap?: number;
 }
 
 interface ManagedWindow {
@@ -65,6 +70,7 @@ export class WindowManager {
   private readonly _isolated: boolean;
   private readonly _snapEnabled: boolean;
   private readonly _snapThreshold: number;
+  private _snapGap: number;
   private _guideV: HTMLElement | null = null;
   private _guideH: HTMLElement | null = null;
   /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
@@ -78,6 +84,7 @@ export class WindowManager {
     this._isolated = opts.isolated ?? false;
     this._snapEnabled = opts.snap ?? true;
     this._snapThreshold = opts.snapThreshold ?? 20;
+    this._snapGap = opts.snapGap ?? 0;
     this.events = new EventBus();
     injectStyles();
     if (this._isolated) {
@@ -145,7 +152,7 @@ export class WindowManager {
               others.push({ x: win2.state.x, y: win2.state.y, width: win2.state.width, height: win2.state.height });
             }
           });
-          const result = snapPosition({ x, y, width: w, height: h }, { width: cw, height: ch }, others, this._snapThreshold);
+          const result = snapPosition({ x, y, width: w, height: h }, { width: cw, height: ch }, others, this._snapThreshold, this._snapGap);
           this._updateSnapGuides(result.guides);
           return { x: result.x, y: result.y };
         } : undefined,
@@ -317,6 +324,14 @@ export class WindowManager {
     if (!win) return;
     win.state.title = title;
     win.elements.title.textContent = title;
+  }
+
+  /**
+   * 動態更新視窗與視窗之間的吸附間距（px）。
+   * 設為 0 表示緊貼（預設行為）。
+   */
+  setSnapGap(gap: number): void {
+    this._snapGap = Math.max(0, gap);
   }
 
   /** 銷毀所有視窗，清除事件 */
