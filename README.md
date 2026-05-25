@@ -264,7 +264,7 @@ const wm = new WindowManager({
   isolated: true,
 })
 
-desktop.addIcon({ id: 'notepad', label: '📝 Notepad', icon: '📝', onOpen: () => {
+desktop.addIcon({ id: 'notepad', label: '📝 Notepad', icon: '📝', action: () => {
   wm.open({ id: 'notepad', title: 'Notepad', content: document.createElement('div') })
 }})
 
@@ -296,6 +296,30 @@ const stopSync = desktop.syncDockWithWindows(wm)
 | `syncExisting` | `boolean` | `true` | Sync already-open windows at bind time |
 
 Returns a `() => void` cleanup function (same as `desktop.unsyncDockWithWindows()`).
+
+> **Demo** — `demo/desktop/index.html` ships a full virtual desktop experience with Dock, draggable icons, theme switching, snap-gap control, and a **📐 BorderLayout demo window** (Basic + Nested tabs).
+
+---
+
+## Developer Documentation
+
+An in-depth interactive docs site is included at `demo/docs/` (Vue 3 SPA, i18n EN / zh-TW).
+
+```bash
+cd demo/docs && npm install && npm run dev   # http://localhost:3002
+```
+
+**Pages covered (17 total):**
+
+| Category | Pages |
+|----------|-------|
+| Getting Started | Overview, Installation, Quick Start |
+| Core API | WindowManager Options, Open & Close, Min / Max / Restore, Snap & Alignment, Events |
+| Theming | Theme System |
+| Desktop Module | Desktop & Dock, BorderLayout |
+| Vanilla JS | Hello World, DOM Content, jQuery |
+| Vue 3 | useWindowManager, KeepAlive |
+| React | useWindowManager |
 
 ---
 

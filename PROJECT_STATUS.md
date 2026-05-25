@@ -1,6 +1,6 @@
 # WebOS-Core — 專案狀態（AI 快查版）
 
-> 最後更新：2026-05-25 ｜ 備份：`bak/PROJECT_STATUS.2026-05-25.md`
+> 最後更新：2026-05-25 15:05 ｜ 備份：`bak/PROJECT_STATUS.2026-05-25.md`
 > 此文件為 AI 輔助開發設計，優先說明「現在是什麼」，歷史細節見備份。
 
 ---
@@ -31,12 +31,11 @@
 | Vue 3 Composable | ✅ | `src/adapters/vue/useWindowManager.ts` |
 | React 18 Hook | ✅ | `src/adapters/react/useWindowManager.ts` |
 | Demo（vanilla / jQuery / Vue / React / Desktop / Theme Editor / Layout） | ✅ | `demo/` |
-| Docs 開發手冊（Vue3 SPA，i18n EN/zh-TW） | ✅ | `demo/docs/` |
+| Docs 開發手冊（Vue3 SPA，i18n EN/zh-TW，12 + 5 頁） | ✅ | `demo/docs/` |
 
 **尚未實作：**
 - [ ] 工作區（虛擬桌面）多頁切換
 - [ ] 視窗狀態序列化 / localStorage 還原
-- [ ] Docs 補充：Snap / 主題 / 工作區 / Desktop 功能頁面
 - [ ] CDN 發佈（jsDelivr / unpkg）
 
 ---
@@ -174,7 +173,7 @@ setTheme('dark' | 'light', { basePath?: string, linkId?: string })
 // Desktop 模組
 const desktop = new Desktop({ container, dock: { position: 'bottom', ... }, ... })
 const wm = new WindowManager({ container: desktop.getElement(), isolated: true })
-desktop.addIcon({ id, label, icon, onOpen })
+desktop.addIcon({ id, label, icon, action })
 desktop.syncDockWithWindows(wm)
 ```
 
@@ -253,7 +252,7 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | 首頁 | `demo/index.html` | 所有 Demo 入口卡片 |
 | Vanilla JS | `demo/vanilla/index.html` | 純 JS，snap=true |
 | jQuery | `demo/jquery/index.html` | UMD + jQuery CDN，5 個應用 |
-| Desktop | `demo/desktop/index.html` | 完整虛擬桌面（Dock + Icons + WindowManager） |
+| Desktop | `demo/desktop/index.html` | 完整虛擬桌面（Dock + Icons + WindowManager + BorderLayout 範例視窗） |
 | Theme Editor | `demo/theme-editor/index.html` | Core + Desktop 雙分頁，module banner，text 預覽色塊 |
 | Layout | `demo/layout/index.html` | BorderLayout 東西南北中 + 巢狀 + Panel |
 | Vue 3 | `demo/vue/` | useWindowManager composable，port 3008 |

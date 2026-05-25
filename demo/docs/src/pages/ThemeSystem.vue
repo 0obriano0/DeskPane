@@ -1,0 +1,298 @@
+<template>
+  <div class="page">
+    <div class="page-badge">
+      <span class="badge badge-green">{{ t('theme.badge') }}</span>
+    </div>
+    <h1>{{ t('theme.h1') }}</h1>
+    <p v-html="t('theme.intro')"></p>
+
+    <h2>{{ t('theme.h2Load') }}</h2>
+    <pre class="code-block" v-pre>&lt;!-- In your HTML &lt;head&gt; --&gt;
+&lt;link id="wos-theme" rel="stylesheet" href="dist/themes/light.css"&gt;</pre>
+
+    <h2>{{ t('theme.h2SetTheme') }}</h2>
+    <p v-html="t('theme.setThemeDesc')"></p>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('theme.col.option') }}</th>
+          <th>{{ t('theme.col.type') }}</th>
+          <th>{{ t('theme.col.default') }}</th>
+          <th>{{ t('common.description') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>basePath</code></td><td><code>string</code></td><td><code>'themes'</code></td><td v-html="t('theme.opt.basePath')"></td></tr>
+        <tr><td><code>linkId</code></td><td><code>string</code></td><td><code>'wos-theme'</code></td><td v-html="t('theme.opt.linkId')"></td></tr>
+      </tbody>
+    </table>
+
+    <!-- Live Demo -->
+    <h2>{{ t('theme.liveLabel') }}</h2>
+    <div class="theme-switcher">
+      <button
+        class="btn"
+        :class="{ active: demoTheme === 'light' }"
+        @click="setDemoTheme('light')"
+      >☀️ {{ t('theme.switchLight') }}</button>
+      <button
+        class="btn"
+        :class="{ active: demoTheme === 'dark' }"
+        @click="setDemoTheme('dark')"
+      >🌙 {{ t('theme.switchDark') }}</button>
+    </div>
+    <div ref="demoEl" class="demo-area" :class="'theme-' + demoTheme">
+      <div class="demo-viewport-inner" ref="container"></div>
+    </div>
+    <p class="demo-note" v-html="t('theme.demoNote')"></p>
+
+    <h2>{{ t('theme.h2CoreVars') }}</h2>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('theme.col.var') }}</th>
+          <th>{{ t('theme.col.desc') }}</th>
+          <th>{{ t('theme.col.light') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="v in coreVars" :key="v.name">
+          <td><code>{{ v.name }}</code></td>
+          <td>{{ v.desc }}</td>
+          <td>
+            <span v-if="v.swatch" class="swatch" :style="{ background: v.swatch }"></span>
+            <code>{{ v.value }}</code>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>{{ t('theme.h2DesktopVars') }}</h2>
+    <p v-html="t('theme.note.rgba')"></p>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('theme.col.var') }}</th>
+          <th>{{ t('theme.col.desc') }}</th>
+          <th>{{ t('theme.col.light') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="v in desktopVars" :key="v.name">
+          <td><code>{{ v.name }}</code></td>
+          <td>{{ v.desc }}</td>
+          <td><code>{{ v.value }}</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+import { WindowManager } from '@webos/core/WindowManager'
+import { useDocCode } from '../composables/useDocCode'
+import { useLocale } from '../composables/useLocale'
+
+const { setCode } = useDocCode()
+const { t } = useLocale()
+const container = ref<HTMLElement | null>(null)
+let wm: WindowManager | null = null
+const demoTheme = ref<'light' | 'dark'>('light')
+
+const LIGHT_VARS = {
+  '--wos-window-bg': '#ffffff',
+  '--wos-header-bg': '#f0f0f0',
+  '--wos-title-color': '#333333',
+  '--wos-border': '#d0d0d0',
+  '--wos-border-active': '#4a90e2',
+  '--wos-shadow': '0 2px 12px rgba(0,0,0,0.12)',
+  '--wos-shadow-active': '0 4px 24px rgba(0,0,0,0.22)',
+  '--wos-header-border': '#e0e0e0',
+  '--wos-btn-color': '#555555',
+  '--wos-btn-hover-bg': 'rgba(0,0,0,0.08)',
+  '--wos-btn-close-hover-bg': '#e53e3e',
+  '--wos-btn-close-hover-color': '#ffffff',
+  '--wos-body-bg': '#ffffff',
+  '--wos-body-color': '#222222',
+  '--wos-snap-guide-color': 'rgba(74,144,226,0.4)',
+}
+const DARK_VARS = {
+  '--wos-window-bg': '#1e1e2e',
+  '--wos-header-bg': '#181825',
+  '--wos-title-color': '#cdd6f4',
+  '--wos-border': '#313244',
+  '--wos-border-active': '#89b4fa',
+  '--wos-shadow': '0 2px 12px rgba(0,0,0,0.5)',
+  '--wos-shadow-active': '0 4px 24px rgba(0,0,0,0.6)',
+  '--wos-header-border': '#313244',
+  '--wos-btn-color': '#a6adc8',
+  '--wos-btn-hover-bg': 'rgba(255,255,255,0.08)',
+  '--wos-btn-close-hover-bg': '#f38ba8',
+  '--wos-btn-close-hover-color': '#1e1e2e',
+  '--wos-body-bg': '#1e1e2e',
+  '--wos-body-color': '#cdd6f4',
+  '--wos-snap-guide-color': 'rgba(137,180,250,0.4)',
+}
+
+const demoEl = ref<HTMLElement | null>(null)
+
+function applyThemeVars(theme: 'light' | 'dark') {
+  const el = demoEl.value
+  if (!el) return
+  const vars = theme === 'light' ? LIGHT_VARS : DARK_VARS
+  for (const [key, val] of Object.entries(vars)) {
+    el.style.setProperty(key, val)
+  }
+  el.style.background = theme === 'dark' ? '#11111b' : '#f8fafc'
+}
+
+function setDemoTheme(theme: 'light' | 'dark') {
+  demoTheme.value = theme
+  applyThemeVars(theme)
+}
+
+const coreVars = [
+  { name: '--wos-window-bg',             desc: 'Window background',              value: '#ffffff',                           swatch: '#ffffff' },
+  { name: '--wos-header-bg',             desc: 'Title bar background',            value: '#f0f0f0',                           swatch: '#f0f0f0' },
+  { name: '--wos-title-color',           desc: 'Title bar text',                  value: '#333333',                           swatch: '#333333' },
+  { name: '--wos-border',                desc: 'Window border',                   value: '#d0d0d0',                           swatch: '#d0d0d0' },
+  { name: '--wos-border-active',         desc: 'Active window border',            value: '#4a90e2',                           swatch: '#4a90e2' },
+  { name: '--wos-shadow',                desc: 'Window shadow',                   value: '0 2px 12px rgba(0,0,0,0.12)',       swatch: null },
+  { name: '--wos-shadow-active',         desc: 'Active window shadow',            value: '0 4px 24px rgba(0,0,0,0.22)',       swatch: null },
+  { name: '--wos-header-border',         desc: 'Title bar bottom border',         value: '#e0e0e0',                           swatch: '#e0e0e0' },
+  { name: '--wos-btn-color',             desc: 'Control button icon',             value: '#555555',                           swatch: '#555555' },
+  { name: '--wos-btn-hover-bg',          desc: 'Control button hover background', value: 'rgba(0,0,0,0.08)',                  swatch: null },
+  { name: '--wos-btn-close-hover-bg',    desc: 'Close button hover background',   value: '#e53e3e',                           swatch: '#e53e3e' },
+  { name: '--wos-btn-close-hover-color', desc: 'Close button hover text',         value: '#ffffff',                           swatch: '#ffffff' },
+  { name: '--wos-body-bg',               desc: 'Window body background',          value: '#ffffff',                           swatch: '#ffffff' },
+  { name: '--wos-body-color',            desc: 'Window body text',                value: '#222222',                           swatch: '#222222' },
+  { name: '--wos-snap-guide-color',      desc: 'Snap guide line colour',          value: 'rgba(74,144,226,0.4)',              swatch: null },
+]
+
+const desktopVars = [
+  { name: '--wos-desktop-bg',            desc: 'Desktop background (gradient OK)', value: 'linear-gradient(135deg,#f0f4f8,#e2e8f0)' },
+  { name: '--wos-desktop-icon-text',     desc: 'Desktop icon label text',          value: '#1a202c' },
+  { name: '--wos-desktop-icon-hover-bg', desc: 'Desktop icon hover background',    value: 'rgba(0,0,0,0.08)' },
+  { name: '--wos-dock-bg',               desc: 'Dock background (rgba OK)',         value: 'rgba(255,255,255,0.75)' },
+  { name: '--wos-dock-border',           desc: 'Dock border (rgba OK)',             value: 'rgba(0,0,0,0.10)' },
+  { name: '--wos-dock-item-hover-bg',    desc: 'Dock item hover background',        value: 'rgba(0,0,0,0.06)' },
+  { name: '--wos-font',                  desc: 'Global font family',                value: 'system-ui,-apple-system,sans-serif' },
+]
+
+onMounted(() => {
+  if (container.value) {
+    wm = new WindowManager({ container: container.value, isolated: true, snap: true, snapGap: 4 })
+    const div = document.createElement('div')
+    div.style.cssText = 'padding:14px;font-size:13px;'
+    div.innerHTML = '<p style="margin:0 0 6px"><strong>Themed window</strong></p><p style="margin:0;font-size:12px;color:var(--wos-body-color,#666)">Toggle Light/Dark above</p>'
+    wm.open({ id: 'theme-demo', title: 'Theme Preview', content: div, x: 30, y: 20, width: 260, height: 120 })
+  }
+  applyThemeVars('light')
+  setCode([
+    {
+      name: 'html-link.html',
+      lang: 'html',
+      code: `<!-- Load light theme (covers Core + Desktop, 22 CSS variables) -->
+<link id="wos-theme" rel="stylesheet" href="dist/themes/light.css">
+
+<!-- Or dark theme -->
+<link id="wos-theme" rel="stylesheet" href="dist/themes/dark.css">`,
+    },
+    {
+      name: 'setTheme.ts',
+      lang: 'typescript',
+      code: `import { setTheme } from 'webos-core'
+
+// Switch to dark theme (basePath defaults to 'themes')
+setTheme('dark')
+
+// With explicit base path (Vite SPA)
+setTheme('light', { basePath: '/themes' })
+
+// Relative to dist/
+setTheme('dark', { basePath: 'dist/themes' })
+
+// Custom link element id (if you manage the <link> yourself)
+setTheme('dark', { linkId: 'my-wos-theme' })
+
+// UMD (no import needed)
+// WebOS.setTheme('dark', { basePath: 'dist/themes' })`,
+    },
+    {
+      name: 'custom-vars.css',
+      lang: 'css',
+      code: `/* Override individual variables after loading the theme */
+:root {
+  --wos-border-active: #7c3aed;   /* purple accent */
+  --wos-header-bg:     #f3f0ff;   /* lavender title bar */
+}`,
+    },
+  ])
+})
+
+onUnmounted(() => wm?.destroy())
+</script>
+
+<style scoped>
+.page { max-width: 760px; }
+
+.code-block {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: 0 0 12px;
+  white-space: pre;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+
+.theme-switcher {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.btn {
+  padding: 6px 16px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.1s, background 0.1s;
+}
+.btn:hover { opacity: 0.9; }
+.btn.active { opacity: 1; outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.demo-area {
+  border: 1px solid var(--color-demo-border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.demo-viewport-inner {
+  height: 220px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.3s;
+}
+
+.demo-note { font-size: 12px; color: var(--color-text-muted); margin-top: 0; }
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(0,0,0,0.15);
+  vertical-align: middle;
+  margin-right: 4px;
+}
+</style>

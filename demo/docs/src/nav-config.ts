@@ -21,9 +21,24 @@ export function getNavConfig(t: (key: string) => string): NavCategory[] {
     {
       label: t('nav.coreApi'),
       items: [
+        { id: 'wm-options', label: t('nav.wmOptions') },
         { id: 'open-close', label: t('nav.openClose') },
         { id: 'min-max',    label: t('nav.minMax') },
+        { id: 'snap',       label: t('nav.snap') },
         { id: 'events',     label: t('nav.events') },
+      ],
+    },
+    {
+      label: t('nav.theming'),
+      items: [
+        { id: 'theme-system', label: t('nav.themeSystem') },
+      ],
+    },
+    {
+      label: t('nav.desktopModule'),
+      items: [
+        { id: 'desktop',       label: t('nav.desktopDock') },
+        { id: 'border-layout', label: t('nav.borderLayout') },
       ],
     },
     {
