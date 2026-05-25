@@ -85,6 +85,7 @@
                 containerEl: opts.containerEl,
                 snapFn: opts.snapFn,
                 resizeSnapFn: opts.resizeSnapFn,
+                resizable: opts.resizable ?? true,
                 onDragStart: opts.onDragStart ?? (() => { }),
                 onDrag: opts.onDrag ?? (() => { }),
                 onDragEnd: opts.onDragEnd ?? (() => { }),
@@ -133,6 +134,8 @@
             this._opts.onDragStart();
         }
         _onWinMouseDown(e) {
+            if (!this._opts.resizable)
+                return;
             const edge = this._getResizeEdge(e);
             if (!edge)
                 return;
@@ -267,6 +270,10 @@
         _updateResizeCursor(e) {
             if (this._dragging || this._resizing)
                 return;
+            if (!this._opts.resizable) {
+                this._winEl.style.cursor = 'default';
+                return;
+            }
             const edge = this._getResizeEdge(e);
             const cursors = {
                 n: 'n-resize', s: 's-resize', e: 'e-resize', w: 'w-resize',
@@ -370,6 +377,11 @@
 }
 .wos-btn:hover { background: var(--wos-btn-hover-bg, #e0e0e0); }
 .wos-btn.wos-btn-close:hover { background: var(--wos-btn-close-hover-bg, #ff5f57); color: var(--wos-btn-close-hover-color, #ffffff); }
+.wos-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.wos-btn:disabled:hover { background: transparent; }
 .wos-body {
   flex: 1;
   overflow: auto;
@@ -423,6 +435,10 @@
         const btnMin = createButton('－', 'wos-btn-min', '最小化');
         const btnMax = createButton('□', 'wos-btn-max', '最大化');
         const btnClose = createButton('✕', 'wos-btn-close', '關閉');
+        if (!state.resizable) {
+            btnMax.disabled = true;
+            btnMax.title = '此視窗不可調整大小';
+        }
         header.append(title, btnMin, btnMax, btnClose);
         // ── Body ──
         const body = document.createElement('div');
@@ -1330,6 +1346,7 @@
                 isMaximized: false,
                 isMinimized: false,
                 isActive: true,
+                resizable: config.resizable ?? true,
                 props: config.props,
             };
             const elements = createWindowDOM(state);
@@ -1338,6 +1355,7 @@
             this._tryAutoLayout(state.id, state.content, elements.body);
             const dragResize = new DragResizeHandler(elements.root, elements.header, {
                 throttleMs: this._throttleMs,
+                resizable: state.resizable,
                 containerEl: this._isolated ? this._container : undefined,
                 snapFn: this._snapEnabled ? (x, y, w, h) => {
                     const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
@@ -1456,7 +1474,7 @@
          */
         maximize(id) {
             const win = this._wins.get(id);
-            if (!win)
+            if (!win || !win.state.resizable)
                 return;
             // 若已最大化但被最小化，只需還原（顯示最大化視窗）
             if (win.state.isMaximized) {

@@ -159,6 +159,14 @@ export const en: Record<string, string> = {
   'openclose.h2Close': 'close(id)',
   'openclose.closeDesc': 'Removes the window DOM, tears down event listeners, and deletes the window from the manager. After closing, the next window in z-order is automatically focused.',
   'openclose.closeAllDesc': 'To close all windows at once, call <code>wm.destroy()</code>.',
+  'openclose.fixedWin': 'Fixed Window',
+  'openclose.h2Config': 'WindowConfig Options',
+  'openclose.cfg.id': 'Unique string identifier. Required.',
+  'openclose.cfg.title': 'Window title bar text. Required.',
+  'openclose.cfg.content': 'The <code>HTMLElement</code> to mount inside the window body. Required.',
+  'openclose.cfg.xy': 'Initial top-left position. If omitted, windows cascade automatically.',
+  'openclose.cfg.size': 'Initial size in pixels. Defaults: <code>width 400</code>, <code>height 300</code>.',
+  'openclose.cfg.resizable': 'When <code>false</code>, disables the maximize button and border-drag resizing. The window size is fixed.',
 
   // min/max/restore
   'minmax.badge': 'Core API',

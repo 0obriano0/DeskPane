@@ -242,7 +242,7 @@
         html: '<div style="display:flex;flex-direction:column;height:100%"><div style="padding:8px;background:#f0f0f0;display:flex;gap:6px;align-items:center"><button style="padding:3px 8px;cursor:pointer;border-radius:4px;border:1px solid #ccc">←</button><button style="padding:3px 8px;cursor:pointer;border-radius:4px;border:1px solid #ccc">→</button><input value="https://example.com" style="flex:1;padding:4px 8px;border-radius:4px;border:1px solid #ccc;font-size:13px"/></div><div style="flex:1;display:flex;align-items:center;justify-content:center;color:#888;font-size:20px">🌐 瀏覽器頁面預留區域</div></div>'
       },
       calc: {
-        title: '🔢 計算機', width: 280, height: 360,
+        title: '🔢 計算機', width: 280, height: 360, resizable: false,
         make: () => makeCalc(),
       },
       settings: {
@@ -283,6 +283,7 @@
         title: def.title,
         width: def.width,
         height: def.height,
+        resizable: def.resizable,
         slotType: 'dom',
         content: content,
       });

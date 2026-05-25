@@ -128,6 +128,7 @@ export class WindowManager {
       isMaximized: false,
       isMinimized: false,
       isActive: true,
+      resizable: config.resizable ?? true,
       props: config.props,
     };
 
@@ -142,6 +143,7 @@ export class WindowManager {
       elements.header,
       {
         throttleMs: this._throttleMs,
+        resizable: state.resizable,
         containerEl: this._isolated ? this._container : undefined,
         snapFn: this._snapEnabled ? (x, y, w, h) => {
           const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
@@ -261,7 +263,7 @@ export class WindowManager {
    */
   maximize(id: string): void {
     const win = this._wins.get(id);
-    if (!win) return;
+    if (!win || !win.state.resizable) return;
     // 若已最大化但被最小化，只需還原（顯示最大化視窗）
     if (win.state.isMaximized) {
       if (win.state.isMinimized) this.restore(id);

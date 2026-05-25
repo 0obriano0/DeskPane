@@ -27,6 +27,11 @@ export interface DragResizeOptions {
    * 若不傳則縮放時不做吸附。
    */
   resizeSnapFn?: (x: number, y: number, width: number, height: number, edge: string) => { x: number; y: number; width: number; height: number };
+  /**
+   * 允許縮放視窗邊框。設為 false 時滑鼠在邊框上不顯示縮放游標，也不啟動縮放。
+   * 預設 true。
+   */
+  resizable?: boolean;
   onDragStart?: () => void;
   onDrag?: (x: number, y: number) => void;
   onDragEnd?: () => void;
@@ -86,6 +91,7 @@ export class DragResizeHandler {
       containerEl: opts.containerEl,
       snapFn: opts.snapFn,
       resizeSnapFn: opts.resizeSnapFn,
+      resizable: opts.resizable ?? true,
       onDragStart: opts.onDragStart ?? (() => {}),
       onDrag: opts.onDrag ?? (() => {}),
       onDragEnd: opts.onDragEnd ?? (() => {}),
@@ -141,6 +147,7 @@ export class DragResizeHandler {
   }
 
   private _onWinMouseDown(e: MouseEvent): void {
+    if (!this._opts.resizable) return;
     const edge = this._getResizeEdge(e);
     if (!edge) return;
     e.preventDefault();
@@ -276,6 +283,7 @@ export class DragResizeHandler {
 
   private _updateResizeCursor(e: MouseEvent): void {
     if (this._dragging || this._resizing) return;
+    if (!this._opts.resizable) { this._winEl.style.cursor = 'default'; return; }
     const edge = this._getResizeEdge(e);
     const cursors: Record<string, string> = {
       n: 'n-resize', s: 's-resize', e: 'e-resize', w: 'w-resize',

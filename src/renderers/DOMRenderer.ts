@@ -90,6 +90,11 @@ const BASE_CSS = `
 }
 .wos-btn:hover { background: var(--wos-btn-hover-bg, #e0e0e0); }
 .wos-btn.wos-btn-close:hover { background: var(--wos-btn-close-hover-bg, #ff5f57); color: var(--wos-btn-close-hover-color, #ffffff); }
+.wos-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.wos-btn:disabled:hover { background: transparent; }
 .wos-body {
   flex: 1;
   overflow: auto;
@@ -157,6 +162,11 @@ export function createWindowDOM(state: WindowState): WindowElements {
   const btnMin = createButton('－', 'wos-btn-min', '最小化');
   const btnMax = createButton('□', 'wos-btn-max', '最大化');
   const btnClose = createButton('✕', 'wos-btn-close', '關閉');
+
+  if (!state.resizable) {
+    btnMax.disabled = true;
+    btnMax.title = '此視窗不可調整大小';
+  }
 
   header.append(title, btnMin, btnMax, btnClose);
 

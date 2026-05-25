@@ -75,6 +75,9 @@
       <button class="d-app-btn" data-app="counter">
         <span class="icon">🔢</span><span class="label">Keep-Alive 計數器</span>
       </button>
+      <button class="d-app-btn" data-app="dialog">
+        <span class="icon">🔒</span><span class="label">固定大小對話框</span>
+      </button>
 
       <div class="d-section-title" style="margin-top:12px">API 控制台</div>
       <div class="api-row">
@@ -263,6 +266,25 @@
         return d;
       }
     },
+    dialog: {
+      title: '🔒 固定大小對話框', width: 360, height: 200, x: 160, y: 140,
+      content: () => {
+        const d = document.createElement('div');
+        d.style.cssText = 'padding:28px 24px;font-family:system-ui;display:flex;flex-direction:column;gap:14px;height:100%;box-sizing:border-box';
+        d.innerHTML = `
+          <p style="font-size:14px;line-height:1.7;margin:0">
+            此視窗設定了 <code style="background:rgba(255,255,255,0.12);padding:2px 6px;border-radius:4px">resizable: false</code>。<br>
+            試著拖曳邊框縮放，或點擊中間按鈕——兩者皆無效。
+          </p>
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button id="dlg-cancel" style="padding:6px 18px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:inherit;cursor:pointer;font-size:13px">取消</button>
+            <button style="padding:6px 18px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-size:13px">確認</button>
+          </div>`;
+        d.querySelector('#dlg-cancel').addEventListener('click', () => wm.close('dialog'));
+        return d;
+      },
+      resizable: false,
+    },
   };
 
   // ── App 開啟 ────────────────────────────────────────────
@@ -271,7 +293,7 @@
       const id = btn.dataset.app;
       const app = APPS[id];
       if (!app) return;
-      wm.open({ id, title: app.title, width: app.width, height: app.height, x: app.x, y: app.y, content: app.content() });
+      wm.open({ id, title: app.title, width: app.width, height: app.height, x: app.x, y: app.y, resizable: app.resizable, content: app.content() });
     });
   });
 

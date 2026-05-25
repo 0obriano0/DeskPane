@@ -159,6 +159,14 @@ export const zhTW: Record<string, string> = {
   'openclose.h2Close': 'close(id)',
   'openclose.closeDesc': '移除視窗 DOM、解除事件監聽，並從管理器中刪除。關閉後，Z 順序中的下一個視窗會自動獲得焦點。',
   'openclose.closeAllDesc': '要一次關閉所有視窗，呼叫 <code>wm.destroy()</code>。',
+  'openclose.fixedWin': '固定大小視窗',
+  'openclose.h2Config': 'WindowConfig 選項',
+  'openclose.cfg.id': '唯一字串識別碼。必填。',
+  'openclose.cfg.title': '視窗標題列文字。必填。',
+  'openclose.cfg.content': '掛載至視窗內容區的 <code>HTMLElement</code>。必填。',
+  'openclose.cfg.xy': '初始左上角位置。省略時自動瀑布排列。',
+  'openclose.cfg.size': '初始尺寸（px）。預設：<code>width 400</code>、<code>height 300</code>。',
+  'openclose.cfg.resizable': '設為 <code>false</code> 時，停用放大按鈕與邊框拖曳縮放，視窗大小固定不變。',
 
   // min/max/restore
   'minmax.badge': '核心 API',

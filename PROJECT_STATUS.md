@@ -1,6 +1,6 @@
 # WebOS-Core — 專案狀態（AI 快查版）
 
-> 最後更新：2026-05-25 15:05 ｜ 備份：`bak/PROJECT_STATUS.2026-05-25.md`
+> 最後更新：2026-05-25 17:01 ｜ 備份：`bak/PROJECT_STATUS.2026-05-25.md`
 > 此文件為 AI 輔助開發設計，優先說明「現在是什麼」，歷史細節見備份。
 
 ---
@@ -22,6 +22,7 @@
 |------|------|---------|
 | 視窗管理核心（open/close/min/max/focus/snap） | ✅ | `src/core/WindowManager.ts` |
 | 拖曳 + 縮放 + Snap 吸附（拖曳 & 縮放）+ Snap 間距設定 | ✅ | `src/core/DragResizeHandler.ts`, `SnapHelper.ts` |
+| `resizable: false` — 禁用放大按鈕 + 邊框縮放（固定大小視窗） | ✅ | `src/core/types.ts`, `DOMRenderer.ts`, `DragResizeHandler.ts`, `WindowManager.ts` |
 | DOM 渲染 + CSS 變數主題系統 | ✅ | `src/renderers/DOMRenderer.ts` |
 | light.css / dark.css（Core + Desktop 變數） | ✅ | `src/themes/*.css` |
 | `setTheme()` 工具函式 | ✅ | `src/themes/setTheme.ts` |
@@ -31,7 +32,7 @@
 | Vue 3 Composable | ✅ | `src/adapters/vue/useWindowManager.ts` |
 | React 18 Hook | ✅ | `src/adapters/react/useWindowManager.ts` |
 | Demo（vanilla / jQuery / Vue / React / Desktop / Theme Editor / Layout） | ✅ | `demo/` |
-| Docs 開發手冊（Vue3 SPA，i18n EN/zh-TW，12 + 5 頁） | ✅ | `demo/docs/` |
+| Docs 開發手冊（Vue3 SPA，i18n EN/zh-TW，17 頁，含 WindowConfig 完整選項表） | ✅ | `demo/docs/` |
 
 **尚未實作：**
 - [ ] 工作區（虛擬桌面）多頁切換
@@ -156,8 +157,10 @@ const wm = new WindowManager({
   snapGap?: number,            // 預設 0px；視窗與視窗間距（容器邊緣不受影響）
 })
 
-// 視窗操作
+// 開窗（WindowConfig）
 wm.open(config: WindowConfig)  // id 存在則 restore+focus
+// config: { id, title, content, x?, y?, width?, height?, resizable? }
+// resizable: false → 禁用放大按鈕 + 邊框拖曳縮放（固定大小視窗模式）
 wm.close(id) / wm.minimize(id) / wm.maximize(id) / wm.restore(id)
 wm.focus(id) / wm.setTitle(id, title)
 wm.setSnapGap(gap)             // 動態更新 Snap 間距（px）
@@ -225,6 +228,7 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | 14 | Desktop Sentinel | icon 拖到邊界外時撐開 scrollHeight/Width；`addIcon/removeIcon/_savePositions` 都要呼叫 `_updateSentinel()` |
 | 15 | Snap 縮放吸附座標 | `_applyResize` 轉換為容器相對座標後才傳給 `resizeSnapFn`；snapResize 回傳容器相對座標，不再需要扣 cLeft/cTop |
 | 16 | snapGap 邏輯 | 跨側吸附（近邊貼遠邊）加 gap；同側對齊（左對左）不加；容器邊緣一律不加 gap |
+| 17 | `resizable: false` 實作 | `WindowConfig` + `WindowState` 加 `resizable`；`DOMRenderer` 設 `btnMax.disabled`；`DragResizeHandler` guard `_onWinMouseDown` + `_updateResizeCursor`；`WindowManager.maximize()` 提前 return |
 
 ---
 

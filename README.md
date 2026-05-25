@@ -10,6 +10,7 @@ A **framework-agnostic** web virtual desktop window management engine.
 
 - ✅ Open / close / minimize / maximize / restore windows
 - ✅ Drag & resize with throttling (60 fps default)
+- ✅ **`resizable: false`** — disable maximize button and border-drag resize per window (fixed-size dialog pattern)
 - ✅ **Snap alignment** — windows snap to edges and each other while **dragging and resizing**; configurable gap between windows
 - ✅ Focus / z-order management
 - ✅ Event bus — subscribe to any window lifecycle event
@@ -160,16 +161,32 @@ export default function App() {
 
 ```typescript
 interface WindowConfig {
-  id:        string    // Unique window ID (required)
-  title:     string    // Window title bar text
-  content:   any       // HTMLElement, or null when using framework adapters
-  x?:        number    // Initial X position (px)
-  y?:        number    // Initial Y position (px)
-  width?:    number    // Initial width (px), default 640
-  height?:   number    // Initial height (px), default 480
-  props?:    Record<string, unknown>
-  slotType?: 'dom' | 'vue' | 'react'
+  id:          string    // Unique window ID (required)
+  title:       string    // Window title bar text
+  content:     any       // HTMLElement, or null when using framework adapters
+  x?:          number    // Initial X position (px)
+  y?:          number    // Initial Y position (px)
+  width?:      number    // Initial width (px), default 640
+  height?:     number    // Initial height (px), default 480
+  resizable?:  boolean   // Default true. Set false to disable maximize + border-drag resize
+  props?:      Record<string, unknown>
+  slotType?:   'dom' | 'vue' | 'react'
 }
+```
+
+### Fixed-size Windows
+
+Pass `resizable: false` to lock a window to its initial size — the maximize button is visually disabled and border-drag resizing is blocked:
+
+```typescript
+wm.open({
+  id:        'alert',
+  title:     '⚠️ Confirm',
+  content:   myDialogEl,
+  width:     360,
+  height:    200,
+  resizable: false,   // maximize button disabled, border drag blocked
+})
 ```
 
 ### Events

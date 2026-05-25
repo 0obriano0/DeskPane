@@ -11,6 +11,7 @@
         <button class="btn" v-for="n in [1,2,3]" :key="n" @click="openWin(n)">
           {{ t('openclose.openWin') }} {{ n }}
         </button>
+        <button class="btn btn-outline" @click="openFixed">{{ t('openclose.fixedWin') }}</button>
         <button class="btn btn-danger" @click="wm?.destroy()">{{ t('openclose.closeAll') }}</button>
       </template>
     </DemoViewport>
@@ -31,6 +32,26 @@
           <td>{{ t('openclose.retVal') }}</td>
           <td v-html="t('openclose.retVal.desc')"></td>
         </tr>
+      </tbody>
+    </table>
+
+    <h2>{{ t('openclose.h2Config') }}</h2>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('wmopt.col.option') }}</th>
+          <th>{{ t('common.type') }}</th>
+          <th>{{ t('wmopt.col.default') }}</th>
+          <th>{{ t('common.description') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>id</code></td><td><code>string</code></td><td>—</td><td v-html="t('openclose.cfg.id')"></td></tr>
+        <tr><td><code>title</code></td><td><code>string</code></td><td>—</td><td v-html="t('openclose.cfg.title')"></td></tr>
+        <tr><td><code>content</code></td><td><code>HTMLElement</code></td><td>—</td><td v-html="t('openclose.cfg.content')"></td></tr>
+        <tr><td><code>x, y</code></td><td><code>number</code></td><td>cascade</td><td v-html="t('openclose.cfg.xy')"></td></tr>
+        <tr><td><code>width, height</code></td><td><code>number</code></td><td><code>400 / 300</code></td><td v-html="t('openclose.cfg.size')"></td></tr>
+        <tr><td><code>resizable</code></td><td><code>boolean</code></td><td><code>true</code></td><td v-html="t('openclose.cfg.resizable')"></td></tr>
       </tbody>
     </table>
 
@@ -74,6 +95,15 @@ function openWin(n: number) {
   wm.open({ id, title: TITLES[n-1], content: body, width: 260, height: 160 })
 }
 
+function openFixed() {
+  if (!wm) return
+  const body = document.createElement('div')
+  body.style.cssText = 'padding:16px;font-size:13px;line-height:1.7;'
+  body.innerHTML = `<p style="margin:0 0 8px"><strong>🔒 Fixed-size window</strong></p>
+    <p style="margin:0;color:#888;font-size:12px">resizable: false — drag the border or click the maximize button: both are disabled.</p>`
+  wm.open({ id: 'fixed-dialog', title: '🔒 Fixed Dialog', content: body, width: 300, height: 150, resizable: false })
+}
+
 onMounted(() => {
   initWM()
   setCode([
@@ -100,6 +130,15 @@ const state = wm.open({
 // → restores if minimized, then focuses. No duplicate window created.
 wm.open({ id: 'report', title: 'Sales Report', content })
 
+// ── Fixed-size window (resizable: false) ──────────────
+wm.open({
+  id: 'dialog',
+  title: 'Alert',
+  content,
+  width: 360, height: 200,
+  resizable: false,       // disables maximize button + border-drag resize
+})
+
 // ── close() ───────────────────────────────────────────
 wm.close('report')    // remove one window
 
@@ -125,6 +164,8 @@ onUnmounted(() => wm?.destroy())
   transition: background 0.1s;
 }
 .btn:hover { background: var(--color-primary-hover); }
+.btn-outline { background: transparent; color: var(--color-text); border: 1px solid var(--color-border); }
+.btn-outline:hover { background: var(--color-bg-soft, #f3f4f6); }
 .btn-danger { background: #dc2626; }
 .btn-danger:hover { background: #b91c1c; }
 </style>
