@@ -365,6 +365,7 @@
   overflow: auto;
   position: relative;
   background: var(--wos-body-bg, #ffffff);
+  color: var(--wos-body-color, #222222);
 }
 .wos-body.wos-has-layout {
   overflow: hidden;
@@ -1182,6 +1183,7 @@
             this._guideH = null;
             /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
             this._layouts = new Map();
+            this._resizeObserver = null;
             this._container = opts.container ?? document.body;
             this._throttleMs = opts.throttleMs ?? 16;
             this._isolated = opts.isolated ?? false;
@@ -1192,6 +1194,7 @@
             if (this._isolated) {
                 this._container.classList.add('wos-isolated');
             }
+            this._setupResizeObserver();
         }
         // ─────────────────────────────────────────
         // Public API
@@ -1207,15 +1210,21 @@
                 return existing.state;
             }
             const offset = (this._cascadeCount++ % 10) * CASCADE_OFFSET;
+            const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+            const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+            const w = config.width ?? DEFAULT_WIDTH;
+            const h = config.height ?? DEFAULT_HEIGHT;
+            const rawX = config.x ?? 60 + offset;
+            const rawY = config.y ?? 60 + offset;
             const state = {
                 id: config.id,
                 title: config.title,
                 slotType: config.slotType ?? 'dom',
                 content: config.content,
-                x: config.x ?? 60 + offset,
-                y: config.y ?? 60 + offset,
-                width: config.width ?? DEFAULT_WIDTH,
-                height: config.height ?? DEFAULT_HEIGHT,
+                x: cw > 0 ? Math.max(0, Math.min(rawX, cw - Math.min(w, cw))) : rawX,
+                y: ch > 0 ? Math.max(0, Math.min(rawY, ch - Math.min(h, ch))) : rawY,
+                width: w,
+                height: h,
                 zIndex: ++this._zCounter,
                 isMaximized: false,
                 isMinimized: false,
@@ -1418,6 +1427,8 @@
             this._guideH?.remove();
             this._guideV = null;
             this._guideH = null;
+            this._resizeObserver?.disconnect();
+            this._resizeObserver = null;
             if (this._isolated) {
                 this._container.classList.remove('wos-isolated');
             }
@@ -1527,6 +1538,33 @@
                 win.state.isActive = false; // reset so focus() triggers
                 this.focus(topId);
             }
+        }
+        /** 監聽容器尺寸變化，自動將視窗夾回可視範圍 */
+        _setupResizeObserver() {
+            if (typeof ResizeObserver === 'undefined')
+                return;
+            const target = this._isolated ? this._container : document.documentElement;
+            this._resizeObserver = new ResizeObserver(() => this._clampAllWindows());
+            this._resizeObserver.observe(target);
+        }
+        /** 將所有非最大化、非最小化視窗的位置夾回容器範圍 */
+        _clampAllWindows() {
+            const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+            const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+            if (!cw || !ch)
+                return;
+            const MIN_VISIBLE = 80; // 至少保留這麼多 px 在畫面內
+            this._wins.forEach(win => {
+                if (win.state.isMinimized || win.state.isMaximized)
+                    return;
+                const newX = Math.max(0, Math.min(win.state.x, cw - MIN_VISIBLE));
+                const newY = Math.max(0, Math.min(win.state.y, ch - MIN_VISIBLE));
+                if (newX !== win.state.x || newY !== win.state.y) {
+                    win.state.x = newX;
+                    win.state.y = newY;
+                    applyGeometry(win.elements.root, { x: newX, y: newY });
+                }
+            });
         }
     }
 

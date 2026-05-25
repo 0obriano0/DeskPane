@@ -1,61 +1,79 @@
-import { useState } from 'react'
+﻿import React, { useState } from 'react'
+
+interface Todo { id: number; text: string; done: boolean }
+type Filter = 'all' | 'active' | 'done'
+
+const btn: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+  color: '#e2e8f0', borderRadius: 6, cursor: 'pointer', padding: '5px 12px', fontSize: 12,
+}
 
 export default function TodoApp() {
-  const [items, setItems] = useState<string[]>([])
+  const [todos, setTodos] = useState<Todo[]>([
+    { id: 1, text: '體驗 WebOS React 整合', done: false },
+    { id: 2, text: '閱讀 Hook 指南', done: false },
+  ])
   const [input, setInput] = useState('')
+  const [filter, setFilter] = useState<Filter>('all')
 
-  const add = () => {
-    if (!input.trim()) return
-    setItems(v => [...v, input.trim()])
+  const addTodo = () => {
+    const text = input.trim()
+    if (!text) return
+    setTodos(prev => [...prev, { id: Date.now(), text, done: false }])
     setInput('')
   }
 
-  const remove = (idx: number) => setItems(v => v.filter((_, i) => i !== idx))
+  const toggle = (id: number) => setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  const remove  = (id: number) => setTodos(prev => prev.filter(t => t.id !== id))
+
+  const visible = todos.filter(t => filter === 'all' ? true : filter === 'active' ? !t.done : t.done)
+  const pending = todos.filter(t => !t.done).length
+
+  const tabStyle = (f: Filter): React.CSSProperties => ({
+    ...btn, borderColor: filter === f ? 'rgba(59,130,246,0.6)' : undefined,
+    background: filter === f ? 'rgba(59,130,246,0.2)' : undefined,
+    color: filter === f ? '#93c5fd' : '#e2e8f0',
+  })
 
   return (
-    <div style={{ padding: 16, fontFamily: 'Segoe UI, sans-serif' }}>
-      <h3 style={{ margin: '0 0 12px', fontSize: 15, color: '#333' }}>✅ 待辦清單</h3>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#0f172a', color: '#e2e8f0', padding: 12, boxSizing: 'border-box', gap: 10, fontFamily: 'system-ui, sans-serif', fontSize: 13 }}>
+      {/* Input */}
+      <div style={{ display: 'flex', gap: 6 }}>
         <input
+          style={{ flex: 1, background: '#1e293b', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: '#e2e8f0', padding: '6px 10px', fontSize: 13, outline: 'none' }}
+          placeholder="新增待辦事項…"
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && add()}
-          placeholder="新增項目... (Enter)"
-          style={{
-            flex: 1, padding: '6px 10px', border: '1px solid #ddd',
-            borderRadius: 4, fontSize: 13, outline: 'none',
-          }}
+          onKeyDown={e => e.key === 'Enter' && addTodo()}
         />
-        <button
-          onClick={add}
-          style={{
-            padding: '6px 14px', background: '#4a90e2', color: '#fff',
-            border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13,
-          }}
-        >新增</button>
+        <button style={{ ...btn, background: 'rgba(59,130,246,0.2)', borderColor: 'rgba(59,130,246,0.4)', color: '#93c5fd' }} onClick={addTodo}>新增</button>
       </div>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {items.map((item, i) => (
-          <li key={i} style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '8px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13,
-          }}>
-            <span style={{ color: '#333' }}>• {item}</span>
-            <button
-              onClick={() => remove(i)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: '#f44', fontSize: 16, lineHeight: 1,
-              }}
-            >✕</button>
-          </li>
-        ))}
-        {items.length === 0 && (
-          <li style={{ color: '#aaa', fontSize: 12, padding: '8px 0' }}>
-            尚無待辦項目，試著新增一筆
-          </li>
+
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button style={tabStyle('all')}    onClick={() => setFilter('all')}>全部</button>
+        <button style={tabStyle('active')} onClick={() => setFilter('active')}>進行中</button>
+        <button style={tabStyle('done')}   onClick={() => setFilter('done')}>已完成</button>
+      </div>
+
+      {/* List */}
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {visible.length === 0 && (
+          <div style={{ textAlign: 'center', color: 'rgba(226,232,240,0.3)', marginTop: 24 }}>無項目</div>
         )}
-      </ul>
+        {visible.map(t => (
+          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <input type="checkbox" checked={t.done} onChange={() => toggle(t.id)} style={{ cursor: 'pointer', accentColor: '#3b82f6' }} />
+            <span style={{ flex: 1, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? 'rgba(226,232,240,0.3)' : '#e2e8f0', cursor: 'pointer' }} onClick={() => toggle(t.id)}>{t.text}</span>
+            <button style={{ ...btn, padding: '2px 8px', fontSize: 11, color: 'rgba(226,232,240,0.4)' }} onClick={() => remove(t.id)}>✕</button>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{ fontSize: 11, color: 'rgba(226,232,240,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>
+        {pending} 項待完成
+      </div>
     </div>
   )
 }

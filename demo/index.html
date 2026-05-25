@@ -3,100 +3,146 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WebOS-Core — Demo 選單</title>
+  <title>WebOS-Core — Demo</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #1a2a4a 0%, #2d4a7a 100%);
-      color: #fff;
+      display: grid;
+      place-items: center;
+      background: #0e1420;
+      color: #e8eaf0;
     }
-    .container { text-align: center; }
-    h1 { font-size: 2rem; margin-bottom: 0.4rem; letter-spacing: 1px; }
-    .subtitle { color: rgba(255,255,255,0.6); font-size: 0.95rem; margin-bottom: 3rem; }
-    .cards {
-      display: flex;
-      gap: 24px;
-      justify-content: center;
-      flex-wrap: wrap;
+
+    .wrap { width: min(960px, 92vw); padding: 48px 0; }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header { text-align: center; margin-bottom: 52px; }
+    .header h1 {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: .5px;
     }
+    .header p {
+      margin-top: 8px;
+      font-size: .9rem;
+      color: rgba(232,234,240,.45);
+    }
+
+    /* ── Grid ───────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Card ───────────────────────────────────────────── */
     .card {
-      width: 220px;
-      padding: 32px 24px;
-      border-radius: 16px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 28px 24px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
       text-decoration: none;
-      color: #fff;
-      transition: background 0.2s, transform 0.15s;
-      cursor: pointer;
+      color: inherit;
+      transition: background .18s, border-color .18s, transform .15s;
     }
     .card:hover {
-      background: rgba(255,255,255,0.18);
-      transform: translateY(-4px);
+      background: rgba(255,255,255,0.09);
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-3px);
     }
-    .card-icon { font-size: 3rem; margin-bottom: 16px; }
-    .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
-    .card-desc { font-size: 0.8rem; color: rgba(255,255,255,0.65); line-height: 1.6; }
-    .badge {
-      display: inline-block;
-      margin-top: 12px;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 0.7rem;
+    .card-icon {
+      font-size: 2.2rem;
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 1rem;
       font-weight: 600;
+      margin-bottom: 6px;
     }
-    .badge-js  { background: rgba(247,223,30,0.25); color: #f7df1e; }
-    .badge-vue { background: rgba(66,184,131,0.25); color: #42b883; }
-    .badge-react { background: rgba(97,218,251,0.2); color: #61dafb; }
-    .badge-tool  { background: rgba(255,200,80,0.2); color: #ffc850; }
+    .card-desc {
+      font-size: .78rem;
+      color: rgba(232,234,240,.5);
+      line-height: 1.65;
+      flex: 1;
+    }
+    .badge {
+      margin-top: 16px;
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .b-js     { background: rgba(247,223,30,.15);  color: #f7df1e; }
+    .b-jq     { background: rgba(0,126,255,.2);    color: #4fb3f7; }
+    .b-vue    { background: rgba(66,184,131,.2);   color: #42b883; }
+    .b-react  { background: rgba(97,218,251,.15);  color: #61dafb; }
+    .b-tool   { background: rgba(255,200,80,.15);  color: #ffc850; }
+    .b-docs   { background: rgba(180,130,255,.15); color: #c49eff; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🖥 WebOS-Core</h1>
-    <p class="subtitle">Framework-Agnostic Web Desktop Engine — 選擇 Demo</p>
-    <div class="cards">
+  <div class="wrap">
+    <div class="header">
+      <h1>🖥 WebOS-Core</h1>
+      <p>Framework-Agnostic Web Desktop Engine</p>
+    </div>
+
+    <div class="grid">
+
       <a class="card" href="vanilla/index.html">
         <div class="card-icon">⚡</div>
         <div class="card-title">Vanilla JS</div>
-        <div class="card-desc">純 TypeScript 核心，零框架依賴<br>原生 DOM 操作示範</div>
-        <span class="badge badge-js">JavaScript</span>
+        <div class="card-desc">純 TypeScript 核心，零框架依賴。原生 DOM 操作、Dock、任務列示範。</div>
+        <span class="badge b-js">JavaScript</span>
       </a>
+
       <a class="card" href="jquery/index.html">
         <div class="card-icon">💙</div>
         <div class="card-title">jQuery</div>
-        <div class="card-desc">UMD bundle + jQuery 3.x<br>DOM 操作、表單、動畫整合</div>
-        <span class="badge badge-jq">jQuery</span>
+        <div class="card-desc">UMD bundle + jQuery 3.x。DOM 操作、表單、5 個應用整合示範。</div>
+        <span class="badge b-jq">jQuery</span>
       </a>
+
       <a class="card" href="vue/index.html">
         <div class="card-icon">💚</div>
         <div class="card-title">Vue 3</div>
-        <div class="card-desc">useWindowManager composable<br>.vue SFC 元件 + KeepAlive 整合</div>
-        <span class="badge badge-vue">Vue 3 + Vite</span>
+        <div class="card-desc">useWindowManager composable、SFC 元件、Teleport + KeepAlive。</div>
+        <span class="badge b-vue">Vue 3 + Vite</span>
       </a>
+
       <a class="card" href="react/index.html">
         <div class="card-icon">⚛️</div>
         <div class="card-title">React</div>
-        <div class="card-desc">useWindowManager hook<br>createPortal 渲染 + 自動狀態保留</div>
-        <span class="badge badge-react">React 18 + Vite</span>
+        <div class="card-desc">useWindowManager hook、createPortal 渲染、自動狀態保留。</div>
+        <span class="badge b-react">React 18 + Vite</span>
       </a>
+
+      <a class="card" href="docs/dist/index.html">
+        <div class="card-icon">📖</div>
+        <div class="card-title">Docs</div>
+        <div class="card-desc">開發手冊：API 速查、安裝說明、各框架整合範例、i18n。</div>
+        <span class="badge b-docs">Vue 3 + Vite</span>
+      </a>
+
       <a class="card" href="theme-editor/index.html">
         <div class="card-icon">🎨</div>
         <div class="card-title">Theme Editor</div>
-        <div class="card-desc">可視化編輯 CSS 變數<br>即時預覽 + 匯出主題 CSS</div>
-        <span class="badge badge-tool">Dev Tool</span>
+        <div class="card-desc">可視化編輯 14 個 CSS 變數，即時預覽視窗樣式，一鍵匯出 CSS。</div>
+        <span class="badge b-tool">Dev Tool</span>
       </a>
-      <a class="card" href="layout/index.html">
-        <div class="card-icon">📐</div>
-        <div class="card-title">Layout Demo</div>
-        <div class="card-desc">BorderLayout 東南西北中<br>HTML-first 宣告 + 巢狀 Layout</div>
-        <span class="badge badge-tool">Dev Tool</span>
-      </a>
+
     </div>
   </div>
 </body>

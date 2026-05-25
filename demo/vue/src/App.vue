@@ -78,11 +78,11 @@ import type { VueWindowEntry } from '@webos/adapters/vue/useWindowManager'
 import { setTheme } from '@webos/themes/setTheme'
 
 // ── 匯入所有 .vue 視窗元件 ──
-import WelcomeApp from './windows/WelcomeApp.vue'
-import TextEditor  from './windows/TextEditor.vue'
-import FormApp     from './windows/FormApp.vue'
-import CounterApp  from './windows/CounterApp.vue'
-import TodoApp     from './windows/TodoApp.vue'
+import GuideApp   from './windows/GuideApp.vue'
+import EditorApp  from './windows/EditorApp.vue'
+import TodoApp    from './windows/TodoApp.vue'
+import TableApp   from './windows/TableApp.vue'
+import CounterApp from './windows/CounterApp.vue'
 
 // ── 初始化 WindowManager Composable ──
 const { wm, windows, openVueWindow, close, minimize, restore, focus, destroy } =
@@ -111,11 +111,11 @@ interface AppDef {
 }
 
 const appList: AppDef[] = [
-  { id: 'welcome',     label: '桌面',   icon: '🖥', title: '歡迎使用 WebOS-Core', component: markRaw(WelcomeApp), width: 420, height: 340, x: 100, y: 60  },
-  { id: 'text-win',    label: '文字',   icon: '📝', title: '文字編輯器',           component: markRaw(TextEditor),  width: 420, height: 320, x: 140, y: 80  },
-  { id: 'form-win',    label: '表單',   icon: '📋', title: '員工資料表單',          component: markRaw(FormApp),     width: 360, height: 360, x: 180, y: 100 },
-  { id: 'counter-win', label: '計數器', icon: '🔢', title: 'Keep-Alive 計數器',    component: markRaw(CounterApp),  width: 320, height: 380, x: 220, y: 120 },
-  { id: 'todo-win',    label: '待辦',   icon: '✅', title: '待辦清單',              component: markRaw(TodoApp),     width: 360, height: 420, x: 260, y: 80  },
+  { id: 'guide',   label: 'Composable', icon: '🧩', title: 'useWindowManager 指南',  component: markRaw(GuideApp),   width: 480, height: 380, x: 80,  y: 40  },
+  { id: 'editor',  label: '文字',       icon: '📝', title: 'Vue 文字編輯器',          component: markRaw(EditorApp),  width: 420, height: 320, x: 120, y: 60  },
+  { id: 'todo',    label: '待辦',       icon: '✅', title: 'Vue 待辦清單',             component: markRaw(TodoApp),    width: 360, height: 420, x: 160, y: 80  },
+  { id: 'table',   label: '資料表',     icon: '📊', title: 'Vue 資料表格',             component: markRaw(TableApp),   width: 500, height: 360, x: 200, y: 60  },
+  { id: 'counter', label: '計數器',     icon: '🔢', title: 'Keep-Alive 計數器',        component: markRaw(CounterApp), width: 300, height: 300, x: 240, y: 100 },
 ]
 
 const appMap = Object.fromEntries(appList.map(a => [a.id, a]))
@@ -166,8 +166,8 @@ function toggleTheme() {
   setTheme(next, { basePath: '/themes' })
 }
 
-// ── 啟動時開啟歡迎視窗 ──
-openApp('welcome')
+// ── 啟動時開啟指南視窗 ──
+openApp('guide')
 </script>
 
 <style>

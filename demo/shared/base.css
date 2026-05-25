@@ -1,0 +1,203 @@
+/* ============================================================
+   WebOS Demo — Shared Design System
+   共用 reset / header / badge / scrollbar
+   ============================================================ */
+
+/* ── Reset ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --d-bg:        #0b0f1a;
+  --d-panel:     #111827;
+  --d-panel2:    #1a2236;
+  --d-border:    rgba(255,255,255,0.07);
+  --d-border2:   rgba(255,255,255,0.13);
+  --d-accent:    #3b82f6;
+  --d-accent-h:  #60a5fa;
+  --d-text:      #e2e8f0;
+  --d-muted:     rgba(226,232,240,0.45);
+  --d-success:   #22c55e;
+  --d-warn:      #f59e0b;
+  --d-font:      system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --d-header-h:  48px;
+  --d-sidebar-w: 240px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--d-bg);
+  color: var(--d-text);
+  font-family: var(--d-font);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* ── Demo Header ─────────────────────────────────────────── */
+.dh {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--d-header-h);
+  background: var(--d-panel);
+  border-bottom: 1px solid var(--d-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  z-index: 9999;
+  flex-shrink: 0;
+}
+.dh-back {
+  color: var(--d-muted);
+  text-decoration: none;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--d-border2);
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.dh-back:hover { color: var(--d-text); border-color: var(--d-accent); }
+.dh-logo { font-size: 18px; line-height: 1; }
+.dh-title { font-weight: 600; font-size: 14px; letter-spacing: .3px; }
+.dh-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+.b-js    { background: rgba(247,223,30,.12); color: #f7df1e; }
+.b-jq    { background: rgba(0,126,255,.18);  color: #4fb3f7; }
+.b-vue   { background: rgba(66,184,131,.18); color: #42b883; }
+.b-react { background: rgba(97,218,251,.15); color: #61dafb; }
+.b-tool  { background: rgba(255,200,80,.14); color: #ffc850; }
+
+.dh-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--d-border2);
+  margin: 0 2px;
+}
+.dh-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Generic Button ─────────────────────────────────────── */
+.d-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--d-border2);
+  background: var(--d-panel2);
+  color: var(--d-text);
+  font-size: 12px;
+  font-family: var(--d-font);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  white-space: nowrap;
+}
+.d-btn:hover { background: rgba(255,255,255,0.09); border-color: var(--d-accent); }
+.d-btn-accent {
+  background: var(--d-accent);
+  border-color: var(--d-accent);
+  color: #fff;
+}
+.d-btn-accent:hover { background: var(--d-accent-h); border-color: var(--d-accent-h); }
+
+/* ── Main layout helper ──────────────────────────────────── */
+.d-layout {
+  display: flex;
+  position: fixed;
+  top: var(--d-header-h);
+  left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.d-sidebar {
+  width: var(--d-sidebar-w);
+  flex-shrink: 0;
+  background: var(--d-panel);
+  border-right: 1px solid var(--d-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.d-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 10px;
+}
+.d-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--d-muted);
+  padding: 8px 6px 4px;
+}
+
+/* ── App launcher button ─────────────────────────────────── */
+.d-app-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--d-text);
+  font-size: 13px;
+  font-family: var(--d-font);
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s, border-color .12s;
+  margin-bottom: 2px;
+}
+.d-app-btn:hover { background: rgba(255,255,255,0.06); border-color: var(--d-border2); }
+.d-app-btn.active { background: rgba(59,130,246,0.18); border-color: rgba(59,130,246,0.4); }
+.d-app-btn .icon { font-size: 18px; flex-shrink: 0; width: 26px; text-align: center; }
+.d-app-btn .label { font-size: 13px; flex: 1; }
+.d-app-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--d-accent);
+  flex-shrink: 0;
+}
+
+/* ── Canvas (window area) ─────────────────────────────────── */
+.d-canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Event log ───────────────────────────────────────────── */
+.d-log {
+  height: 180px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--d-border);
+  background: var(--d-panel);
+  padding: 8px 10px;
+  overflow-y: auto;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 11px;
+}
+.d-log-entry { color: rgba(34,197,94,.9); padding: 1px 0; }
+.d-log-entry.ev-close { color: rgba(239,68,68,.85); }
+.d-log-entry.ev-focus { color: rgba(59,130,246,.9); }
+.d-log-entry.ev-minimize { color: rgba(245,158,11,.9); }
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }

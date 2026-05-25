@@ -1,35 +1,35 @@
-import { useState } from 'react'
+﻿import React, { useState, useRef } from 'react'
 
-const btnStyle: React.CSSProperties = {
-  width: 44, height: 44, fontSize: 22, border: '1px solid #ddd',
-  borderRadius: 8, background: '#f8f8f8', cursor: 'pointer',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
+const btn: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+  color: '#e2e8f0', borderRadius: 6, cursor: 'pointer', padding: '5px 12px', fontSize: 12,
+}
+const bigBtn: React.CSSProperties = {
+  ...btn, fontSize: 22, padding: '8px 20px', minWidth: 48,
 }
 
 export default function CounterApp() {
   const [count, setCount] = useState(0)
+  const renderCount = useRef(0)
+  renderCount.current += 1
 
   return (
-    <div style={{
-      padding: 24, textAlign: 'center', fontFamily: 'Segoe UI, sans-serif',
-      height: '100%', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: 16,
-    }}>
-      <h2 style={{ margin: 0, fontSize: 16, color: '#333' }}>🔢 React 計數器</h2>
-      <div style={{ fontSize: 64, fontWeight: 700, color: '#4a90e2', lineHeight: 1 }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: '#e2e8f0', gap: 16, padding: 20, boxSizing: 'border-box' }}>
+      <div style={{ fontSize: 72, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: count === 0 ? 'rgba(226,232,240,0.3)' : '#3b82f6', lineHeight: 1, minWidth: 100, textAlign: 'center' }}>
         {count}
       </div>
-      <div style={{ display: 'flex', gap: 12 }}>
-        <button style={btnStyle} onClick={() => setCount(c => c - 1)}>－</button>
-        <button
-          style={{ ...btnStyle, background: '#f0f0f0', fontSize: 13 }}
-          onClick={() => setCount(0)}
-        >重置</button>
-        <button style={btnStyle} onClick={() => setCount(c => c + 1)}>＋</button>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button style={bigBtn} onClick={() => setCount(c => c - 1)}>−</button>
+        <button style={bigBtn} onClick={() => setCount(c => c + 1)}>＋</button>
       </div>
-      <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>
-        最小化後重新打開，數值仍保留
-      </p>
+
+      <button style={{ ...btn, color: 'rgba(226,232,240,0.5)' }} onClick={() => setCount(0)}>重置</button>
+
+      <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(226,232,240,0.4)', textAlign: 'center', lineHeight: 1.8 }}>
+        <div>此元件已渲染 <strong style={{ color: '#fbbf24' }}>{renderCount.current}</strong> 次</div>
+        <div style={{ fontSize: 11, marginTop: 4 }}>最小化後重新開啟，計數仍保留</div>
+      </div>
     </div>
   )
 }

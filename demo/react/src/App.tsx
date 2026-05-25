@@ -4,11 +4,11 @@ import { useWindowManager } from '@webos/adapters/react/useWindowManager'
 import type { ReactWindowEntry } from '@webos/adapters/react/useWindowManager'
 import { setTheme } from '@webos/themes/setTheme'
 
-import WelcomeApp  from './windows/WelcomeApp'
-import TextEditor  from './windows/TextEditor'
-import FormApp     from './windows/FormApp'
-import CounterApp  from './windows/CounterApp'
-import TodoApp     from './windows/TodoApp'
+import GuideApp   from './windows/GuideApp'
+import EditorApp  from './windows/EditorApp'
+import CounterApp from './windows/CounterApp'
+import TodoApp    from './windows/TodoApp'
+import DataPanel  from './windows/DataPanel'
 
 interface AppDef {
   id: string
@@ -23,11 +23,11 @@ interface AppDef {
 }
 
 const APP_LIST: AppDef[] = [
-  { id: 'welcome',     label: '桌面',   icon: '🖥', title: '歡迎使用 WebOS-Core', component: WelcomeApp,  width: 420, height: 320, x: 100, y: 60  },
-  { id: 'text-win',    label: '文字',   icon: '📝', title: '文字編輯器',           component: TextEditor,  width: 420, height: 320, x: 140, y: 80  },
-  { id: 'form-win',    label: '表單',   icon: '📋', title: '員工資料表單',          component: FormApp,     width: 360, height: 380, x: 180, y: 100 },
-  { id: 'counter-win', label: '計數器', icon: '🔢', title: 'React 計數器',         component: CounterApp,  width: 320, height: 300, x: 220, y: 120 },
-  { id: 'todo-win',    label: '待辦',   icon: '✅', title: '待辦清單',              component: TodoApp,     width: 360, height: 420, x: 260, y: 80  },
+  { id: 'guide',   label: 'Hook',   icon: '⚛️', title: 'useWindowManager Hook 指南', component: GuideApp,   width: 480, height: 380, x: 80,  y: 40  },
+  { id: 'editor',  label: '文字',   icon: '📝', title: 'React 文字編輯器',            component: EditorApp,  width: 420, height: 320, x: 120, y: 60  },
+  { id: 'counter', label: '計數器', icon: '🔢', title: 'React 計數器 (KeepAlive)',    component: CounterApp, width: 300, height: 300, x: 240, y: 100 },
+  { id: 'todo',    label: '待辦',   icon: '✅', title: 'React 待辦清單',              component: TodoApp,    width: 360, height: 420, x: 160, y: 80  },
+  { id: 'data',    label: '資料',   icon: '📊', title: 'React 資料面板',              component: DataPanel,  width: 500, height: 360, x: 200, y: 60  },
 ]
 
 const APP_MAP = Object.fromEntries(APP_LIST.map(a => [a.id, a]))
@@ -70,7 +70,7 @@ export default function App() {
       })
     })
     // 啟動時開啟歡迎視窗
-    openApp('welcome')
+    openApp('guide')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

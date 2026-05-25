@@ -13,5 +13,15 @@
   --wos-btn-close-hover-bg:   #ff5f57;
   --wos-btn-close-hover-color:#ffffff;
   --wos-body-bg:              #ffffff;
+  --wos-body-color:           #222222;
   --wos-snap-guide-color:     rgba(0, 120, 255, 0.55);
+
+  /* ── Desktop ─────────────────────────────────────────── */
+  --wos-desktop-bg:           linear-gradient(135deg, #e8eaf0 0%, #d0d4e0 100%);
+  --wos-desktop-icon-text:    #1a1a2e;
+  --wos-desktop-icon-hover-bg:rgba(0, 0, 0, 0.08);
+  --wos-dock-bg:              rgba(220, 225, 240, 0.85);
+  --wos-dock-border:          rgba(0, 0, 0, 0.12);
+  --wos-dock-item-hover-bg:   rgba(0, 0, 0, 0.08);
+  --wos-font:                 system-ui, -apple-system, sans-serif;
 }

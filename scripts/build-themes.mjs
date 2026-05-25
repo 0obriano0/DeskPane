@@ -10,7 +10,7 @@ const root = join(__dirname, '..');
 const src  = join(root, 'src', 'themes');
 
 const targets = [
-  join(root, 'dist',       'themes'),
+  join(root, 'dist',          'themes'),
   join(root, 'demo', 'vue',   'public', 'themes'),
   join(root, 'demo', 'react', 'public', 'themes'),
 ];

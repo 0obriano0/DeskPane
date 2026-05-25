@@ -17,12 +17,14 @@ The core handles all window lifecycle, drag/resize, focus, and z-order — your 
 - ✅ Focus / z-order management
 - ✅ Event bus — subscribe to any window lifecycle event
 - ✅ Isolated mode — embed a desktop inside any page element
+- ✅ **RWD viewport clamping** — windows auto-clamp on container resize (ResizeObserver); new windows never open off-screen
 - ✅ Vue 3 adapter — `useWindowManager` composable + `Teleport` support
 - ✅ React 18 adapter — `useWindowManager` hook + `createPortal` support
 - ✅ ES Module + UMD builds — works with bundlers or plain `<script>` tags
 - ✅ Minified builds — `webos-core.es.min.js` / `webos-core.umd.min.js`
 - ✅ **Theme system** — built-in light/dark CSS themes with CSS custom properties; `setTheme()` utility for runtime switching
 - ✅ **BorderLayout** — EasyUI-style N/S/E/W/Center docking layout; HTML-first `data-region` declaration; collapsible panels with mini strip; draggable splitters; nested layouts
+- ✅ **Desktop module** (`webos-desktop`) — virtual desktop with icons, Dock, sync with WindowManager; drag threshold; icon snap; RWD scrollable icon area
 
 ---
 
@@ -156,6 +158,8 @@ export default function App() {
 | `snap` | `boolean` | `true` | Enable magnetic snap alignment while dragging |
 | `snapThreshold` | `number` | `20` | Snap trigger distance in pixels |
 
+> **RWD**: `WindowManager` automatically monitors container size changes via `ResizeObserver` and clamps all windows back into view when the viewport shrinks.
+
 ### Core Methods
 
 | Method | Description |
@@ -200,6 +204,94 @@ wm.events.on('window:restored',  (state) => { /* ... */ })
 wm.events.on('window:moved',     (state) => { /* ... */ })
 wm.events.on('window:resized',   (state) => { /* ... */ })
 ```
+
+### Desktop Module (`webos-core/desktop`)
+
+Import desktop features from the desktop subpath export:
+
+```typescript
+import { Desktop } from 'webos-core/desktop'
+import { WindowManager } from 'webos-core'
+```
+
+### Dock Sync With WindowManager
+
+`Desktop` provides a built-in API to sync running windows to Dock items.
+
+- Open window -> add Dock icon
+- Close window -> remove Dock icon
+- Dock drag-to-reorder stays available
+
+```typescript
+import { Desktop } from 'webos-core/desktop'
+import { WindowManager } from 'webos-core'
+
+const desktop = new Desktop({
+  container: document.getElementById('desktop-root')!,
+  dock: {
+    position: 'bottom',
+    items: [],
+  },
+})
+
+const wm = new WindowManager({
+  container: desktop.getElement(),
+  isolated: true,
+})
+
+const stopSync = desktop.syncDockWithWindows(wm, {
+  getAppIdFromWindowId(windowId) {
+    return windowId.startsWith('app-') ? windowId.slice(4) : windowId
+  },
+  getDockItem(appId, event) {
+    return {
+      label: event.title ?? appId,
+      icon: '🪟',
+    }
+  },
+  onDockItemClick(appId) {
+    wm.open({ id: 'app-' + appId, title: appId, content: document.createElement('div') })
+  },
+})
+
+// Later: stop syncing and remove synced dock items
+stopSync()
+// or desktop.unsyncDockWithWindows()
+```
+
+#### `desktop.syncDockWithWindows(manager, options?)`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `getAppIdFromWindowId` | `(windowId) => string \| null` | strip `app-` prefix when present | Convert window ID to app ID. Return `null` to skip. |
+| `getDockItem` | `(appId, event) => { label, icon } \| null` | `label: event.title ?? appId`, `icon: '🪟'` | Build Dock display content. Return `null` to skip the window. |
+| `onDockItemClick` | `(appId, windowId) => void` | focus window | Custom click action. |
+| `dockItemIdPrefix` | `string` | `'running-'` | Prefix for generated Dock item IDs. |
+| `dedupeByAppId` | `boolean` | `true` | Keep one Dock item per app ID. |
+| `syncExisting` | `boolean` | `true` | Sync windows that are already open at bind time. |
+
+Returns:
+
+- `() => void` cleanup function (equivalent to `desktop.unsyncDockWithWindows()`).
+
+#### `desktop.unsyncDockWithWindows()`
+
+- Unsubscribes internal event listeners.
+- Removes Dock items created by sync API.
+- Automatically called by `desktop.destroy()`.
+
+### Desktop Config (`DesktopConfig`)
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `container` | `HTMLElement` | `document.body` | Container for the desktop |
+| `background` | `string` | CSS var | Desktop background (color or gradient) |
+| `storageKey` | `string` | `'wos-desktop'` | localStorage key prefix for icon positions |
+| `dragThreshold` | `number` | `6` | Global drag start threshold (px); per-icon override via `DesktopIconConfig.dragThreshold` |
+| `iconSnap` | `boolean` | `true` | Enable icon snap alignment while dragging |
+| `iconSnapThreshold` | `number` | `20` | Icon snap trigger distance (px) |
+| `dock` | `DockConfig` | `{}` | Dock configuration |
+| `icons` | `DesktopIconConfig[]` | `[]` | Initial desktop icons |
 
 ### Vue 3 Adapter — `useWindowManager(opts?)`
 
@@ -256,7 +348,9 @@ WebOS.setTheme('dark', { basePath: 'dist/themes' })
 
 ### CSS custom properties
 
-All 14 window style properties can be overridden to create your own theme:
+All CSS custom properties can be overridden to create your own theme. There are **22 variables** total — 15 for the Core window manager and 7 for the Desktop module.
+
+#### Core window properties (15)
 
 ```css
 :root {
@@ -273,9 +367,26 @@ All 14 window style properties can be overridden to create your own theme:
   --wos-btn-close-hover-bg:    #e53e3e;
   --wos-btn-close-hover-color: #ffffff;
   --wos-body-bg:      #ffffff;
+  --wos-body-color:   #222222;
   --wos-snap-guide-color: rgba(74,144,226,0.4);
 }
 ```
+
+#### Desktop module properties (7)
+
+```css
+:root {
+  --wos-desktop-bg:            linear-gradient(135deg,#f0f4f8 0%,#e2e8f0 100%);
+  --wos-desktop-icon-text:     #1a202c;
+  --wos-desktop-icon-hover-bg: rgba(0,0,0,0.08);
+  --wos-dock-bg:               rgba(255,255,255,0.75);
+  --wos-dock-border:           rgba(0,0,0,0.10);
+  --wos-dock-item-hover-bg:    rgba(0,0,0,0.06);
+  --wos-font:                  system-ui,-apple-system,sans-serif;
+}
+```
+
+> **Tip:** The built-in `dist/themes/dark.css` and `light.css` include **both** Core and Desktop variables, so a single `<link>` tag is all you need.
 
 ---
 
@@ -343,8 +454,8 @@ When collapsed, a region shrinks to a **28px mini strip** (EasyUI style): expand
 | `dist/webos-core.umd.js` | UMD | ~26 KB | Script tag, jQuery, legacy pages (dev) |
 | `dist/webos-core.umd.min.js` | UMD | ~12 KB | Production CDN / script tag |
 | `dist/index.d.ts` | TypeScript declarations | — | IDE autocomplete & type checking |
-| `dist/themes/light.css` | CSS | ~1 KB | Built-in light theme |
-| `dist/themes/dark.css` | CSS | ~1 KB | Built-in dark theme |
+| `dist/themes/light.css` | CSS | ~2 KB | Built-in light theme (Core + Desktop vars) |
+| `dist/themes/dark.css` | CSS | ~2 KB | Built-in dark theme (Core + Desktop vars) |
 
 ---
 

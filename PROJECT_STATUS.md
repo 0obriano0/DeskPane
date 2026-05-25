@@ -1,6 +1,6 @@
-# WebOS-Core — 專案狀態紀錄
+﻿# WebOS-Core — 專案狀態紀錄
 
-> 最後更新：2026-05-22（BorderLayout 折疊 Strip UX 改版 + Theme Editor 加入 Layout 預覽）  
+> 最後更新：2026-05-25（Theme Editor 工具列完善 + Desktop CSS 變數補齊 + 主題 CSS 整合）  
 > 用途：電腦重裝 / VS Code 重裝後快速恢復開發環境
 
 ---
@@ -46,6 +46,20 @@ WebOS/
 │   ├── layout/
 │   │   ├── BorderLayout.ts     ← 東南西北中 五區域佈局（position:absolute，拖曳分割線，巢狀遞迴）
 │   │   └── Panel.ts            ← 可折疊標題+內容面板（data-panel 宣告式）
+│   ├── desktop/                    ← Desktop 桌面模組（獨立 bundle）
+│   │   ├── types.ts                ← DesktopConfig / DockConfig / DesktopIconConfig 型別
+│   │   ├── styles.ts               ← injectDesktopStyles()，獨立 CSS 注入
+│   │   ├── DesktopIcon.ts          ← 自由拖曳圖示，localStorage 位置記憶
+│   │   ├── Dock.ts                 ← HTML5 D&D 排序工具列
+│   │   ├── Desktop.ts              ← 主容器，getElement() 供 WindowManager 使用
+│   │   └── index.ts                ← Public entry point
+│   ├── desktop/
+│   │   ├── index.ts            ← Desktop Entry Point（統一 export）
+│   │   ├── Desktop.ts          ← 虛擬桌面容器（背景、圖示拖放、右鍵選單）
+│   │   ├── Taskbar.ts          ← 底部任務列（開啟視窗清單、系統托盤）
+│   │   ├── Dock.ts             ← 快速啟動 Dock（圖示排序、新增/移除）
+│   │   ├── DesktopIcon.ts      ← 桌面圖示（double-click 開啟 app）
+│   │   └── desktopTheme.css    ← Desktop 專屬 CSS 變數（--wos-d-*）
 │   └── adapters/
 │       ├── vue/
 │       │   ├── useWindowManager.ts  ← Vue 3 Composable
@@ -61,7 +75,12 @@ WebOS/
 │   ├── webos-core.umd.js       ← UMD bundle，window.WebOS (~26KB)
 │   ├── webos-core.umd.js.map   ← Source map
 │   ├── webos-core.umd.min.js   ← UMD bundle（壓縮版 ~12KB）
-│   ├── index.d.ts              ← TypeScript 宣告
+│   ├── webos-desktop.es.js     ← Desktop ES Module bundle（依賴 core）
+│   ├── webos-desktop.es.min.js ← Desktop ES Module（壓縮版）
+│   ├── webos-desktop.umd.js    ← Desktop UMD，window.WebOSDesktop
+│   ├── webos-desktop.umd.min.js← Desktop UMD（壓縮版）
+│   ├── webos-desktop.d.ts      ← Desktop TypeScript 宣告
+│   ├── index.d.ts              ← Core TypeScript 宣告
 │   ├── index.d.ts.map
 │   └── themes/                 ← 主題 CSS（build-themes.mjs 複製自 src/themes/）
 │       ├── light.css
@@ -69,10 +88,14 @@ WebOS/
 │
 ├── demo/
 │   ├── index.html              ← Demo 首頁（連結到各 demo）
+│   ├── shared/
+│   │   └── base.css            ← 共用 reset + header + badge + scrollbar 樣式
 │   ├── vanilla/
-│   │   └── index.html          ← 純 JS Demo（Dock + 任務列 + 事件 Log）
+│   │   └── index.html          ← 純 JS Demo（控制欄 + 視窗畫布 + Event Log）
 │   ├── jquery/
-│   │   └── index.html          ← jQuery Demo（UMD + jQuery CDN，5 個應用）
+│   │   └── index.html          ← jQuery Demo（UMD + jQuery CDN，4 個應用）
+│   ├── desktop/
+│   │   └── index.html          ← 🖥 Desktop 模組 Demo（虛擬桌面 + Taskbar + Dock + 圖示拖放）
 │   ├── vue/                    ← Vue 3 Demo（獨立 Vite 專案）
 │   │   ├── package.json
 │   │   ├── vite.config.ts
@@ -96,7 +119,7 @@ WebOS/
 │   │           ├── TodoApp.tsx
 │   │           └── FormApp.tsx
 │   ├── theme-editor/
-│   │   └── index.html          ← 🎨 Theme Editor（免建置單檔，可視化編輯 14 個 --wos-* CSS 變數 + 即時預覽 + 匯出 CSS）
+│   │   └── index.html          ← 🎨 Theme Editor（Core + Desktop 雙分頁，免建置單檔）
 │   ├── layout/
 │   │   └── index.html          ← 📐 Layout Demo（BorderLayout 東南西北中 + 巢狀 + Panel，HTML-first 宣告）
 │   └── docs/                   ← 開發手冊（Wijmo 風格，獨立 Vite + Vue 3）
@@ -765,19 +788,150 @@ dist/
 |------|------|
 | `src/layout/BorderLayout.ts` | collapsed strip CSS、`_applyLayout()` 折疊尺寸邏輯、`toggleCollapse()` + 初始化加 CSS class、`_startDrag()` 折疊保護 |
 
+### 27. 2026-05-25 Desktop 模組功能擴充（Dock 聚焦指示 / 深色主題修正 / 拖曳優化 / Icon Snap / RWD）
+
+#### Dock 聚焦指示（Active Indicator）
+
+- `Dock.ts` 新增 `setActiveItem(id: string | null)` + `_applyActive()` 私有方法
+- `.wos-dock-active` CSS class：藍色背景 + 方向感知圓點（bottom / top / left / right 各自調整位置）
+- `Desktop.syncDockWithWindows()`：監聽 `window:focused` 事件呼叫 `setActiveItem`
+- **首次開窗 bug 修正**：`window:opened` handler 裡直接呼叫 `setActiveItem(dockId)`（開窗當下就是 active）
+
+#### 深色主題文字修正
+
+- `DOMRenderer.ts`：`.wos-body` 加入 `color: var(--wos-body-color, #222222)`
+- `dark.css`：新增 `--wos-body-color: #e0e0f0`
+- `light.css`：新增 `--wos-body-color: #222222`
+
+#### Desktop themes 改由 dist/themes 直接引用
+
+- 刪除 `demo/desktop/themes/` 目錄
+- `scripts/build-themes.mjs` 移除 `demo/desktop/themes/` 複製目標
+- `demo/desktop/index.html` 已直接引用 `../../dist/themes/*.css`
+
+#### Desktop 計算機 Demo 重寫
+
+- 改用純 DOM 建構（`makeCalc()` 函式），移除 innerHTML + 內嵌 `<script>` 方式
+- 按鈕使用 `rgba` 顏色（主題感知），輸出繼承 `color: inherit`
+- `openApp()` 支援 `def.make()` 和 `def.html` 兩種路徑
+
+#### Icon 拖曳感應靈敏度（dragThreshold）
+
+- `DesktopIconConfig` 新增 `dragThreshold?: number`（per-icon 覆蓋）
+- `DesktopConfig` 新增 `dragThreshold?: number`（全域預設，預設 6px）
+- `DesktopIcon` 記錄 `_startX/_startY`，mousemove 時計算 Euclidean distance，超過 threshold 才進入拖曳模式
+- Demo 設定 `dragThreshold: 10`
+
+#### Icon 拖曳 Snap 吸附（iconSnap）
+
+- `DesktopConfig` 新增 `iconSnap?: boolean`（預設 `true`）、`iconSnapThreshold?: number`（預設 20px）
+- `DesktopIcon` 新增 `snapFn: IconSnapFn | null`、`onDragEnd: (() => void) | null` 建構參數
+- `Desktop` 建構時建立 `_guideV`、`_guideH` guide 元素到 `_iconAreaEl`
+- `Desktop._makeSnapFn(id)` 閉包：收集其他 icon rects → 呼叫 `SnapHelper.snapPosition()` → 更新 guide 顯示
+- `Desktop._hideSnapGuides()` 在拖曳結束時隱藏 guide 線
+- `styles.ts` 新增 `.wos-icon-snap-guide`、`.wos-snap-guide--v`、`.wos-snap-guide--h` CSS
+
+#### RWD 響應式設計（方案 C）
+
+**Dock 收合（overflow 捲動）**
+- 水平 Dock（top/bottom）：`overflow-x: auto; overflow-y: hidden`
+- 垂直 Dock（left/right）：`overflow-y: auto; overflow-x: hidden`
+- Scrollbar 隱藏（`scrollbar-width: none`），保留觸控/滾輪捲動
+
+**視窗位置 Clamp（WindowManager）**
+- `open()` 時根據容器寬高夾回初始位置（不超出邊界）
+- `_setupResizeObserver()`：監聽容器尺寸變化（`ResizeObserver`）
+  - isolated 模式監聽容器；一般模式監聽 `document.documentElement`
+- `_clampAllWindows()`：縮小視窗時自動移回非最大化/非最小化視窗（至少保留 80px 可見）
+- `destroy()` 清除 observer
+
+**Icon 區域捲動**
+- `.wos-desktop-icon-area` 改為 `overflow: auto`（細 scrollbar）
+- **Sentinel 元素**：1×1 隱形 div，永遠位於所有 icon 最右下角，撐開 scrollHeight/scrollWidth
+- `addIcon()` / `removeIcon()` / `_savePositions()` 均呼叫 `_updateSentinel()`
+
+#### 影響檔案
+
+| 檔案 | 變更 |
+|------|------|
+| `src/desktop/Dock.ts` | `setActiveItem()`、`_applyActive()`、`_activeId` |
+| `src/desktop/Desktop.ts` | `syncDockWithWindows` 聚焦、snap 基礎設施、`_iconSentinel`、`_updateSentinel()` |
+| `src/desktop/DesktopIcon.ts` | `dragThreshold` 閾值、`snapFn`、`onDragEnd` |
+| `src/desktop/types.ts` | `dragThreshold`、`iconSnap`、`iconSnapThreshold` |
+| `src/desktop/styles.ts` | `.wos-dock-active`、`.wos-icon-snap-guide`、Dock overflow、icon-area overflow |
+| `src/core/WindowManager.ts` | `_resizeObserver`、`_setupResizeObserver()`、`_clampAllWindows()`、`open()` clamp |
+| `src/renderers/DOMRenderer.ts` | `--wos-body-color` |
+| `src/themes/dark.css` | `--wos-body-color: #e0e0f0` |
+| `src/themes/light.css` | `--wos-body-color: #222222` |
+| `scripts/build-themes.mjs` | 移除 `demo/desktop/themes/` 目標 |
+| `demo/desktop/index.html` | `dragThreshold: 10`、`makeCalc()`、`def.make()` |
+| `demo/desktop/themes/` | **已刪除** |
+
 ---
 
-## 九、待開發功能（Roadmap）
+### 28. 2026-05-25 Theme Editor 工具列完善 + Desktop CSS 變數補齊
 
-- [x] **React 包裝層** ✅ `src/adapters/react/` + `demo/react/` + Docs `ReactPage.vue`
-- [x] **jQuery 整合範例** ✅ `demo/jquery/index.html` + Docs `JqueryPage.vue`
-- [x] **視窗 Snap 吸附功能** ✅ `src/core/SnapHelper.ts` + `WindowManager` + 全 demo 更新
-- [x] **UI 主題切換** ✅ `src/themes/*.css` → `dist/themes/` 純 CSS 獨立輸出；`setTheme()` 工具函式隨 bundle export；全 4 個 Demo 均已整合（Vanilla / jQuery / Vue / React）
-- [x] **主題設計編輯器** ✅ `demo/theme-editor/index.html`（免建置單檔）；14 個 `--wos-*` 變數可視化編輯；color picker + hex 輸入雙向同步；shadow/rgba 文字輸入；即時預覽（WebOS UMD）；Light/Dark 預設切換；匯出 CSS（複製 / 下載）
-- [x] **BorderLayout / Panel 佈局元件** ✅ `src/layout/BorderLayout.ts` + `src/layout/Panel.ts`；HTML-first `data-region` / `data-panel` 宣告；`wm.open()` 自動偵測渲染；巢狀遞迴；可拖曳分割線 + 折疊；`demo/layout/index.html`；EasyUI 風格折疊 strip（展開按鈕在上 → 圖示 → 旋轉標題）；`demo/vanilla` + `demo/jquery` 均含 Layout 示範
+#### 新增 Desktop CSS 變數（`src/desktop/styles.ts`）
+
+- `--wos-desktop-icon-hover-bg`：桌面圖示 hover 背景（原本 hardcoded `rgba(255,255,255,0.15)`）
+- `--wos-dock-item-hover-bg`：Dock 項目 hover 背景（原本 hardcoded `rgba(255,255,255,0.12)`）
+- 兩個變數均有保守 fallback，升級後行為不變
+
+#### Theme Editor — Desktop tab 工具列補齊
+
+| 項目 | 說明 |
+|------|------|
+| Dock 停靠位置選擇器 | 底部 / 頂部 / 左側 / 右側，切換後自動 rebuild 真實預覽 |
+| 標籤顯示 checkbox | 控制 Dock 圖示是否顯示文字標籤 |
+| 兩控制項預設 disabled | 載入 `webos-desktop.umd.js` 後才啟用（與 Mock 預覽期間不互動）|
+
+#### Theme Editor — 編輯器 UX 改善
+
+| 項目 | 說明 |
+|------|------|
+| Module Banner | Core 編輯器頂部藍色橫條（🪟 Core `webos-core.umd.js`）；Desktop 編輯器頂部紫色橫條（🖥 Desktop `webos-desktop.umd.js`），清楚區隔兩組 CSS 變數屬於不同 bundle |
+| Text 型別預覽色塊 | 所有 `type: 'text'` 輸入欄（漸層背景、rgba 值）左側加上 `.var-preview` 26×26 色塊，與 `type: 'color'` 的 color picker 外觀一致，輸入時即時更新 |
+| `--wos-dock-border` 型別修正 | 從 `type: 'color'` → `type: 'text'`（原本 color picker 會截掉 alpha，`rgba(255,255,255,0.10)` 會變成 `#ffffff`） |
+| 新增 CSS 變數群組 | Desktop 分頁加入 🎨 **Hover & Interaction** 群組，含 `--wos-desktop-icon-hover-bg`、`--wos-dock-item-hover-bg` |
+
+#### 主題 CSS 整合（`src/themes/`）
+
+- `dark.css` + `light.css` 新增 `/* ── Desktop ── */` 分隔區塊，補入全部 Desktop 變數
+- 修正兩個主題 `--wos-snap-guide-color:` 格式（原本缺少冒號後空格）
+- 更新 Preset：全部 4 個 preset（dark / light / blue / solarized）的 `desktop` 物件均新增 `--wos-desktop-icon-hover-bg`、`--wos-dock-item-hover-bg`
+- `node scripts/build-themes.mjs` 同步複製到 `dist/themes/`、`demo/vue/public/themes/`、`demo/react/public/themes/`
+
+#### 影響檔案
+
+| 檔案 | 變更 |
+|------|------|
+| `src/desktop/styles.ts` | `--wos-desktop-icon-hover-bg`、`--wos-dock-item-hover-bg` 變數化 |
+| `src/themes/dark.css` | 新增 Desktop 變數區塊（7 個），修正格式 |
+| `src/themes/light.css` | 新增 Desktop 變數區塊（7 個），修正格式 |
+| `demo/theme-editor/index.html` | Module Banner、Text 預覽色塊、Dock 工具列控制、新 CSS 變數群組、Preset 更新 |
+
+---
+
+
+- [x] **jQuery 整合範例** ✅
+- [x] **視窗 Snap 吸附功能** ✅
+- [x] **UI 主題切換** ✅
+- [x] **主題設計編輯器** ✅
+- [x] **BorderLayout / Panel 佈局元件** ✅
+- [x] **Desktop 桌面模組** ✅
+- [x] **Demo 全面重寫 + 統一設計系統** ✅
+- [x] **Theme Editor Core/Desktop 分頁** ✅
+- [x] **Dock 聚焦指示 + 首次開窗 bug 修正** ✅
+- [x] **深色主題文字可見性** ✅
+- [x] **Icon 拖曳靈敏度設定（dragThreshold）** ✅
+- [x] **Icon Snap 吸附（iconSnap + iconSnapThreshold）** ✅
+- [x] **RWD 響應式設計（Dock overflow + 視窗 Clamp + Icon 區域捲動）** ✅
+- [x] **Desktop CSS 變數完整（--wos-desktop-icon-hover-bg、--wos-dock-item-hover-bg）** ✅
+- [x] **dist/themes/*.css 整合 Desktop 變數** ✅
+- [x] **Theme Editor Module Banner + Text 預覽色塊 + Dock 工具列** ✅
 - [ ] **工作區（虛擬桌面）多頁切換**
 - [ ] **視窗狀態序列化 / 還原**（localStorage）
-- [ ] **Docs 補充**：Snap / 主題 / 工作區功能頁面
+- [ ] **Docs 補充**：Snap / 主題 / 工作區 / Desktop 功能頁面
 - [ ] **CDN 發佈**（考慮 jsDelivr / unpkg）
 
 ---
@@ -841,3 +995,123 @@ cd demo\react && npm run dev
 - `Vue.volar` — Vue - Official
 - `esbenp.prettier-vscode` — Prettier
 - `dbaeumer.vscode-eslint` — ESLint（選用）
+
+
+---
+
+### 24. 2026-05-25 Desktop 模組（webos-desktop）
+
+#### 架構設計
+
+- **完全獨立的第二個 bundle**：src/desktop/ 不 import 任何 Core 模組
+  - 在消費者端由使用者手動傳入 desktop.getElement() 作為 WindowManager 的 container
+  - Core 為**執行時前置依賴**（先載入 Core，再載入 Desktop）
+- window.WebOSDesktop（UMD global），ES module 亦可 tree-shake
+
+#### Desktop CSS 變數（--wos-desktop-*）
+
+| 變數 | 說明 |
+|------|------|
+| --wos-desktop-bg | 桌面背景（支援漸層） |
+| --wos-desktop-icon-text | 桌面圖示文字顏色 |
+| --wos-dock-bg | Dock 背景（支援 rgba） |
+| --wos-dock-border | Dock 邊框顏色 |
+| --wos-font | 全域字型（Core + Desktop 共用） |
+
+#### 新增檔案
+
+| 檔案 | 說明 |
+|------|------|
+| src/desktop/types.ts | DesktopConfig / DockConfig / DockItemConfig / DesktopIconConfig 型別 |
+| src/desktop/styles.ts | injectDesktopStyles() 一次注入 Desktop CSS |
+| src/desktop/DesktopIcon.ts | 自由拖曳圖示；mousedown+move+up；點擊 vs 拖曳由 _hasMoved 判斷；localStorage 位置記憶 callback |
+| src/desktop/Dock.ts | HTML5 drag-and-drop 排序；ddItem() / 
+emoveItem() API |
+| src/desktop/Desktop.ts | 主容器；自動格線排版（AUTO_ROWS=6, ICON_COL_W=92, ICON_ROW_H=100）；getElement() 給 WM |
+| src/desktop/index.ts | Public entry point |
+| 
+ollup.lib.config.mjs | 新增 3 個 Desktop 輸出（ES + ES.min + UMD + UMD.min + .d.ts） |
+| package.json | 新增 ./desktop export entry |
+| scripts/build-themes.mjs | 新增 demo/desktop/themes/ 複製目標 |
+| demo/desktop/index.html | Desktop Demo（8 個 app：檔案/編輯/瀏覽器/計算機/設定/終端/音樂/相簿） |
+
+#### 技術細節
+
+- Dock 高度假設 68px 供圖示自動排版計算 inset
+- Icon 點擊 vs 拖曳：mousedown 記錄起點，mousemove 超過 4px 才設 _hasMoved = true
+- 不設 xternal: ['webos-core']（Desktop 本身不 import Core，由消費者負責整合）
+
+---
+
+### 25. 2026-05-25 Demo 全面重寫 + 統一設計系統
+
+#### 背景
+
+所有 demo 頁面長期堆疊新功能，風格不一致。本次全部從頭重寫，統一視覺語言。
+
+#### 統一設計系統（demo/shared/base.css）
+
+- CSS 自訂屬性前綴 --d-*（避免與 --wos-* 衝突）
+- 核心 class：.dh（fixed header）、.d-layout（fixed main area）、.d-sidebar、.d-canvas
+- Badge class：.b-js / .b-jq / .b-vue / .b-react / .b-tool
+- 統一按鈕：.d-btn / .d-btn-accent
+- .d-layout 使用 position: fixed; top: 48px — **Theme Editor 因此需要用 .te-layout 覆寫**
+
+#### Demo 各頁重寫概要
+
+| Demo | 重點 |
+|------|------|
+| demo/index.html | 3 欄 6 卡片首頁（vanilla / jquery / vue / react / docs / theme-editor） |
+| demo/vanilla/index.html | sidebar + canvas；WindowManager isolated；5 個 app |
+| demo/jquery/index.html | jQuery 整合；Form 表單驗證；動態 Table；jQuery 動畫；Event Log |
+| demo/vue/src/ | 5 個新視窗：GuideApp / EditorApp / TodoApp / TableApp / CounterApp |
+| demo/react/src/ | 5 個新視窗：GuideApp / EditorApp / TodoApp / DataPanel / CounterApp |
+| demo/theme-editor/index.html | Core/Desktop 分頁；Blue/Solarized preset；Desktop mock/real preview |
+
+#### Vue 新視窗（demo/vue/src/windows/）
+
+| 檔案 | 說明 |
+|------|------|
+| GuideApp.vue | useWindowManager Composable API 指南，程式碼區塊說明 KeepAlive / Teleport |
+| EditorApp.vue | v-model textarea；computed word/char count；clipboard copy |
+| TodoApp.vue | ref array；過濾分頁（全部/進行中/已完成）；checkbox 完成 |
+| TableApp.vue | 可搜尋 + 可排序的 reactive 資料表格 |
+| CounterApp.vue | onMounted render count；KeepAlive 說明 |
+
+#### React 新視窗（demo/react/src/windows/）
+
+| 檔案 | 說明 |
+|------|------|
+| GuideApp.tsx | useWindowManager Hook 指南，createPortal 模式說明 |
+| EditorApp.tsx | useState 受控 textarea；word/char count |
+| TodoApp.tsx | useState todo array；filter tabs |
+| DataPanel.tsx | useEffect 模擬 800ms 資料載入；loading spinner；搜尋+排序 |
+| CounterApp.tsx | useRef render count；KeepAlive 說明 |
+
+---
+
+### 26. 2026-05-25 Theme Editor Core/Desktop 分頁
+
+#### 新架構
+
+- 改為兩個分頁：**🪟 Core**（--wos-*）和 **🖥 Desktop**（--wos-desktop-*）
+- 使用 .te-layout（非 .d-layout）避免 ase.css 的 position: fixed 覆蓋 tab-bar
+
+#### Desktop 分頁設計
+
+- **預設顯示 Mock 預覽**（純 CSS，無需 JS）：<div class="desktop-mock"> 含 Dock + 圖示
+  - Mock 使用 CSS 變數，顏色即時反映（--wos-desktop-bg / --wos-dock-bg / --wos-desktop-icon-text）
+- **「⬇ 載入 webos-desktop.js」**按鈕：動態建立 <script> 載入 webos-desktop.umd.js
+  - 載入後切換為真實 Desktop + WindowManager 預覽
+  - 狀態 badge 從「Mock 預覽（紅）」變為「真實預覽（綠）」
+
+#### 四個 Preset（Dark / Light / Blue / Solarized）
+
+每個 Preset 同時定義 core + desktop 兩組變數，一鍵套用兩個分頁。
+
+#### .te-layout vs .d-layout 問題
+
+- **根因**：ase.css 的 .d-layout { position: fixed; top: 48px } 會覆蓋整個頁面
+- **修法**：Theme Editor 內部改用 .te-layout { display: flex; flex: 1; overflow: hidden }
+  - ody 加 padding-top: var(--d-header-h) 確保 tab-bar 正確顯示
+

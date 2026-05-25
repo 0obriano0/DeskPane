@@ -95,6 +95,7 @@ const BASE_CSS = `
   overflow: auto;
   position: relative;
   background: var(--wos-body-bg, #ffffff);
+  color: var(--wos-body-color, #222222);
 }
 .wos-body.wos-has-layout {
   overflow: hidden;

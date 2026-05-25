@@ -93,6 +93,7 @@ declare class WindowManager {
     private _guideH;
     /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
     private readonly _layouts;
+    private _resizeObserver;
     readonly events: EventBus;
     constructor(opts?: WindowManagerOptions);
     /**
@@ -146,6 +147,10 @@ declare class WindowManager {
     private _tryAutoLayout;
     private _deactivateOthers;
     private _focusTopWindow;
+    /** 監聽容器尺寸變化，自動將視窗夾回可視範圍 */
+    private _setupResizeObserver;
+    /** 將所有非最大化、非最小化視窗的位置夾回容器範圍 */
+    private _clampAllWindows;
 }
 
 interface SnapRect {
