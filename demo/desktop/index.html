@@ -53,33 +53,7 @@
       snap: true,
     });
 
-    const APP_META = {
-      settings: { label: '系統設定', icon: '⚙️' },
-      finder:   { label: '檔案總管', icon: '📁' },
-      editor:   { label: '文字編輯', icon: '📝' },
-      browser:  { label: '瀏覽器',   icon: '🌐' },
-      calc:     { label: '計算機',   icon: '🔢' },
-      terminal: { label: '終端機',   icon: '💻' },
-      music:    { label: '音樂',     icon: '🎵' },
-      layout: { label: '佈局管理', icon: '📐' },
-    };
-
-    desktop.syncDockWithWindows(wm, {
-      getAppIdFromWindowId(windowId) {
-        return windowId.startsWith('app-') ? windowId.slice(4) : windowId;
-      },
-      getDockItem(appId, event) {
-        const meta = APP_META[appId];
-        if (!meta) return null;
-        return {
-          label: meta.label ?? event.title ?? appId,
-          icon: meta.icon,
-        };
-      },
-      onDockItemClick(appId) {
-        openApp(appId);
-      },
-    });
+    desktop.syncDockWithWindows(wm);
 
     // ── App 定義 ─────────────────────────────────────────
     function makeContent(html) {
@@ -230,45 +204,45 @@
 
     const defs = {
       finder: {
-        title: '📁 檔案總管', width: 600, height: 420,
+        title: '📁 檔案總管', label: '檔案總管', icon: '📁', width: 600, height: 420,
         html: '<div style="padding:16px;font-family:system-ui"><div style="display:flex;gap:8px;margin-bottom:12px"><button style="padding:4px 10px;cursor:pointer;border-radius:4px;border:1px solid #ccc">文件</button><button style="padding:4px 10px;cursor:pointer;border-radius:4px;border:1px solid #ccc">圖片</button><button style="padding:4px 10px;cursor:pointer;border-radius:4px;border:1px solid #ccc">下載</button></div><div style="line-height:2;font-size:14px"><div>📂 文件</div><div>📂 下載</div><div>📂 桌面</div><div>📄 README.md</div><div>📄 report.pdf</div></div></div>'
       },
       editor: {
-        title: '📝 文字編輯', width: 580, height: 400,
+        title: '📝 文字編輯', label: '文字編輯', icon: '📝', width: 580, height: 400,
         html: '<textarea style="width:100%;height:100%;padding:12px;font-size:14px;font-family:monospace;border:none;outline:none;resize:none" placeholder="開始輸入...">WebOS Desktop Demo\n===================\n\n功能特色：\n• 桌面圖示可自由拖曳定位\n• 圖示位置自動儲存（localStorage）\n• Dock 工具列圖示可拖曳排序\n• 點擊圖示開啟應用程式視窗\n• Core 與 Desktop 模組分離載入\n</textarea>'
       },
       browser: {
-        title: '🌐 瀏覽器', width: 700, height: 480,
+        title: '🌐 瀏覽器', label: '瀏覽器', icon: '🌐', width: 700, height: 480,
         html: '<div style="display:flex;flex-direction:column;height:100%"><div style="padding:8px;background:#f0f0f0;display:flex;gap:6px;align-items:center"><button style="padding:3px 8px;cursor:pointer;border-radius:4px;border:1px solid #ccc">←</button><button style="padding:3px 8px;cursor:pointer;border-radius:4px;border:1px solid #ccc">→</button><input value="https://example.com" style="flex:1;padding:4px 8px;border-radius:4px;border:1px solid #ccc;font-size:13px"/></div><div style="flex:1;display:flex;align-items:center;justify-content:center;color:#888;font-size:20px">🌐 瀏覽器頁面預留區域</div></div>'
       },
       calc: {
-        title: '🔢 計算機', width: 280, height: 360, resizable: false,
+        title: '🔢 計算機', label: '計算機', icon: '🔢', width: 280, height: 360, resizable: false,
         make: () => makeCalc(),
       },
       settings: {
-        title: '⚙️ 系統設定', width: 480, height: 400,
+        title: '⚙️ 系統設定', label: '系統設定', icon: '⚙️', width: 480, height: 400,
         html: '<div style="padding:20px;font-family:system-ui"><h3 style="margin-bottom:16px;font-size:16px">系統設定</h3><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">主題</label><select onchange="document.querySelector(\'link[rel=stylesheet]\').href=\'../../dist/themes/\'+this.value+\'.css\'" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px"><option value="dark">Dark 深色</option><option value="light">Light 淺色</option></select></div><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">桌面背景</label><div style="display:flex;gap:8px;flex-wrap:wrap">' +
         ['linear-gradient(135deg,#1a2a4a,#0d1b2a)','linear-gradient(135deg,#2d1b4e,#1a0a2e)','linear-gradient(135deg,#0d3b2a,#051a14)','linear-gradient(135deg,#3b1a0d,#1a0805)'].map((bg,i)=>
           '<div onclick="document.querySelector(\'.wos-desktop\').style.background=\''+bg+'\'" style="width:48px;height:32px;border-radius:6px;cursor:pointer;border:2px solid rgba(255,255,255,0.2);background:'+bg+'"></div>'
         ).join('') + '</div></div><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">視窗吸附間距（px）</label><div style="display:flex;align-items:center;gap:10px"><input id="snap-gap-input" type="number" min="0" max="50" value="0" style="width:80px;padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px" oninput="wm.setSnapGap(parseInt(this.value)||0)" /><span style="font-size:13px;color:#888">0 = 緊貼，設定後立即生效</span></div></div></div>'
       },
       terminal: {
-        title: '💻 終端機', width: 560, height: 360,
+        title: '💻 終端機', label: '終端機', icon: '💻', width: 560, height: 360,
         html: '<div id="term" style="background:#1a1a1a;color:#33ff33;font-family:monospace;font-size:13px;padding:12px;height:100%;overflow-y:auto;display:flex;flex-direction:column"><div id="term-out"><div>WebOS Terminal v1.0.0</div><div>輸入 help 查看指令</div><br></div><div style="display:flex;align-items:center"><span style="margin-right:6px">$</span><input id="term-in" style="flex:1;background:transparent;border:none;outline:none;color:#33ff33;font-family:monospace;font-size:13px" autofocus /></div></div><script>(function(){var cmds={help:"指令：help, date, clear, echo [文字]",date:function(){return new Date().toLocaleString("zh-TW")}};document.getElementById("term-in").addEventListener("keydown",function(e){if(e.key!=="Enter")return;var cmd=this.value.trim(),out=document.getElementById("term-out"),line=document.createElement("div");if(cmd==="clear"){out.innerHTML="";this.value="";return;}else if(cmd.startsWith("echo ")){line.textContent=cmd.slice(5);}else if(cmds[cmd]){line.textContent=typeof cmds[cmd]==="function"?cmds[cmd]():cmds[cmd];}else{line.textContent="找不到指令："+cmd;}out.appendChild(line);this.value="";out.parentElement.scrollTop=9999;});})()<\/script>'
       },
       music: {
-        title: '🎵 音樂播放器', width: 320, height: 280,
+        title: '🎵 音樂播放器', label: '音樂', icon: '🎵', width: 320, height: 280,
         html: '<div style="padding:24px;text-align:center;font-family:system-ui"><div style="font-size:64px;margin-bottom:12px">🎵</div><div style="font-size:18px;font-weight:600;margin-bottom:4px">Lofi Beat #1</div><div style="font-size:13px;color:#888;margin-bottom:20px">WebOS Music</div><div style="display:flex;justify-content:center;gap:16px"><button style="background:none;border:none;cursor:pointer;font-size:24px">⏮</button><button id="play-btn" style="background:none;border:none;cursor:pointer;font-size:32px" onclick="this.textContent=this.textContent===\'▶\'?\'⏸\':\'▶\'">▶</button><button style="background:none;border:none;cursor:pointer;font-size:24px">⏭</button></div><div style="margin-top:16px"><input type="range" value="30" style="width:100%"/></div></div>'
       },
       photo: {
-        title: '🖼️ 相簿', width: 500, height: 380,
+        title: '🖼️ 相簿', label: '相簿', icon: '🖼️', width: 500, height: 380,
         html: '<div style="padding:12px"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' +
           ['🌄','🌊','🌸','🌃','🏔️','🌅','🌻','🦁','🦋'].map(e =>
             '<div style="aspect-ratio:1;background:rgba(128,128,128,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer">'+e+'</div>'
           ).join('') + '</div></div>'
       },
       layout: {
-        title: '📐 佈局管理', width: 720, height: 480,
+        title: '📐 佈局管理', label: '佈局管理', icon: '📐', width: 720, height: 480,
         make: () => makeLayoutDemo(),
       },
     };
@@ -281,6 +255,8 @@
       wm.open({
         id: 'app-' + id,
         title: def.title,
+        label: def.label,
+        icon: def.icon,
         width: def.width,
         height: def.height,
         resizable: def.resizable,

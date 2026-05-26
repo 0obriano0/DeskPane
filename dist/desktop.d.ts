@@ -29,6 +29,10 @@ interface DockItemConfig {
 interface DockSyncWindowEvent {
     id: string;
     title?: string;
+    /** 視窗圖示（來自 WindowConfig.icon），供 Dock 預設同步使用 */
+    icon?: string;
+    /** Dock 顯示標籤（來自 WindowConfig.label）；有值時優先於 title */
+    label?: string;
 }
 /** WindowManager 最小介面（duck typing，避免直接依賴 core bundle） */
 interface WindowManagerLike {

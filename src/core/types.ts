@@ -9,6 +9,13 @@ export type SlotType = 'dom' | 'vue' | 'react';
 export interface WindowState {
   id: string;
   title: string;
+  /** 視窗圖示：emoji 字元或圖片 URL，供 Dock 同步使用 */
+  icon?: string;
+  /**
+   * Dock / 工具列顯示用的短標籤。
+   * 有值時 Dock 優先顯示此欄位，否則 fallback 到 title。
+   */
+  label?: string;
   slotType: SlotType;
   /** 視窗內容：HTMLElement | Vue 元件定義 | React 元件 */
   content: any;
@@ -35,6 +42,13 @@ export interface WindowState {
 export interface WindowConfig {
   id: string;
   title: string;
+  /** 視窗圖示：emoji 字元或圖片 URL，供 Dock 自動同步使用 */
+  icon?: string;
+  /**
+   * Dock / 工具列顯示用的短標籤。
+   * 有值時 Dock 優先顯示此欄位，否則 fallback 到 title。
+   */
+  label?: string;
   slotType?: SlotType;
   content: any;
   x?: number;

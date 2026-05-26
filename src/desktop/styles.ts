@@ -108,7 +108,7 @@ const DESKTOP_CSS = `
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--wos-dock-border, rgba(255,255,255,0.1));
   padding: 6px 10px;
-  z-index: 100;
+  z-index: 9999;
   box-sizing: border-box;
   /* 隱藏 scrollbar 但保留捲動能力 */
   scrollbar-width: none;

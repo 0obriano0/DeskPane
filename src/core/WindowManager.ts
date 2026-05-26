@@ -25,6 +25,8 @@ export type WinEvent =
 const DEFAULT_WIDTH = 640;
 const DEFAULT_HEIGHT = 480;
 const BASE_Z = 100;
+/** 視窗 z-index 上限；超過時自動正規化，確保低於 Dock/Toolbar（預設 9999） */
+const MAX_Z = 8999;
 const CASCADE_OFFSET = 30;
 
 export interface WindowManagerOptions {
@@ -118,6 +120,8 @@ export class WindowManager {
     const state: WindowState = {
       id: config.id,
       title: config.title,
+      icon: config.icon,
+      label: config.label,
       slotType: config.slotType ?? 'dom',
       content: config.content,
       x: cw > 0 ? Math.max(0, Math.min(rawX, cw - Math.min(w, cw))) : rawX,
@@ -232,11 +236,28 @@ export class WindowManager {
   }
 
   /**
+   * 當 z-index 計數器逼近上限時，將所有視窗的 z-index 正規化回
+   * [BASE_Z+1 … BASE_Z+N]，保留原本的堆疊順序。
+   * 確保視窗 z-index 永遠低於 Dock/Toolbar（9999）。
+   */
+  private _normalizeZ(): void {
+    if (this._zCounter < MAX_Z) return;
+    const sorted = Array.from(this._wins.values())
+      .sort((a, b) => a.state.zIndex - b.state.zIndex);
+    sorted.forEach((w, i) => {
+      w.state.zIndex = BASE_Z + 1 + i;
+      w.elements.root.style.zIndex = String(w.state.zIndex);
+    });
+    this._zCounter = BASE_Z + sorted.length;
+  }
+
+  /**
    * 聚焦視窗：置頂 zIndex，設定 isActive
    */
   focus(id: string): void {
     const win = this._wins.get(id);
     if (!win || win.state.isActive) return;
+    this._normalizeZ();
     this._deactivateOthers(id);
     win.state.zIndex = ++this._zCounter;
     win.state.isActive = true;

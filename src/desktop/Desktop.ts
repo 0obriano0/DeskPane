@@ -299,8 +299,8 @@ export class Desktop {
       return windowId;
     });
     const getDockItem = options.getDockItem ?? ((appId: string, event: DockSyncWindowEvent) => ({
-      label: event.title ?? appId,
-      icon: '🪟',
+      label: event.label ?? event.title ?? appId,
+      icon: event.icon ?? '🪟',
     }));
     const onDockItemClick = options.onDockItemClick;
     const dockItemIdPrefix = options.dockItemIdPrefix ?? 'running-';
