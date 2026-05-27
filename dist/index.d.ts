@@ -172,6 +172,7 @@ declare class WindowManager {
     getState(id: string): Readonly<WindowState> | undefined;
     /** 取得視窗 Body DOM 節點，供外部 Wijmo / jQuery 附加內容 */
     getBodyElement(id: string): HTMLElement | undefined;
+    getWindowElement(id: string): HTMLElement | undefined;
     /** 取得所有視窗 ID 清單 */
     getWindowIds(): string[];
     /** 更新視窗標題 */
@@ -181,6 +182,8 @@ declare class WindowManager {
      * 設為 0 表示緊貼（預設行為）。
      */
     setSnapGap(gap: number): void;
+    /** 取得所有視窗狀態的快照陣列（供序列化使用） */
+    getAllStates(): WindowState[];
     /** 銷毀所有視窗，清除事件 */
     destroy(): void;
     /** 延遲建立 snap guide 元素（僅需要時才建立） */
@@ -201,6 +204,12 @@ declare class WindowManager {
     private _setupResizeObserver;
     /** 將所有非最大化、非最小化視窗的位置夾回容器範圍 */
     private _clampAllWindows;
+    /** 取得可供 snap 計算用的其他視窗矩形（排除 excludeId 及最小化/最大化視窗） */
+    private _getOtherWindows;
+    /** 建立拖曳 snap 函式（用於 DragResizeHandler.snapFn） */
+    private _buildSnapFn;
+    /** 建立 resize snap 函式（用於 DragResizeHandler.resizeSnapFn） */
+    private _buildResizeSnapFn;
 }
 
 interface SnapRect {
@@ -356,5 +365,8 @@ declare class Panel {
     destroy(): void;
 }
 
-export { BorderLayout, EventBus, Panel, WindowManager, eventBus, getCoreCSS, setTheme, snapPosition };
+/** 回傳 Layout CSS 字串，供 injectStyles:false 的使用者自行管理樣式注入 */
+declare function getLayoutCSS(): string;
+
+export { BorderLayout, EventBus, Panel, WindowManager, eventBus, getCoreCSS, getLayoutCSS, setTheme, snapPosition };
 export type { BorderLayoutOptions, EventCallback, LayoutRegion, PanelOptions, RegionConfig, SetThemeOptions, SlotType, SnapGuide, SnapRect, SnapResult, WinEvent, WindowConfig, WindowState, WosThemePreset };

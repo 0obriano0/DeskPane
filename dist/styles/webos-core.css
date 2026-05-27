@@ -26,6 +26,7 @@
   min-width: 200px;
   min-height: 120px;
   transition: box-shadow 0.15s, border-color 0.15s;
+  pointer-events: auto;
 }
 .wos-window.wos-active {
   border-color: var(--wos-window-border-active, #b0b8c8);

@@ -5,7 +5,7 @@
 
 import { WindowConfig, WindowState, EventCallback } from './types.js';
 import { EventBus } from './EventBus.js';
-import { DragResizeHandler } from './DragResizeHandler.js';
+import { DragResizeHandler, DragResizeOptions } from './DragResizeHandler.js';
 import { injectStyles, createWindowDOM, applyGeometry, WindowElements } from '../renderers/DOMRenderer.js';
 import { snapPosition, snapResize, SnapRect, SnapGuide } from './SnapHelper.js';
 import { BorderLayout } from '../layout/BorderLayout.js';
@@ -155,32 +155,8 @@ export class WindowManager {
         throttleMs: this._throttleMs,
         resizable: state.resizable,
         containerEl: this._isolated ? this._container : undefined,
-        snapFn: this._snapEnabled ? (x, y, w, h) => {
-          const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
-          const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
-          const others: SnapRect[] = [];
-          this._wins.forEach((win2, wid) => {
-            if (wid !== state.id && !win2.state.isMinimized && !win2.state.isMaximized) {
-              others.push({ x: win2.state.x, y: win2.state.y, width: win2.state.width, height: win2.state.height });
-            }
-          });
-          const result = snapPosition({ x, y, width: w, height: h }, { width: cw, height: ch }, others, this._snapThreshold, this._snapGap);
-          this._updateSnapGuides(result.guides);
-          return { x: result.x, y: result.y };
-        } : undefined,
-        resizeSnapFn: this._snapEnabled ? (x, y, w, h, edge) => {
-          const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
-          const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
-          const others: SnapRect[] = [];
-          this._wins.forEach((win2, wid) => {
-            if (wid !== state.id && !win2.state.isMinimized && !win2.state.isMaximized) {
-              others.push({ x: win2.state.x, y: win2.state.y, width: win2.state.width, height: win2.state.height });
-            }
-          });
-          const result = snapResize({ x, y, width: w, height: h }, edge, { width: cw, height: ch }, others, this._snapThreshold, this._snapGap);
-          this._updateSnapGuides(result.guides);
-          return { x: result.x, y: result.y, width: result.width, height: result.height };
-        } : undefined,
+        snapFn: this._snapEnabled ? this._buildSnapFn(state.id) : undefined,
+        resizeSnapFn: this._snapEnabled ? this._buildResizeSnapFn(state.id) : undefined,
         onDrag: (x, y) => {
           state.x = x; state.y = y;
           this.events.emit<WindowState>('window:moved', { ...state });
@@ -358,6 +334,10 @@ export class WindowManager {
     return this._wins.get(id)?.elements.body;
   }
 
+  getWindowElement(id: string): HTMLElement | undefined {
+    return this._wins.get(id)?.elements.root;
+  }
+
   /** 取得所有視窗 ID 清單 */
   getWindowIds(): string[] {
     return [...this._wins.keys()];
@@ -377,6 +357,11 @@ export class WindowManager {
    */
   setSnapGap(gap: number): void {
     this._snapGap = Math.max(0, gap);
+  }
+
+  /** 取得所有視窗狀態的快照陣列（供序列化使用） */
+  getAllStates(): WindowState[] {
+    return [...this._wins.values()].map(w => ({ ...w.state }));
   }
 
   /** 銷毀所有視窗，清除事件 */
@@ -531,5 +516,51 @@ export class WindowManager {
         applyGeometry(win.elements.root, { x: newX, y: newY });
       }
     });
+  }
+
+  /** 取得可供 snap 計算用的其他視窗矩形（排除 excludeId 及最小化/最大化視窗） */
+  private _getOtherWindows(excludeId: string): SnapRect[] {
+    const others: SnapRect[] = [];
+    this._wins.forEach((win, wid) => {
+      if (wid !== excludeId && !win.state.isMinimized && !win.state.isMaximized) {
+        others.push({ x: win.state.x, y: win.state.y, width: win.state.width, height: win.state.height });
+      }
+    });
+    return others;
+  }
+
+  /** 建立拖曳 snap 函式（用於 DragResizeHandler.snapFn） */
+  private _buildSnapFn(stateId: string): DragResizeOptions['snapFn'] {
+    return (x, y, w, h) => {
+      const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+      const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+      const result = snapPosition(
+        { x, y, width: w, height: h },
+        { width: cw, height: ch },
+        this._getOtherWindows(stateId),
+        this._snapThreshold,
+        this._snapGap,
+      );
+      this._updateSnapGuides(result.guides);
+      return { x: result.x, y: result.y };
+    };
+  }
+
+  /** 建立 resize snap 函式（用於 DragResizeHandler.resizeSnapFn） */
+  private _buildResizeSnapFn(stateId: string): DragResizeOptions['resizeSnapFn'] {
+    return (x, y, w, h, edge) => {
+      const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+      const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+      const result = snapResize(
+        { x, y, width: w, height: h },
+        edge,
+        { width: cw, height: ch },
+        this._getOtherWindows(stateId),
+        this._snapThreshold,
+        this._snapGap,
+      );
+      this._updateSnapGuides(result.guides);
+      return { x: result.x, y: result.y, width: result.width, height: result.height };
+    };
   }
 }

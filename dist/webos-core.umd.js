@@ -4,22 +4,22 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.WebOS = {}));
 })(this, (function (exports) { 'use strict';
 
-  var BASE_CSS = "/* ============================================================\r\n * WebOS-Core — Default Styles\r\n * Version: 0.1.0\r\n *\r\n * Copy this file to your project and link it with:\r\n *   <link rel=\"stylesheet\" href=\"webos-core.css\">\r\n *\r\n * When using injectStyles: false option, these styles will\r\n * NOT be injected automatically — this file is your starting\r\n * point for customization.\r\n *\r\n * All values use CSS custom properties (--wos-*) so you can\r\n * override them in :root without touching this file.\r\n * ============================================================ */\r\n\r\n.wos-window {\r\n  position: fixed;\r\n  box-sizing: border-box;\r\n  display: flex;\r\n  flex-direction: column;\r\n  border: 4px solid var(--wos-window-border, #d0d0d0);\r\n  border-radius: 6px;\r\n  box-shadow: var(--wos-window-shadow, 0 4px 24px rgba(0,0,0,0.18));\r\n  background: transparent;\r\n  overflow: hidden;\r\n  min-width: 200px;\r\n  min-height: 120px;\r\n  transition: box-shadow 0.15s, border-color 0.15s;\r\n}\r\n.wos-window.wos-active {\r\n  border-color: var(--wos-window-border-active, #b0b8c8);\r\n  box-shadow: var(--wos-window-shadow-active, 0 8px 36px rgba(0,0,0,0.28));\r\n}\r\n.wos-window.wos-minimized {\r\n  display: none !important;\r\n}\r\n.wos-window.wos-maximized {\r\n  left: 72px !important;\r\n  top: 0 !important;\r\n  width: calc(100vw - 72px) !important;\r\n  height: calc(100vh - 48px) !important;\r\n  border-radius: 0;\r\n  border-width: 0;\r\n}\r\n\r\n/* ── Isolated container mode ──────────────────────────── */\r\n.wos-isolated {\r\n  position: relative;\r\n  overflow: clip;\r\n}\r\n.wos-isolated .wos-window {\r\n  position: absolute;\r\n}\r\n.wos-isolated .wos-window.wos-maximized {\r\n  left:   var(--wos-dock-inset-left,   0px) !important;\r\n  top:    var(--wos-dock-inset-top,    0px) !important;\r\n  width:  calc(100% - var(--wos-dock-inset-left, 0px) - var(--wos-dock-inset-right,  0px)) !important;\r\n  height: calc(100% - var(--wos-dock-inset-top,  0px) - var(--wos-dock-inset-bottom, 0px)) !important;\r\n  border-radius: 0;\r\n}\r\n\r\n/* ── Header ───────────────────────────────────────────── */\r\n.wos-header {\r\n  display: flex;\r\n  align-items: center;\r\n  padding: 0 8px;\r\n  height: 36px;\r\n  background: var(--wos-window-header-bg, #f5f5f5);\r\n  border-bottom: 1px solid var(--wos-window-header-border, #e0e0e0);\r\n  cursor: move;\r\n  user-select: none;\r\n  flex-shrink: 0;\r\n}\r\n.wos-title {\r\n  flex: 1;\r\n  font-size: 13px;\r\n  font-weight: 600;\r\n  color: var(--wos-window-title-color, #333333);\r\n  overflow: hidden;\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n}\r\n\r\n/* ── Control buttons ──────────────────────────────────── */\r\n.wos-btn {\r\n  width: 24px;\r\n  height: 24px;\r\n  border: none;\r\n  border-radius: 4px;\r\n  background: transparent;\r\n  cursor: pointer;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 14px;\r\n  color: var(--wos-window-btn-color, #555555);\r\n  margin-left: 2px;\r\n  transition: background 0.1s;\r\n}\r\n.wos-btn:hover { background: var(--wos-window-btn-hover-bg, #e0e0e0); }\r\n.wos-btn.wos-btn-close:hover {\r\n  background: var(--wos-window-btn-close-hover-bg, #ff5f57);\r\n  color: var(--wos-window-btn-close-hover-color, #ffffff);\r\n}\r\n.wos-btn:disabled {\r\n  opacity: 0.3;\r\n  cursor: not-allowed;\r\n}\r\n.wos-btn:disabled:hover { background: transparent; }\r\n\r\n/* ── Body ─────────────────────────────────────────────── */\r\n.wos-body {\r\n  flex: 1;\r\n  overflow: auto;\r\n  position: relative;\r\n  background: var(--wos-window-body-bg, #ffffff);\r\n  color: var(--wos-window-body-color, #222222);\r\n}\r\n.wos-body.wos-has-layout {\r\n  overflow: hidden;\r\n}\r\n\r\n/* ── Snap guide lines ─────────────────────────────────── */\r\n.wos-snap-guide {\r\n  position: absolute;\r\n  pointer-events: none;\r\n  z-index: 2147483647;\r\n  display: none;\r\n  background: var(--wos-snap-guide-color, rgba(0, 120, 255, 0.55));\r\n}\r\n.wos-snap-guide--v {\r\n  width: 1px;\r\n  top: 0;\r\n  bottom: 0;\r\n}\r\n.wos-snap-guide--h {\r\n  height: 1px;\r\n  left: 0;\r\n  right: 0;\r\n}\r\n";
+  var BASE_CSS = "/* ============================================================\r\n * WebOS-Core — Default Styles\r\n * Version: 0.1.0\r\n *\r\n * Copy this file to your project and link it with:\r\n *   <link rel=\"stylesheet\" href=\"webos-core.css\">\r\n *\r\n * When using injectStyles: false option, these styles will\r\n * NOT be injected automatically — this file is your starting\r\n * point for customization.\r\n *\r\n * All values use CSS custom properties (--wos-*) so you can\r\n * override them in :root without touching this file.\r\n * ============================================================ */\r\n\r\n.wos-window {\r\n  position: fixed;\r\n  box-sizing: border-box;\r\n  display: flex;\r\n  flex-direction: column;\r\n  border: 4px solid var(--wos-window-border, #d0d0d0);\r\n  border-radius: 6px;\r\n  box-shadow: var(--wos-window-shadow, 0 4px 24px rgba(0,0,0,0.18));\r\n  background: transparent;\r\n  overflow: hidden;\r\n  min-width: 200px;\r\n  min-height: 120px;\r\n  transition: box-shadow 0.15s, border-color 0.15s;\r\n  pointer-events: auto;\r\n}\r\n.wos-window.wos-active {\r\n  border-color: var(--wos-window-border-active, #b0b8c8);\r\n  box-shadow: var(--wos-window-shadow-active, 0 8px 36px rgba(0,0,0,0.28));\r\n}\r\n.wos-window.wos-minimized {\r\n  display: none !important;\r\n}\r\n.wos-window.wos-maximized {\r\n  left: 72px !important;\r\n  top: 0 !important;\r\n  width: calc(100vw - 72px) !important;\r\n  height: calc(100vh - 48px) !important;\r\n  border-radius: 0;\r\n  border-width: 0;\r\n}\r\n\r\n/* ── Isolated container mode ──────────────────────────── */\r\n.wos-isolated {\r\n  position: relative;\r\n  overflow: clip;\r\n}\r\n.wos-isolated .wos-window {\r\n  position: absolute;\r\n}\r\n.wos-isolated .wos-window.wos-maximized {\r\n  left:   var(--wos-dock-inset-left,   0px) !important;\r\n  top:    var(--wos-dock-inset-top,    0px) !important;\r\n  width:  calc(100% - var(--wos-dock-inset-left, 0px) - var(--wos-dock-inset-right,  0px)) !important;\r\n  height: calc(100% - var(--wos-dock-inset-top,  0px) - var(--wos-dock-inset-bottom, 0px)) !important;\r\n  border-radius: 0;\r\n}\r\n\r\n/* ── Header ───────────────────────────────────────────── */\r\n.wos-header {\r\n  display: flex;\r\n  align-items: center;\r\n  padding: 0 8px;\r\n  height: 36px;\r\n  background: var(--wos-window-header-bg, #f5f5f5);\r\n  border-bottom: 1px solid var(--wos-window-header-border, #e0e0e0);\r\n  cursor: move;\r\n  user-select: none;\r\n  flex-shrink: 0;\r\n}\r\n.wos-title {\r\n  flex: 1;\r\n  font-size: 13px;\r\n  font-weight: 600;\r\n  color: var(--wos-window-title-color, #333333);\r\n  overflow: hidden;\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n}\r\n\r\n/* ── Control buttons ──────────────────────────────────── */\r\n.wos-btn {\r\n  width: 24px;\r\n  height: 24px;\r\n  border: none;\r\n  border-radius: 4px;\r\n  background: transparent;\r\n  cursor: pointer;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 14px;\r\n  color: var(--wos-window-btn-color, #555555);\r\n  margin-left: 2px;\r\n  transition: background 0.1s;\r\n}\r\n.wos-btn:hover { background: var(--wos-window-btn-hover-bg, #e0e0e0); }\r\n.wos-btn.wos-btn-close:hover {\r\n  background: var(--wos-window-btn-close-hover-bg, #ff5f57);\r\n  color: var(--wos-window-btn-close-hover-color, #ffffff);\r\n}\r\n.wos-btn:disabled {\r\n  opacity: 0.3;\r\n  cursor: not-allowed;\r\n}\r\n.wos-btn:disabled:hover { background: transparent; }\r\n\r\n/* ── Body ─────────────────────────────────────────────── */\r\n.wos-body {\r\n  flex: 1;\r\n  overflow: auto;\r\n  position: relative;\r\n  background: var(--wos-window-body-bg, #ffffff);\r\n  color: var(--wos-window-body-color, #222222);\r\n}\r\n.wos-body.wos-has-layout {\r\n  overflow: hidden;\r\n}\r\n\r\n/* ── Snap guide lines ─────────────────────────────────── */\r\n.wos-snap-guide {\r\n  position: absolute;\r\n  pointer-events: none;\r\n  z-index: 2147483647;\r\n  display: none;\r\n  background: var(--wos-snap-guide-color, rgba(0, 120, 255, 0.55));\r\n}\r\n.wos-snap-guide--v {\r\n  width: 1px;\r\n  top: 0;\r\n  bottom: 0;\r\n}\r\n.wos-snap-guide--h {\r\n  height: 1px;\r\n  left: 0;\r\n  right: 0;\r\n}\r\n";
 
   // ============================================================
   // WebOS-Core — DOM Window Renderer
   // 負責建立視窗外殼 DOM 節點、注入樣式
   // ============================================================
-  const STYLE_ID = 'wos-core-styles';
+  const STYLE_ID$1 = 'wos-core-styles';
   /** 回傳 Core CSS 字串，供 injectStyles:false 的使用者自行管理樣式注入 */
   function getCoreCSS() {
       return BASE_CSS;
   }
   function injectStyles() {
-      if (document.getElementById(STYLE_ID))
+      if (document.getElementById(STYLE_ID$1))
           return;
       const style = document.createElement('style');
-      style.id = STYLE_ID;
+      style.id = STYLE_ID$1;
       style.textContent = BASE_CSS;
       document.head.appendChild(style);
   }
@@ -506,6 +506,25 @@
       return { x, y, width, height, guides };
   }
 
+  var LAYOUT_CSS = "/* ============================================================\r\n   WebOS — Layout CSS (BorderLayout + Panel)\r\n   Single source of truth for wos-layout-* and wos-panel-* styles\r\n   ============================================================ */\r\n\r\n/* ── BorderLayout ────────────────────────────────────────── */\r\n\r\n.wos-layout {\r\n  position: relative;\r\n  overflow: hidden;\r\n  box-sizing: border-box;\r\n  width: 100%;\r\n  height: 100%;\r\n}\r\n.wos-layout-region {\r\n  position: absolute;\r\n  overflow: hidden;\r\n  box-sizing: border-box;\r\n}\r\n/* Region header (when data-title is set) */\r\n.wos-region-header {\r\n  display: flex;\r\n  align-items: center;\r\n  height: 28px;\r\n  padding: 0 0 0 8px;\r\n  background: var(--wos-layout-header-bg, #f5f5f5);\r\n  flex-shrink: 0;\r\n  user-select: none;\r\n  overflow: hidden;\r\n  box-sizing: border-box;\r\n}\r\n.wos-region-icon {\r\n  font-size: 13px;\r\n  margin-right: 5px;\r\n  flex-shrink: 0;\r\n  line-height: 1;\r\n}\r\n.wos-region-title {\r\n  flex: 1;\r\n  font-size: 12px;\r\n  font-weight: 600;\r\n  color: var(--wos-layout-title-color, #333);\r\n  white-space: nowrap;\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\r\n}\r\n/* Collapse button — lives in header right end (EasyUI style) */\r\n.wos-region-collapse-btn {\r\n  flex-shrink: 0;\r\n  width: 26px;\r\n  height: 28px;\r\n  border: none;\r\n  border-left: 1px solid var(--wos-layout-header-border, #e0e0e0);\r\n  background: var(--wos-layout-header-bg, #f5f5f5);\r\n  cursor: pointer;\r\n  font-size: 14px;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  color: var(--wos-layout-btn-color, #555);\r\n  transition: background 0.1s, color 0.1s;\r\n  z-index: 11;\r\n  line-height: 1;\r\n  margin-left: auto;\r\n  padding: 0;\r\n}\r\n.wos-region-collapse-btn:hover {\r\n  background: var(--wos-layout-btn-hover-bg, #d8e4f0);\r\n  color: var(--wos-layout-title-color, #333);\r\n}\r\n.wos-region-body {\r\n  position: absolute;\r\n  left: 0; right: 0; bottom: 0;\r\n  overflow: auto;\r\n  box-sizing: border-box;\r\n}\r\n/* ── Collapsed strip ───────────────────────────────────────── */\r\n.wos-layout-region--collapsed .wos-region-body {\r\n  display: none;\r\n}\r\n/* East/West collapsed: header fills the full vertical strip */\r\n.wos-layout-region--collapsed.wos-layout-region--west > .wos-region-header,\r\n.wos-layout-region--collapsed.wos-layout-region--east > .wos-region-header {\r\n  position: absolute;\r\n  top: 0; left: 0; right: 0; bottom: 0;\r\n  height: auto;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  padding: 0;\r\n  border-bottom: none;\r\n  overflow: hidden;\r\n}\r\n/* Collapse btn → top, full-width, larger */\r\n.wos-layout-region--collapsed.wos-layout-region--west .wos-region-collapse-btn,\r\n.wos-layout-region--collapsed.wos-layout-region--east .wos-region-collapse-btn {\r\n  order: 0;\r\n  width: 100%;\r\n  height: 28px;\r\n  font-size: 14px;\r\n  border-left: none;\r\n  border-bottom: 1px solid var(--wos-layout-header-border, #e0e0e0);\r\n  margin-left: 0;\r\n  flex-shrink: 0;\r\n}\r\n/* Icon → below button */\r\n.wos-layout-region--collapsed.wos-layout-region--west .wos-region-icon,\r\n.wos-layout-region--collapsed.wos-layout-region--east .wos-region-icon {\r\n  order: 1;\r\n  margin-right: 0;\r\n  margin-top: 8px;\r\n  font-size: 15px;\r\n}\r\n/* Title → below icon, rotated */\r\n.wos-layout-region--collapsed.wos-layout-region--west .wos-region-title,\r\n.wos-layout-region--collapsed.wos-layout-region--east .wos-region-title {\r\n  order: 2;\r\n  writing-mode: vertical-lr;\r\n  flex: 1;\r\n  margin: 6px 0 4px;\r\n  min-height: 0;\r\n  text-overflow: ellipsis;\r\n  font-size: 12px;\r\n}\r\n/* Splitters */\r\n.wos-layout-splitter {\r\n  position: absolute;\r\n  background: var(--wos-layout-splitter-bg, #d0d0d0);\r\n  box-sizing: border-box;\r\n  z-index: 10;\r\n  user-select: none;\r\n  transition: background 0.1s;\r\n}\r\n.wos-layout-splitter:hover,\r\n.wos-layout-splitter.wos-splitter-dragging {\r\n  background: var(--wos-layout-splitter-active, #b0b8c8);\r\n}\r\n.wos-layout-splitter--v {\r\n  cursor: col-resize;\r\n}\r\n.wos-layout-splitter--h {\r\n  cursor: row-resize;\r\n}\r\n\r\n/* ── Panel ──────────────────────────────────────────────────── */\r\n\r\n.wos-panel {\r\n  display: flex;\r\n  flex-direction: column;\r\n  overflow: hidden;\r\n  box-sizing: border-box;\r\n  width: 100%;\r\n  height: 100%;\r\n}\r\n.wos-panel-header {\r\n  display: flex;\r\n  align-items: center;\r\n  height: 30px;\r\n  min-height: 30px;\r\n  padding: 0 8px;\r\n  background: var(--wos-layout-header-bg, #f5f5f5);\r\n  border-bottom: 1px solid var(--wos-layout-header-border, #e0e0e0);\r\n  user-select: none;\r\n  flex-shrink: 0;\r\n  cursor: default;\r\n}\r\n.wos-panel-title {\r\n  flex: 1;\r\n  font-size: 12px;\r\n  font-weight: 600;\r\n  color: var(--wos-layout-title-color, #333);\r\n  white-space: nowrap;\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\r\n}\r\n.wos-panel-toggle {\r\n  width: 20px;\r\n  height: 20px;\r\n  border-radius: 3px;\r\n  background: transparent;\r\n  border: 1px solid transparent;\r\n  cursor: pointer;\r\n  font-size: 9px;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  color: var(--wos-layout-btn-color, #555);\r\n  flex-shrink: 0;\r\n  transition: background 0.1s;\r\n  line-height: 1;\r\n}\r\n.wos-panel-toggle:hover {\r\n  background: var(--wos-layout-btn-hover-bg, #e0e0e0);\r\n  border-color: var(--wos-layout-splitter-bg, #d0d0d0);\r\n}\r\n.wos-panel-body {\r\n  flex: 1;\r\n  overflow: auto;\r\n  box-sizing: border-box;\r\n  transition: max-height 0.2s ease;\r\n}\r\n.wos-panel-body.wos-panel-collapsed {\r\n  max-height: 0 !important;\r\n  overflow: hidden;\r\n}\r\n";
+
+  // ============================================================
+  // WebOS-Core — Layout CSS Injection
+  // ============================================================
+  const STYLE_ID = 'wos-layout-styles';
+  /** 回傳 Layout CSS 字串，供 injectStyles:false 的使用者自行管理樣式注入 */
+  function getLayoutCSS() {
+      return LAYOUT_CSS;
+  }
+  function injectLayoutStyles() {
+      if (document.getElementById(STYLE_ID))
+          return;
+      const style = document.createElement('style');
+      style.id = STYLE_ID;
+      style.textContent = LAYOUT_CSS;
+      document.head.appendChild(style);
+  }
+
   // ============================================================
   // WebOS-Core — Border Layout Manager
   // EasyUI 風格東南西北+中間佈局，支援：
@@ -516,152 +535,6 @@
   //   • Region 標題列（data-title）+ 圖示（data-icon）
   //   • ResizeObserver 自動重排
   // ============================================================
-  const LAYOUT_STYLE_ID = 'wos-layout-styles';
-  const LAYOUT_CSS = `
-.wos-layout {
-  position: relative;
-  overflow: hidden;
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-}
-.wos-layout-region {
-  position: absolute;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-/* Region header (when data-title is set) */
-.wos-region-header {
-  display: flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 0 0 8px;
-  background: var(--wos-layout-header-bg, #f5f5f5);, #e0e0e0);
-  flex-shrink: 0;
-  user-select: none;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-.wos-region-icon {
-  font-size: 13px;
-  margin-right: 5px;
-  flex-shrink: 0;
-  line-height: 1;
-}
-.wos-region-title {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--wos-layout-title-color, #333);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* Collapse button — lives in header right end (EasyUI style) */
-.wos-region-collapse-btn {
-  flex-shrink: 0;
-  width: 26px;
-  height: 28px;
-  border: none;
-  border-left: 1px solid var(--wos-layout-header-border, #e0e0e0);
-  background: var(--wos-layout-header-bg, #f5f5f5);
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--wos-layout-btn-color, #555);
-  transition: background 0.1s, color 0.1s;
-  z-index: 11;
-  line-height: 1;
-  margin-left: auto;
-  padding: 0;
-}
-.wos-region-collapse-btn:hover {
-  background: var(--wos-layout-btn-hover-bg, #d8e4f0);
-  color: var(--wos-layout-title-color, #333);
-}
-.wos-region-body {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  overflow: auto;
-  box-sizing: border-box;
-}
-/* ── Collapsed strip ───────────────────────────────────────── */
-.wos-layout-region--collapsed .wos-region-body {
-  display: none;
-}
-/* East/West collapsed: header fills the full vertical strip */
-.wos-layout-region--collapsed.wos-layout-region--west > .wos-region-header,
-.wos-layout-region--collapsed.wos-layout-region--east > .wos-region-header {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  height: auto;
-  flex-direction: column;
-  align-items: center;
-  padding: 0;
-  border-bottom: none;
-  overflow: hidden;
-}
-/* Collapse btn → top, full-width, larger */
-.wos-layout-region--collapsed.wos-layout-region--west .wos-region-collapse-btn,
-.wos-layout-region--collapsed.wos-layout-region--east .wos-region-collapse-btn {
-  order: 0;
-  width: 100%;
-  height: 28px;
-  font-size: 14px;
-  border-left: none;
-  border-bottom: 1px solid var(--wos-layout-header-border, #e0e0e0);
-  margin-left: 0;
-  flex-shrink: 0;
-}
-/* Icon → below button */
-.wos-layout-region--collapsed.wos-layout-region--west .wos-region-icon,
-.wos-layout-region--collapsed.wos-layout-region--east .wos-region-icon {
-  order: 1;
-  margin-right: 0;
-  margin-top: 8px;
-  font-size: 15px;
-}
-/* Title → below icon, rotated */
-.wos-layout-region--collapsed.wos-layout-region--west .wos-region-title,
-.wos-layout-region--collapsed.wos-layout-region--east .wos-region-title {
-  order: 2;
-  writing-mode: vertical-lr;
-  flex: 1;
-  margin: 6px 0 4px;
-  min-height: 0;
-  text-overflow: ellipsis;
-  font-size: 12px;
-}
-/* Splitters */
-.wos-layout-splitter {
-  position: absolute;
-  background: var(--wos-layout-splitter-bg, #d0d0d0);
-  box-sizing: border-box;
-  z-index: 10;
-  user-select: none;
-  transition: background 0.1s;
-}
-.wos-layout-splitter:hover,
-.wos-layout-splitter.wos-splitter-dragging {
-  background: var(--wos-layout-splitter-active, #b0b8c8);
-}
-.wos-layout-splitter--v {
-  cursor: col-resize;
-}
-.wos-layout-splitter--h {
-  cursor: row-resize;
-}
-`;
-  function injectLayoutStyles() {
-      if (document.getElementById(LAYOUT_STYLE_ID))
-          return;
-      const style = document.createElement('style');
-      style.id = LAYOUT_STYLE_ID;
-      style.textContent = LAYOUT_CSS;
-      document.head.appendChild(style);
-  }
   const REGION_DEFAULTS = {
       north: { size: 48, minSize: 24 },
       south: { size: 120, minSize: 24 },
@@ -1005,82 +878,12 @@
   //   • JS-first: new Panel({ container, title, collapsible })
   //   • 折疊 / 展開（動畫 height）
   // ============================================================
-  const PANEL_STYLE_ID = 'wos-panel-styles';
-  const PANEL_CSS = `
-.wos-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-}
-.wos-panel-header {
-  display: flex;
-  align-items: center;
-  height: 30px;
-  min-height: 30px;
-  padding: 0 8px;
-  background: var(--wos-layout-header-bg, #f5f5f5);
-  border-bottom: 1px solid var(--wos-layout-header-border, #e0e0e0);
-  user-select: none;
-  flex-shrink: 0;
-  cursor: default;
-}
-.wos-panel-title {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--wos-layout-title-color, #333);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.wos-panel-toggle {
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-  background: transparent;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-size: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--wos-layout-btn-color, #555);
-  flex-shrink: 0;
-  transition: background 0.1s;
-  line-height: 1;
-}
-.wos-panel-toggle:hover {
-  background: var(--wos-layout-btn-hover-bg, #e0e0e0);
-  border-color: var(--wos-layout-splitter-bg, #d0d0d0);
-}
-.wos-panel-body {
-  flex: 1;
-  overflow: auto;
-  box-sizing: border-box;
-  transition: max-height 0.2s ease;
-}
-.wos-panel-body.wos-panel-collapsed {
-  max-height: 0 !important;
-  overflow: hidden;
-}
-`;
-  function injectPanelStyles() {
-      if (document.getElementById(PANEL_STYLE_ID))
-          return;
-      const style = document.createElement('style');
-      style.id = PANEL_STYLE_ID;
-      style.textContent = PANEL_CSS;
-      document.head.appendChild(style);
-  }
   class Panel {
       constructor(options) {
           this.headerEl = null;
           this.toggleBtn = null;
           this.cleanups = [];
-          injectPanelStyles();
+          injectLayoutStyles();
           this.container = typeof options.container === 'string'
               ? (() => {
                   const el = document.querySelector(options.container);
@@ -1250,32 +1053,8 @@
               throttleMs: this._throttleMs,
               resizable: state.resizable,
               containerEl: this._isolated ? this._container : undefined,
-              snapFn: this._snapEnabled ? (x, y, w, h) => {
-                  const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
-                  const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
-                  const others = [];
-                  this._wins.forEach((win2, wid) => {
-                      if (wid !== state.id && !win2.state.isMinimized && !win2.state.isMaximized) {
-                          others.push({ x: win2.state.x, y: win2.state.y, width: win2.state.width, height: win2.state.height });
-                      }
-                  });
-                  const result = snapPosition({ x, y, width: w, height: h }, { width: cw, height: ch }, others, this._snapThreshold, this._snapGap);
-                  this._updateSnapGuides(result.guides);
-                  return { x: result.x, y: result.y };
-              } : undefined,
-              resizeSnapFn: this._snapEnabled ? (x, y, w, h, edge) => {
-                  const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
-                  const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
-                  const others = [];
-                  this._wins.forEach((win2, wid) => {
-                      if (wid !== state.id && !win2.state.isMinimized && !win2.state.isMaximized) {
-                          others.push({ x: win2.state.x, y: win2.state.y, width: win2.state.width, height: win2.state.height });
-                      }
-                  });
-                  const result = snapResize({ x, y, width: w, height: h }, edge, { width: cw, height: ch }, others, this._snapThreshold, this._snapGap);
-                  this._updateSnapGuides(result.guides);
-                  return { x: result.x, y: result.y, width: result.width, height: result.height };
-              } : undefined,
+              snapFn: this._snapEnabled ? this._buildSnapFn(state.id) : undefined,
+              resizeSnapFn: this._snapEnabled ? this._buildResizeSnapFn(state.id) : undefined,
               onDrag: (x, y) => {
                   state.x = x;
                   state.y = y;
@@ -1450,6 +1229,9 @@
       getBodyElement(id) {
           return this._wins.get(id)?.elements.body;
       }
+      getWindowElement(id) {
+          return this._wins.get(id)?.elements.root;
+      }
       /** 取得所有視窗 ID 清單 */
       getWindowIds() {
           return [...this._wins.keys()];
@@ -1468,6 +1250,10 @@
        */
       setSnapGap(gap) {
           this._snapGap = Math.max(0, gap);
+      }
+      /** 取得所有視窗狀態的快照陣列（供序列化使用） */
+      getAllStates() {
+          return [...this._wins.values()].map(w => ({ ...w.state }));
       }
       /** 銷毀所有視窗，清除事件 */
       destroy() {
@@ -1618,6 +1404,36 @@
               }
           });
       }
+      /** 取得可供 snap 計算用的其他視窗矩形（排除 excludeId 及最小化/最大化視窗） */
+      _getOtherWindows(excludeId) {
+          const others = [];
+          this._wins.forEach((win, wid) => {
+              if (wid !== excludeId && !win.state.isMinimized && !win.state.isMaximized) {
+                  others.push({ x: win.state.x, y: win.state.y, width: win.state.width, height: win.state.height });
+              }
+          });
+          return others;
+      }
+      /** 建立拖曳 snap 函式（用於 DragResizeHandler.snapFn） */
+      _buildSnapFn(stateId) {
+          return (x, y, w, h) => {
+              const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+              const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+              const result = snapPosition({ x, y, width: w, height: h }, { width: cw, height: ch }, this._getOtherWindows(stateId), this._snapThreshold, this._snapGap);
+              this._updateSnapGuides(result.guides);
+              return { x: result.x, y: result.y };
+          };
+      }
+      /** 建立 resize snap 函式（用於 DragResizeHandler.resizeSnapFn） */
+      _buildResizeSnapFn(stateId) {
+          return (x, y, w, h, edge) => {
+              const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+              const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+              const result = snapResize({ x, y, width: w, height: h }, edge, { width: cw, height: ch }, this._getOtherWindows(stateId), this._snapThreshold, this._snapGap);
+              this._updateSnapGuides(result.guides);
+              return { x: result.x, y: result.y, width: result.width, height: result.height };
+          };
+      }
   }
 
   // ============================================================
@@ -1665,6 +1481,7 @@
   exports.WindowManager = WindowManager;
   exports.eventBus = eventBus;
   exports.getCoreCSS = getCoreCSS;
+  exports.getLayoutCSS = getLayoutCSS;
   exports.setTheme = setTheme;
   exports.snapPosition = snapPosition;
 

@@ -42,6 +42,8 @@ interface WindowManagerLike {
     focus?: (id: string) => void;
     getWindowIds?: () => string[];
     getState?: (id: string) => DockSyncWindowEvent | undefined;
+    /** 取得視窗的完整 DOM 元素（含標題列），供 hover 預覽使用 */
+    getWindowElement?: (id: string) => HTMLElement | undefined;
 }
 /** Dock 與 WindowManager 同步設定 */
 interface DockSyncOptions {
@@ -63,6 +65,19 @@ interface DockSyncOptions {
     dedupeByAppId?: boolean;
     /** true: 綁定後同步目前已開啟視窗（預設 true） */
     syncExisting?: boolean;
+    /**
+     * 滑鼠懸停 Dock 圖標時是否顯示視窗縮略圖預覽（預設 true）。
+     * 需要 manager 提供 `getWindowElement` 方法。
+     */
+    showWindowPreview?: boolean;
+    /**
+     * 預覽縮略圖的最大尺寸（px）。
+     * 縮略圖會按比例縮放，不超過此寬高。預設 `{ width: 240, height: 150 }`。
+     */
+    previewSize?: {
+        width: number;
+        height: number;
+    };
 }
 /** Dock 停靠位置 */
 type DockPosition = 'bottom' | 'top' | 'left' | 'right';
@@ -115,24 +130,36 @@ declare class Dock {
     private readonly _iconSize;
     private readonly _showLabels;
     private _dragSrcIndex;
+    private _activeId;
+    private readonly _renderCallbacks;
     constructor(config?: DockConfig);
     private _render;
     private _createItemEl;
     private _clearDragover;
     addItem(item: DockItemConfig): void;
+    /** 在指定索引位置插入 item（0 = 最左/最上）。超出範圍時自動夾緊。 */
+    addItemAt(item: DockItemConfig, index: number): void;
     /**
      * 設定目前 active（focused）的 item。
      * 傳 null 清除所有高亮。
      */
     setActiveItem(id: string | null): void;
-    private _activeId;
     private _applyActive;
     removeItem(id: string): void;
     /** 取得目前排列順序的 items（含拖曳後的結果） */
     getItems(): DockItemConfig[];
     /** 動態變更 Dock 停靠位置 */
     setPosition(position: DockPosition): void;
+    /** 取得特定 item 的 DOM 元素 */
+    getItemElement(id: string): HTMLElement | null;
+    /** 取得目前 Dock 停靠位置 */
+    getPosition(): DockPosition;
     getElement(): HTMLElement;
+    /**
+     * 每次 Dock 重新渲染（addItem / addItemAt / removeItem / 拖曳排序）後觸發 cb。
+     * 回傳取消訂閱函式。
+     */
+    onRender(cb: () => void): () => void;
     destroy(): void;
 }
 

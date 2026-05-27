@@ -20,3 +20,4 @@ export { BorderLayout } from './layout/BorderLayout.js';
 export type { RegionConfig, BorderLayoutOptions, LayoutRegion } from './layout/BorderLayout.js';
 export { Panel } from './layout/Panel.js';
 export type { PanelOptions } from './layout/Panel.js';
+export { getLayoutCSS } from './layout/styles.js';

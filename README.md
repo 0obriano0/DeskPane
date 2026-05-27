@@ -19,6 +19,8 @@ A **framework-agnostic** web virtual desktop window management engine.
 - ✅ **Theme system** — light/dark CSS themes with 22 CSS custom properties; `setTheme()` runtime switching
 - ✅ **BorderLayout** — N/S/E/W/Center docking layout; `data-region` HTML-first declaration; collapsible mini strip; draggable splitters; nested layouts
 - ✅ **Desktop module** (`webos-desktop`) — virtual desktop with icons, Dock, active indicator, icon snap, RWD scrollable icon area, **frosted-glass backdrop-filter** on Dock
+- ✅ **WorkspaceManager** (`webos-workspace`) — multiple virtual desktops with slide animation and dot indicator
+- ✅ **TaskView** (`webos-workspace`) — workspace switcher overlay with real DOM-clone thumbnails, add/delete workspace, Escape key support
 - ✅ Vue 3 adapter — `useWindowManager` composable + `<Teleport>` support
 - ✅ React 18 adapter — `useWindowManager` hook + `createPortal` support
 - ✅ **CSS pre-built files** — `dist/styles/webos-core.css` and `dist/styles/webos-desktop.css` for direct `<link>` use (single source of truth at `src/styles/*.css`)
@@ -210,18 +212,22 @@ wm.events.on('window:resized',   (state) => { })
 
 Built-in `dist/themes/light.css` and `dist/themes/dark.css` each contain **23 CSS custom properties** (15 Core + 8 Desktop). A single `<link>` tag covers both the window manager and the Desktop module.
 
-Structural styles are provided separately as `dist/styles/webos-core.css` (window structure) and `dist/styles/webos-desktop.css` (Desktop / Dock / Icon). These are independent of theme variables and can be `<link>`ed directly:
+Structural styles are provided separately as `dist/styles/webos-core.css` (window structure), `dist/styles/webos-desktop.css` (Desktop / Dock / Icon), `dist/styles/webos-workspace.css` (workspace slide animation), and `dist/styles/webos-taskview.css` (TaskView overlay). These are independent of theme variables and can be `<link>`ed directly:
 
 ```html
 <link rel="stylesheet" href="dist/styles/webos-core.css">
 <link rel="stylesheet" href="dist/styles/webos-desktop.css">
+<!-- optional: only needed when using WorkspaceManager / TaskView -->
+<link rel="stylesheet" href="dist/styles/webos-workspace.css">
+<link rel="stylesheet" href="dist/styles/webos-taskview.css">
 ```
 
-Alternatively, use `getCoreCSS()` / `getDesktopCSS()` for programmatic injection:
+Alternatively, use `getCoreCSS()` / `getDesktopCSS()` / `getWorkspaceCSS()` / `getTaskViewCSS()` for programmatic injection:
 
 ```typescript
 import { getCoreCSS } from 'webos-core'
 import { getDesktopCSS } from 'webos-core/desktop'
+import { getWorkspaceCSS, getTaskViewCSS } from 'webos-core/workspace'
 // inject into shadow root, iframe, or custom container
 ```
 
@@ -358,10 +364,122 @@ desktop.getDesktopElement()
 | `onDockItemClick` | `(appId, windowId) => void` | focus window | Custom click handler |
 | `dedupeByAppId` | `boolean` | `true` | One Dock item per app ID |
 | `syncExisting` | `boolean` | `true` | Sync already-open windows at bind time |
+| `showWindowPreview` | `boolean` | `true` | Enable hover thumbnail preview on Dock items |
+| `previewSize` | `{ width: number; height: number }` | `{ width: 240, height: 150 }` | Max thumbnail size (aspect-ratio preserved) |
 
-Returns a `() => void` cleanup function (same as `desktop.unsyncDockWithWindows()`).
+### `Dock` Methods
+
+| Method | Description |
+|--------|-------------|
+| `dock.addItem(item)` | Append a `DockItem` to the end |
+| `dock.addItemAt(item, index)` | Insert at position `index` (0 = leftmost) |
+| `dock.removeItem(id)` | Remove item by id |
+| `dock.onRender(cb)` | Subscribe to DOM-rebuild events (fires after every `_render()`). Returns an `offRender` function. Useful for re-binding hover/event listeners after Dock reorders. |
+
+---
+
+> **Preview hover** — Hovering a Dock item for 300ms shows a DOM-clone thumbnail (default 240×150px, aspect-ratio preserved). Thumbnails are automatically re-bound after drag-reorder or new window opens via `Dock.onRender`.
 
 > **Demo** — `demo/desktop/index.html` ships a full virtual desktop experience with Dock, draggable icons, theme switching, snap-gap control, **live Dock position switching** (top/bottom/left/right), and a **📐 BorderLayout demo window** (Basic + Nested tabs).
+
+---
+
+## Workspace Module
+
+### `WorkspaceManager` — Multiple Virtual Desktops
+
+```typescript
+import { WorkspaceManager } from 'webos-core/workspace'
+
+const wsMgr = new WorkspaceManager(desktop.getElement(), {
+  animationMs: 220,                            // slide animation duration (default 250ms)
+  windowManagerOptions: { isolated: true, snap: true },
+})
+
+wsMgr.addWorkspace({ id: 'ws-1', label: 'Desktop 1' })
+wsMgr.addWorkspace({ id: 'ws-2', label: 'Desktop 2' })
+wsMgr.switchTo('ws-2')
+
+// Get the WindowManager for the active workspace
+const wm = wsMgr.getWindowManager(wsMgr.current.id)
+wm.open({ id: 'app', title: 'My App', content: el })
+
+// Events
+wsMgr.events.on('workspace:switched', ({ from, to }) => { })
+wsMgr.events.on('workspace:added',    (state) => { })
+wsMgr.events.on('workspace:removed',  ({ id }) => { })
+
+// Optional dot indicator (shown inside the workspace root)
+wsMgr.enableIndicator()
+```
+
+#### `WorkspaceManagerOptions`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `animationMs` | `number` | `250` | Slide animation duration (ms). Set `0` for instant switch. |
+| `injectStyles` | `boolean` | `true` | Auto-inject workspace CSS |
+| `windowManagerOptions` | `WindowManagerOptions` | `{}` | Options passed to every workspace's `WindowManager` |
+
+#### `WorkspaceManager` Methods
+
+| Method | Description |
+|--------|-------------|
+| `addWorkspace(config)` | Create a new workspace (auto-activates if first) |
+| `removeWorkspace(id)` | Destroy workspace and switch to nearest remaining |
+| `switchTo(id)` | Animate to target workspace |
+| `getWindowManager(id)` | Get the `WindowManager` for a workspace |
+| `enableIndicator()` | Show dot indicator below workspaces |
+| `disableIndicator()` | Remove dot indicator |
+| `destroy()` | Destroy all workspaces and clean up |
+
+---
+
+### `TaskView` — Workspace Switcher Overlay
+
+Shows a full-screen overlay with real DOM-clone thumbnails of every workspace. Clicking a card switches to that workspace.
+
+```typescript
+import { TaskView } from 'webos-core/workspace'
+
+const taskView = new TaskView(wsMgr, {
+  dock:        desktop.getDock(),  // auto-insert toggle button at leftmost Dock position
+  showButton:  true,               // set false to suppress auto-button; open() still works
+  buttonLabel: '虛擬桌面',          // label shown in the Dock button
+  buttonIcon:  '⧉',                // icon shown in the Dock button
+  allowAdd:    true,               // show "Add Desktop" button
+  allowDelete: true,               // show delete button on cards
+  keyboard:    true,               // Escape closes the overlay
+})
+
+// Programmatic open/close (always works even if showButton: false)
+taskView.open()
+taskView.toggle()
+
+// Events
+taskView.events.on('taskview:open',  () => { })
+taskView.events.on('taskview:close', () => { })
+
+// Cleanup
+taskView.destroy()
+```
+
+#### `TaskViewOptions`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `target` | `HTMLElement` | `document.body` | Where to mount the overlay |
+| `dock` | `DockLike` | — | When provided, auto-inserts a toggle button at position 0 (leftmost) |
+| `showButton` | `boolean` | `true` | Insert toggle button into Dock. Set `false` to hide while keeping `open()` callable. |
+| `buttonLabel` | `string` | `'虛擬桌面'` | Label for the auto-managed Dock button |
+| `buttonIcon` | `string` | `'⧉'` | Icon for the auto-managed Dock button |
+| `buttonId` | `string` | `'taskview-btn'` | ID for the auto-managed Dock button |
+| `allowAdd` | `boolean` | `true` | Show "New Desktop" button |
+| `allowDelete` | `boolean` | `true` | Show delete button on workspace cards |
+| `keyboard` | `boolean` | `true` | Close on Escape key |
+| `closeOnBackdrop` | `boolean` | `true` | Close when clicking the overlay backdrop |
+| `onCreateWorkspace` | `() => WorkspaceConfig` | auto `ws-N` / `桌面 N` | Custom workspace config for new workspaces |
+| `injectStyles` | `boolean` | `true` | Auto-inject TaskView CSS |
 
 ---
 
@@ -457,12 +575,18 @@ When collapsed, a region shrinks to a **28px mini strip**: expand button → ico
 | `dist/webos-core.umd.min.js` | UMD | ~12 KB | Production CDN |
 | `dist/webos-desktop.es.js / .min.js` | ESM | — | Desktop module (ESM) |
 | `dist/webos-desktop.umd.js / .min.js` | UMD | — | Desktop module (`window.WebOSDesktop`) |
+| `dist/webos-workspace.es.js / .min.js` | ESM | — | Workspace + TaskView + Session module (ESM) |
+| `dist/webos-workspace.umd.js / .min.js` | UMD | — | Workspace module (`window.WebOSWorkspace`) |
 | `dist/index.d.ts` | TypeScript | — | Core type declarations |
-| `dist/webos-desktop.d.ts` | TypeScript | — | Desktop type declarations |
+| `dist/desktop.d.ts` | TypeScript | — | Desktop type declarations |
+| `dist/workspace.d.ts` | TypeScript | — | Workspace + TaskView + Session type declarations |
 | `dist/themes/light.css` | CSS | ~2 KB | Light theme (Core + Desktop) |
 | `dist/themes/dark.css` | CSS | ~2 KB | Dark theme (Core + Desktop) |
 | `dist/styles/webos-core.css` | CSS | — | Core window structure styles (direct `<link>`) |
 | `dist/styles/webos-desktop.css` | CSS | — | Desktop / Dock / Icon styles (direct `<link>`) |
+| `dist/styles/webos-layout.css` | CSS | — | BorderLayout / Panel styles (direct `<link>`) |
+| `dist/styles/webos-workspace.css` | CSS | — | Workspace container / slide animation styles (direct `<link>`) |
+| `dist/styles/webos-taskview.css` | CSS | — | TaskView overlay / card / thumbnail styles (direct `<link>`) |
 
 ---
 

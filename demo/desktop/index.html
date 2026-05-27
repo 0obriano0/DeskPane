@@ -14,19 +14,22 @@
 <body>
   <div id="desktop-root"></div>
 
-  <!-- 1. 先載入 Core -->
+  <!-- 1. Core -->
   <script src="../../dist/webos-core.umd.js"></script>
-  <!-- 2. 再載入 Desktop -->
+  <!-- 2. Desktop -->
   <script src="../../dist/webos-desktop.umd.js"></script>
+  <!-- 3. Workspace -->
+  <script src="../../dist/webos-workspace.umd.js"></script>
 
   <script>
     const { WindowManager } = WebOS;
     const { Desktop } = WebOSDesktop;
+    const { WorkspaceManager, TaskView } = WebOSWorkspace;
 
     // ── 建立桌面 ─────────────────────────────────────────
     const desktop = new Desktop({
       container: document.getElementById('desktop-root'),
-      dragThreshold: 10,   // 需移動 10px 才進入拖曳，降低誤觸機率
+      dragThreshold: 10,
       dock: {
         position: 'bottom',
         showLabels: true,
@@ -46,14 +49,32 @@
       ],
     });
 
-    // ── 建立 WindowManager（視窗浮在桌面上） ─────────────
-    const wm = new WindowManager({
-      container: desktop.getElement(),
-      isolated: true,
-      snap: true,
+    // ── 建立 WorkspaceManager（多虛擬桌面） ────────────────
+    const wsMgr = new WorkspaceManager(desktop.getElement(), {
+      animationMs: 220,
+      windowManagerOptions: { isolated: true, snap: true },
     });
 
-    desktop.syncDockWithWindows(wm);
+    // 初始工作區
+    wsMgr.addWorkspace({ id: 'ws-1', label: '桌面 1' });
+
+    // 同步 Dock 與目前工作區的視窗
+    desktop.syncDockWithWindows(wsMgr.getWindowManager('ws-1'));
+
+    // 切換工作區時重新綁定 Dock
+    wsMgr.events.on('workspace:switched', ({ to }) => {
+      desktop.syncDockWithWindows(wsMgr.getWindowManager(to));
+    });
+
+    // ── Task View（虛擬桌面切換覆蓋層） ───────────────────
+    const taskView = new TaskView(wsMgr, { dock: desktop.getDock() });
+
+    // 取得目前工作區的 WindowManager
+    function currentWm() {
+      const cur = wsMgr.current;
+      if (!cur) throw new Error('No active workspace');
+      return wsMgr.getWindowManager(cur.id);
+    }
 
     // ── App 定義 ─────────────────────────────────────────
     function makeContent(html) {
@@ -224,7 +245,7 @@
         html: '<div style="padding:20px;font-family:system-ui"><h3 style="margin-bottom:16px;font-size:16px">系統設定</h3><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">主題</label><select onchange="document.querySelector(\'link[rel=stylesheet]\').href=\'../../dist/themes/\'+this.value+\'.css\'" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px"><option value="dark">Dark 深色</option><option value="light">Light 淺色</option></select></div><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">工具列位置</label><select onchange="desktop.setDockPosition(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px"><option value="bottom">下方（Bottom）</option><option value="top">上方（Top）</option><option value="left">左側（Left）</option><option value="right">右側（Right）</option></select></div><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">桌面背景</label><div style="display:flex;gap:8px;flex-wrap:wrap">' +
         ['linear-gradient(135deg,#1a2a4a,#0d1b2a)','linear-gradient(135deg,#2d1b4e,#1a0a2e)','linear-gradient(135deg,#0d3b2a,#051a14)','linear-gradient(135deg,#3b1a0d,#1a0805)'].map((bg,i)=>
           '<div onclick="document.querySelector(\'.wos-desktop\').style.background=\''+bg+'\'" style="width:48px;height:32px;border-radius:6px;cursor:pointer;border:2px solid rgba(255,255,255,0.2);background:'+bg+'"></div>'
-        ).join('') + '</div></div><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">視窗吸附間距（px）</label><div style="display:flex;align-items:center;gap:10px"><input id="snap-gap-input" type="number" min="0" max="50" value="0" style="width:80px;padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px" oninput="wm.setSnapGap(parseInt(this.value)||0)" /><span style="font-size:13px;color:#888">0 = 緊貼，設定後立即生效</span></div></div></div>'
+        ).join('') + '</div></div><div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-weight:500">視窗吸附間距（px）</label><div style="display:flex;align-items:center;gap:10px"><input id="snap-gap-input" type="number" min="0" max="50" value="0" style="width:80px;padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px" oninput="currentWm().setSnapGap(parseInt(this.value)||0)" /><span style="font-size:13px;color:#888">0 = 緊貼，設定後立即生效</span></div></div></div>'
       },
       terminal: {
         title: '💻 終端機', label: '終端機', icon: '💻', width: 560, height: 360,
@@ -252,7 +273,7 @@
       if (!def) return;
 
       const content = def.make ? def.make() : makeContent(def.html);
-      wm.open({
+      currentWm().open({
         id: 'app-' + id,
         title: def.title,
         label: def.label,

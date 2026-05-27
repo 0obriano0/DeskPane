@@ -1,0 +1,87 @@
+/* ============================================================
+   WebOS-Core — Workspace Styles
+   工作區容器佈局 + 左右滑入動畫
+   ============================================================ */
+
+/* ── Root container ──────────────────────────────────────── */
+
+/**
+ * WorkspaceManager 掛載的根容器。
+ * position:relative + overflow:hidden 讓工作區在裡面滑動。
+ */
+.wos-workspace-root {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ── Workspace container ─────────────────────────────────── */
+
+.wos-workspace {
+  /* !important：防止 .wos-isolated { position: relative } 被後注入的 Core CSS 覆蓋 */
+  position: absolute !important;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* 非活躍工作區：平移到可見範圍外 */
+  transform: translateX(100%);
+  /* 切換時滑入 */
+  transition: transform var(--wos-workspace-animation-ms, 250ms) cubic-bezier(0.4, 0, 0.2, 1);
+  /* 非活躍時不接受滑鼠事件，避免誤觸 */
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.wos-workspace.wos-workspace--active {
+  transform: translateX(0);
+  pointer-events: none;
+  visibility: visible;
+}
+
+/* 從右往左：下一個工作區（切換到更大 index）初始位置在右側 */
+.wos-workspace.wos-workspace--enter-right {
+  transform: translateX(100%);
+}
+
+/* 從左往右：下一個工作區（切換到更小 index）初始位置在左側 */
+.wos-workspace.wos-workspace--enter-left {
+  transform: translateX(-100%);
+}
+
+/* 離開動畫：向左滑出 */
+.wos-workspace.wos-workspace--leave-left {
+  transform: translateX(-100%);
+}
+
+/* 離開動畫：向右滑出 */
+.wos-workspace.wos-workspace--leave-right {
+  transform: translateX(100%);
+}
+
+/* ── Workspace indicator bar ─────────────────────────────── */
+
+.wos-workspace-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 9990;
+  pointer-events: none;
+}
+
+.wos-workspace-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wos-workspace-dot-bg, rgba(255, 255, 255, 0.4));
+  transition: background 0.2s, transform 0.2s;
+}
+
+.wos-workspace-dot.wos-workspace-dot--active {
+  background: var(--wos-workspace-dot-active-bg, rgba(255, 255, 255, 0.9));
+  transform: scale(1.3);
+}

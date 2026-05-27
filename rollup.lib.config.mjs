@@ -12,7 +12,13 @@
 //   dist/webos-desktop.umd.min.js UMD bundle (minified)
 //   dist/desktop.d.ts            TypeScript declaration (desktop)
 //
-// ⚠️  Desktop bundle 不包含 core，使用時需先載入 webos-core.*
+//   dist/webos-workspace.es.js   ES Module  (import { WorkspaceManager } from '...')
+//   dist/webos-workspace.es.min.js ES Module (minified)
+//   dist/webos-workspace.umd.js  UMD bundle (<script src="..."> → window.WebOSWorkspace)
+//   dist/webos-workspace.umd.min.js UMD bundle (minified)
+//   dist/workspace.d.ts          TypeScript declaration (workspace)
+//
+// ⚠️  Desktop + Workspace bundles 不包含 core，使用時需先載入 webos-core.*
 
 import resolve from '@rollup/plugin-node-resolve'
 import typescript from '@rollup/plugin-typescript'
@@ -33,9 +39,10 @@ function rawCss() {
   };
 }
 
-const coreInput    = 'src/index.ts'
-const desktopInput = 'src/desktop/index.ts'
-const external     = ['vue', 'react', 'react-dom']   // peer deps — not bundled
+const coreInput      = 'src/index.ts'
+const desktopInput   = 'src/desktop/index.ts'
+const workspaceInput = 'src/workspace/index.ts'
+const external       = ['vue', 'react', 'react-dom']   // peer deps — not bundled
 
 export default [
   // ════════════════════════════════════════════════════════
@@ -176,6 +183,76 @@ export default [
     plugins: [dts()],
     output: {
       file: 'dist/desktop.d.ts',
+      format: 'es',
+    },
+  },
+
+  // ════════════════════════════════════════════════════════
+  // WORKSPACE — ESM + UMD (unminified)
+  // ════════════════════════════════════════════════════════
+  {
+    input: workspaceInput,
+    external,
+    plugins: [
+      rawCss(),
+      resolve(),
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: false,
+        declarationMap: false,
+        sourceMap: true,
+      }),
+    ],
+    output: [
+      {
+        file: 'dist/webos-workspace.es.js',
+        format: 'es',
+        sourcemap: true,
+      },
+      {
+        file: 'dist/webos-workspace.umd.js',
+        format: 'umd',
+        name: 'WebOSWorkspace',   // → window.WebOSWorkspace in browser
+        sourcemap: true,
+      },
+    ],
+  },
+  // ── WORKSPACE — ESM + UMD (minified) ────────────────────
+  {
+    input: workspaceInput,
+    external,
+    plugins: [
+      rawCss(),
+      resolve(),
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: false,
+        declarationMap: false,
+        sourceMap: false,
+      }),
+      terser(),
+    ],
+    output: [
+      {
+        file: 'dist/webos-workspace.es.min.js',
+        format: 'es',
+        sourcemap: false,
+      },
+      {
+        file: 'dist/webos-workspace.umd.min.js',
+        format: 'umd',
+        name: 'WebOSWorkspace',
+        sourcemap: false,
+      },
+    ],
+  },
+  // ── WORKSPACE — TypeScript declarations ─────────────────
+  {
+    input: workspaceInput,
+    external,
+    plugins: [dts()],
+    output: {
+      file: 'dist/workspace.d.ts',
       format: 'es',
     },
   },

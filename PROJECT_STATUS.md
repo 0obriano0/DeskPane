@@ -1,6 +1,6 @@
 # WebOS-Core — 專案狀態（AI 快查版）
 
-> 最後更新：2026-05-26 17:52 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
+> 最後更新：2026-05-27 13:40 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
 > 此文件為 AI 輔助開發設計，優先說明「現在是什麼」，歷史細節見備份。
 
 ---
@@ -37,10 +37,14 @@
 | Theme Editor — Tab 3 完整桌面預覽 + 雙 CSS 即時注入（core + desktop 同時） | ✅ | `demo/theme-editor/index.html` |
 | Dock 毛玻璃效果（`--wos-dock-backdrop-filter`）— `overflow:clip` 修正讓視窗可穿透顯示 | ✅ | `src/styles/webos-desktop.css`, `webos-core.css`, `desktop/Desktop.ts` |
 | Docs 開發手冊（Vue3 SPA，i18n EN/zh-TW，17 頁，含 WindowConfig 完整選項表） | ✅ | `demo/docs/` |
+| WorkspaceManager — 多工作區切換（獨立容器、左右滑入動畫、指示點） | ✅ | `src/workspace/WorkspaceManager.ts` |
+| SessionManager — 視窗狀態序列化 / 還原（支援單 WM 或多工作區） | ✅ | `src/session/SessionManager.ts` |
+| **TaskView** — 虛擬桌面切換覆蓋層（DOM clone 快照 + 新增/刪除/Escape，獨立 class） | ✅ | `src/workspace/TaskView.ts` |
+| **TaskView Dock 按鈕管理** — 建立時傳入 `dock`，自動在最左側插入按鈕；`showButton: false` 可關閉但 `open()` 仍可呼叫 | ✅ | `src/workspace/TaskView.ts`, `src/workspace/types.ts` |
+| **Dock hover 縮略圖預覽** — 滑鼠懸停 300ms 後顯示視窗 DOM clone 縮圖（240×150，比例縮放）；拖曳重排或多視窗後事件自動重綁 | ✅ | `src/desktop/Desktop.ts`, `src/desktop/Dock.ts` |
+| **Dock.addItemAt(item, index)** — 在指定位置插入 item（0 = 最左）；`Dock.onRender(cb)` 每次重建 DOM 後觸發回呼 | ✅ | `src/desktop/Dock.ts` |
 
 **尚未實作：**
-- [ ] 工作區（虛擬桌面）多頁切換
-- [ ] 視窗狀態序列化 / localStorage 還原
 - [ ] CDN 發佈（jsDelivr / unpkg）
 
 ---
@@ -62,14 +66,26 @@ WebOS/
 │   │   └── DOMRenderer.ts          ← DOM 結構 + CSS 注入（import BASE_CSS from styles/webos-core.css）
 │   ├── styles/
 │   │   ├── webos-core.css          ← Core CSS 單一來源（視窗結構/Snap/Dock 基礎樣式）
-│   │   └── webos-desktop.css       ← Desktop CSS 單一來源（桌面/Dock/Icon 樣式）
+│   │   ├── webos-desktop.css       ← Desktop CSS 單一來源（桌面/Dock/Icon 樣式）
+│   │   ├── webos-layout.css        ← Layout CSS 單一來源（BorderLayout/Panel 樣式）
+│   │   ├── webos-workspace.css     ← Workspace CSS 單一來源（工作區容器/滑入動畫/指示點）
+│   │   └── webos-taskview.css      ← TaskView CSS 單一來源（覆蓋層/卡片/縮略圖/按鈕）
 │   ├── themes/
 │   │   ├── light.css               ← 亮色（Core 15 vars + Desktop 7 vars）
 │   │   ├── dark.css                ← 暗色（Core 15 vars + Desktop 7 vars）
 │   │   └── setTheme.ts             ← setTheme(preset, options?)
 │   ├── layout/
 │   │   ├── BorderLayout.ts         ← 東西南北中五區域、可拖曳分割線、巢狀遞迴
-│   │   └── Panel.ts                ← 可折疊標題+內容面板（data-panel 宣告式）
+│   │   ├── Panel.ts                ← 可折疊標題+內容面板（data-panel 宣告式）
+│   │   └── styles.ts               ← injectLayoutStyles() / getLayoutCSS()（import from webos-layout.css）
+│   ├── workspace/
+│   │   ├── index.ts                ← Workspace 公開 Entry Point（同時 re-export SessionManager）
+│   │   ├── WorkspaceManager.ts     ← 多工作區管理（addWorkspace/switchTo/左右滑入動畫/指示點）
+│   │   ├── TaskView.ts             ← 虛擬桌面切換覆蓋層（DOM clone 縮略圖/新增/刪除/Escape）
+│   │   └── types.ts                ← WorkspaceConfig / WorkspaceState / WorkspaceManagerOptions / TaskViewOptions
+│   ├── session/
+│   │   ├── SessionManager.ts       ← serialize / restore（支援單 WM 或 WorkspaceManager 兩種模式）
+│   │   └── types.ts                ← WindowSnapshot / WorkspaceSnapshot / SessionSnapshot / AppRegistry
 │   ├── desktop/
 │   │   ├── index.ts                ← Desktop 公開 Entry Point
 │   │   ├── Desktop.ts              ← 桌面主容器（icon 拖放、Snap、Sentinel、RWD）
@@ -86,11 +102,16 @@ WebOS/
 │   ├── webos-core.umd.js / .min.js
 │   ├── webos-desktop.es.js / .min.js
 │   ├── webos-desktop.umd.js / .min.js
-│   ├── index.d.ts / webos-desktop.d.ts
+│   ├── webos-workspace.es.js / .min.js
+│   ├── webos-workspace.umd.js / .min.js
+│   ├── index.d.ts / desktop.d.ts / workspace.d.ts
 │   ├── themes/light.css, dark.css  ← build-themes.mjs 從 src/themes/ 複製
 │   └── styles/
 │       ├── webos-core.css          ← build-themes.mjs 從 src/styles/ 複製（可直接 <link>）
-│       └── webos-desktop.css       ← build-themes.mjs 從 src/styles/ 複製（可直接 <link>）
+│       ├── webos-desktop.css       ← build-themes.mjs 從 src/styles/ 複製（可直接 <link>）
+│       ├── webos-layout.css        ← build-themes.mjs 從 src/styles/ 複製（可直接 <link>）
+│       └── webos-workspace.css     ← build-themes.mjs 從 src/styles/ 複製（可直接 <link>）
+│       └── webos-taskview.css      ← build-themes.mjs 從 src/styles/ 複製（可直接 <link>）
 │
 ├── demo/
 │   ├── index.html                  ← Demo 首頁
@@ -117,39 +138,50 @@ WebOS/
 
 ---
 
-## 4. CSS 自訂屬性（完整 22 個）
+## 4. CSS 自訂屬性（完整 29 個）
 
-### Core 視窗（15 個）— 來源：`src/styles/webos-core.css`
+### Core 視窗（14 個）— 來源：`src/styles/webos-core.css`
 
-| 變數 | 說明 | Light 預設 |
+| 變數 | 說明 | CSS 預設值 |
 |------|------|-----------|
-| `--wos-window-bg` | 視窗背景 | `#ffffff` |
-| `--wos-header-bg` | 標題列背景 | `#f0f0f0` |
-| `--wos-title-color` | 標題文字 | `#333333` |
-| `--wos-border` | 視窗外框 | `#d0d0d0` |
-| `--wos-border-active` | 作用中外框 | `#4a90e2` |
-| `--wos-shadow` | 視窗陰影 | `0 2px 12px rgba(0,0,0,0.12)` |
-| `--wos-shadow-active` | 作用中陰影 | `0 4px 24px rgba(0,0,0,0.22)` |
-| `--wos-header-border` | 標題列底線 | `#e0e0e0` |
-| `--wos-btn-color` | 按鈕圖示 | `#555555` |
-| `--wos-btn-hover-bg` | 按鈕 hover 背景 | `rgba(0,0,0,0.08)` |
-| `--wos-btn-close-hover-bg` | 關閉按鈕 hover 背景 | `#e53e3e` |
-| `--wos-btn-close-hover-color` | 關閉按鈕 hover 文字 | `#ffffff` |
-| `--wos-body-bg` | 視窗內容背景 | `#ffffff` |
-| `--wos-body-color` | 視窗內容文字 | `#222222` |
-| `--wos-snap-guide-color` | Snap 引導線 | `rgba(74,144,226,0.4)` |
+| `--wos-window-border` | 視窗外框顏色 | `#d0d0d0` |
+| `--wos-window-border-active` | 作用中外框顏色 | `#b0b8c8` |
+| `--wos-window-shadow` | 視窗陰影 | `0 4px 24px rgba(0,0,0,0.18)` |
+| `--wos-window-shadow-active` | 作用中陰影 | `0 8px 36px rgba(0,0,0,0.28)` |
+| `--wos-window-header-bg` | 標題列背景 | `#f5f5f5` |
+| `--wos-window-header-border` | 標題列底線 | `#e0e0e0` |
+| `--wos-window-title-color` | 標題文字色 | `#333333` |
+| `--wos-window-btn-color` | 按鈕圖示色 | `#555555` |
+| `--wos-window-btn-hover-bg` | 按鈕 hover 背景 | `#e0e0e0` |
+| `--wos-window-btn-close-hover-bg` | 關閉按鈕 hover 背景 | `#ff5f57` |
+| `--wos-window-btn-close-hover-color` | 關閉按鈕 hover 文字 | `#ffffff` |
+| `--wos-window-body-bg` | 視窗內容背景 | `#ffffff` |
+| `--wos-window-body-color` | 視窗內容文字 | `#222222` |
+| `--wos-snap-guide-color` | Snap 引導線 | `rgba(0,120,255,0.55)` |
+
+### Layout 模組（7 個）— 來源：`src/styles/webos-layout.css`
+
+| 變數 | 說明 | CSS 預設值 |
+|------|------|-----------|
+| `--wos-layout-header-bg` | 面板標題列背景 | `#f5f5f5` |
+| `--wos-layout-header-border` | 面板標題列底線 | `#e0e0e0` |
+| `--wos-layout-title-color` | 面板標題文字色 | `#333` |
+| `--wos-layout-btn-color` | 面板按鈕圖示色 | `#555` |
+| `--wos-layout-btn-hover-bg` | 面板按鈕 hover 背景 | `#e0e0e0` |
+| `--wos-layout-splitter-bg` | 分隔條顏色 | `#d0d0d0` |
+| `--wos-layout-splitter-active` | 分隔條拖動顏色 | `#b0b8c8` |
 
 ### Desktop 模組（8 個）— 來源：`src/styles/webos-desktop.css`
 
-| 變數 | 說明 | Light 預設 |
+| 變數 | 說明 | CSS 預設值 |
 |------|------|-----------|
-| `--wos-desktop-bg` | 桌面背景（支援 gradient） | `linear-gradient(135deg,#f0f4f8,#e2e8f0)` |
-| `--wos-desktop-icon-text` | 桌面圖示文字 | `#1a202c` |
-| `--wos-desktop-icon-hover-bg` | 圖示 hover 背景 | `rgba(0,0,0,0.08)` |
-| `--wos-dock-bg` | Dock 背景（支援 rgba） | `rgba(220,225,240,0.20)` |
-| `--wos-dock-backdrop-filter` | Dock 毛玻璃模糊（`blur(Npx)` 或 `none`） | `blur(4px)` |
-| `--wos-dock-border` | Dock 邊框（支援 rgba） | `rgba(0,0,0,0.10)` |
-| `--wos-dock-item-hover-bg` | Dock 項目 hover 背景 | `rgba(0,0,0,0.06)` |
+| `--wos-desktop-bg` | 桌面背景（支援 gradient） | `linear-gradient(135deg,#1a2a4a,#0d1b2a)` |
+| `--wos-desktop-icon-text` | 桌面圖示文字 | `#fff` |
+| `--wos-desktop-icon-hover-bg` | 圖示 hover 背景 | `rgba(255,255,255,0.15)` |
+| `--wos-dock-bg` | Dock 背景（支援 rgba） | `rgba(20,30,50,0.75)` |
+| `--wos-dock-backdrop-filter` | Dock 毛玻璃模糊（`blur(Npx)` 或 `none`） | `blur(14px)` |
+| `--wos-dock-border` | Dock 邊框（支援 rgba） | `rgba(255,255,255,0.1)` |
+| `--wos-dock-item-hover-bg` | Dock 項目 hover 背景 | `rgba(255,255,255,0.12)` |
 | `--wos-font` | 全域字體 | `system-ui,-apple-system,sans-serif` |
 
 > **注意**：`rgba` / `linear-gradient` / `blur()` 型別的變數必須用 `type: 'text'`（非 color picker），否則值會被截掉。
@@ -202,6 +234,41 @@ desktop.setDockPosition('top' | 'bottom' | 'left' | 'right')
 
 // 取得桌面根元素（含 Dock）
 desktop.getDesktopElement()
+
+// WorkspaceManager — 多虛擬桌面
+const wsMgr = new WorkspaceManager(desktop.getElement(), {
+  animationMs: 220,
+  windowManagerOptions: { isolated: true, snap: true },
+})
+wsMgr.addWorkspace({ id: 'ws-1', label: '桌面 1' })
+wsMgr.switchTo('ws-1')
+wsMgr.removeWorkspace('ws-1')
+wsMgr.getWindowManager('ws-1')   // 取得該工作區的 WindowManager
+wsMgr.events.on('workspace:switched', ({ from, to }) => { })
+wsMgr.events.on('workspace:added',    (state) => { })
+wsMgr.events.on('workspace:removed',  ({ id }) => { })
+
+// TaskView — 虛擬桌面切換覆蓋層（Dock 按鈕自動管理）
+const taskView = new TaskView(wsMgr, {
+  dock:        desktop.getDock(), // 自動在最左側插入按鈕
+  showButton:  true,              // 預設 true；false = 不加按鈕，open() 仍可呼叫
+  buttonLabel: '虛擬桌面',         // 自訂按鈕標籤
+  buttonIcon:  '⧉',               // 自訂按鈕圖示
+  allowAdd:    true,       // 顯示「新增桌面」按鈕（預設 true）
+  allowDelete: true,       // 顯示「刪除桌面」按鈕（預設 true）
+  keyboard:    true,       // Escape 關閉（預設 true）
+  onCreateWorkspace: () => ({ id: 'my-ws', label: '自訂桌面' }),  // 自訂新增邏輯
+})
+taskView.open() / taskView.close() / taskView.toggle()
+taskView.events.on('taskview:open',  () => { })
+taskView.events.on('taskview:close', () => { })
+taskView.destroy()
+
+// Dock hover 縮略圖預覽（syncDockWithWindows 選項）
+desktop.syncDockWithWindows(wm, {
+  showWindowPreview: true,                    // 預設 true；false = 關閉預覽
+  previewSize: { width: 240, height: 150 },   // 預設值；可自訂
+})
 ```
 
 ---
@@ -261,6 +328,11 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | 23 | CSS Single Source of Truth | 移除 `DOMRenderer.ts` 中的 `BASE_CSS` 內嵌字串（~116 行）與 `desktop/styles.ts` 的 `DESKTOP_CSS`（~271 行）。改為 `import BASE_CSS from '../styles/webos-core.css'`。Rollup 以 `rawCss()` inline plugin 將 `.css` import 轉成 JS 字串，`src/css.d.ts` 補 TypeScript module declaration。`src/styles/*.css` 是唯一 CSS source，也複製至 `dist/styles/` 供 `<link>` 直接使用 |
 | 24 | Dock `backdrop-filter` 被 `overflow:hidden` 阻斷 | Chrome 已知問題：`overflow:hidden` 會建立 scroll container，阻斷 `backdrop-filter` 的 compositing 穿透。修法：`.wos-desktop`、`.wos-desktop-window-area`、`.wos-isolated` 全部改為 `overflow:clip`（視覺效果相同，但不建立 scroll container）。支援 Chrome 90+, Firefox 102+, Safari 16+ |
 | 25 | `_windowAreaEl` 有 inset 導致視窗被裁切，無法滑入 Dock 下方 | 視窗區域改為全尺寸（inset 全部 0），讓視窗可自由拖到 Dock 下方。同時設 `--wos-dock-inset-{top/bottom/left/right}` CSS 變數在 `.wos-desktop`，最大化 CSS 改讀這組變數計算邊界，確保最大化不蓋住 Dock |
+| 26 | TaskView 設計選擇 | 獨立 `TaskView` class（職責分離），不整合進 WorkspaceManager。DOM clone + `transform:scale()` 縮略圖，無外部依賴。CSS 注入隔離（`wos-taskview-styles`），style 單一來源 `src/styles/webos-taskview.css` |
+| 27 | TaskView DOM clone 快照 | `container.cloneNode(true)` 深複製工作區 DOM → 移除動畫 class，強制加 `wos-workspace--active` → `transform:scale(pw/vw)` 縮放到 210×132 預覽框。不需要 html2canvas 等外部套件 |
+| 28 | TaskView 工作區切換後的 `_wsCounter` 同步 | 建構時掃描現有工作區 id 以 `/^ws-(\d+)$/` pattern 取最大 N，確保新增桌面編號不會重複 |
+| 29 | TaskView Dock 按鈕固定位置 | `addItemAt(item, index)` 插入指定位置（0=最左）；TaskView 呼叫 `addItemAt(btn, 0)` 確保虛擬桌面按鈕永遠在最左側；`showButton: false` 可關閉自動插入但 `open()` 仍可呼叫 |
+| 30 | Dock hover 縮略圖多視窗/拖曳失效 | `Dock.addItem/addItemAt/removeItem` 及拖曳排序每次都觸發 `_render()` 重建所有 DOM，導致舊 hover 事件消失。修法：新增 `onRender(cb)` 回呼，`syncDockWithWindows` 訂閱後統一呼叫 `refreshAllPreviewHovers()` 重綁所有現有視窗；cleanup 時加入 `offRender()` 避免 memory leak |
 
 ---
 
@@ -274,12 +346,18 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | `webos-core.umd.min.js` | UMD | ~12 KB，CDN |
 | `webos-desktop.es.js / .min.js` | ESM | Desktop 模組 |
 | `webos-desktop.umd.js / .min.js` | UMD | `window.WebOSDesktop` |
+| `webos-workspace.es.js / .min.js` | ESM | Workspace + Session 模組 |
+| `webos-workspace.umd.js / .min.js` | UMD | `window.WebOSWorkspace` |
 | `index.d.ts` | TypeScript | Core 型別宣告 |
-| `webos-desktop.d.ts` | TypeScript | Desktop 型別宣告 |
+| `desktop.d.ts` | TypeScript | Desktop 型別宣告 |
+| `workspace.d.ts` | TypeScript | Workspace + Session 型別宣告 |
 | `themes/light.css` | CSS | ~2 KB，Core + Desktop 22 vars |
 | `themes/dark.css` | CSS | ~2 KB，Core + Desktop 22 vars |
 | `styles/webos-core.css` | CSS | Core 視窗結構樣式（可直接 `<link>`） |
 | `styles/webos-desktop.css` | CSS | Desktop / Dock / Icon 樣式（可直接 `<link>`） |
+| `styles/webos-layout.css` | CSS | BorderLayout / Panel 樣式（可直接 `<link>`） |
+| `styles/webos-workspace.css` | CSS | Workspace 容器 / 滑入動畫 / 指示點（可直接 `<link>`） |
+| `styles/webos-taskview.css` | CSS | TaskView 覆蓋層 / 卡片 / 縮略圖 / 按鈕（可直接 `<link>`） |
 
 ---
 

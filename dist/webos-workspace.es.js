@@ -1,72 +1,3 @@
-var BASE_CSS = "/* ============================================================\r\n * WebOS-Core — Default Styles\r\n * Version: 0.1.0\r\n *\r\n * Copy this file to your project and link it with:\r\n *   <link rel=\"stylesheet\" href=\"webos-core.css\">\r\n *\r\n * When using injectStyles: false option, these styles will\r\n * NOT be injected automatically — this file is your starting\r\n * point for customization.\r\n *\r\n * All values use CSS custom properties (--wos-*) so you can\r\n * override them in :root without touching this file.\r\n * ============================================================ */\r\n\r\n.wos-window {\r\n  position: fixed;\r\n  box-sizing: border-box;\r\n  display: flex;\r\n  flex-direction: column;\r\n  border: 4px solid var(--wos-window-border, #d0d0d0);\r\n  border-radius: 6px;\r\n  box-shadow: var(--wos-window-shadow, 0 4px 24px rgba(0,0,0,0.18));\r\n  background: transparent;\r\n  overflow: hidden;\r\n  min-width: 200px;\r\n  min-height: 120px;\r\n  transition: box-shadow 0.15s, border-color 0.15s;\r\n  pointer-events: auto;\r\n}\r\n.wos-window.wos-active {\r\n  border-color: var(--wos-window-border-active, #b0b8c8);\r\n  box-shadow: var(--wos-window-shadow-active, 0 8px 36px rgba(0,0,0,0.28));\r\n}\r\n.wos-window.wos-minimized {\r\n  display: none !important;\r\n}\r\n.wos-window.wos-maximized {\r\n  left: 72px !important;\r\n  top: 0 !important;\r\n  width: calc(100vw - 72px) !important;\r\n  height: calc(100vh - 48px) !important;\r\n  border-radius: 0;\r\n  border-width: 0;\r\n}\r\n\r\n/* ── Isolated container mode ──────────────────────────── */\r\n.wos-isolated {\r\n  position: relative;\r\n  overflow: clip;\r\n}\r\n.wos-isolated .wos-window {\r\n  position: absolute;\r\n}\r\n.wos-isolated .wos-window.wos-maximized {\r\n  left:   var(--wos-dock-inset-left,   0px) !important;\r\n  top:    var(--wos-dock-inset-top,    0px) !important;\r\n  width:  calc(100% - var(--wos-dock-inset-left, 0px) - var(--wos-dock-inset-right,  0px)) !important;\r\n  height: calc(100% - var(--wos-dock-inset-top,  0px) - var(--wos-dock-inset-bottom, 0px)) !important;\r\n  border-radius: 0;\r\n}\r\n\r\n/* ── Header ───────────────────────────────────────────── */\r\n.wos-header {\r\n  display: flex;\r\n  align-items: center;\r\n  padding: 0 8px;\r\n  height: 36px;\r\n  background: var(--wos-window-header-bg, #f5f5f5);\r\n  border-bottom: 1px solid var(--wos-window-header-border, #e0e0e0);\r\n  cursor: move;\r\n  user-select: none;\r\n  flex-shrink: 0;\r\n}\r\n.wos-title {\r\n  flex: 1;\r\n  font-size: 13px;\r\n  font-weight: 600;\r\n  color: var(--wos-window-title-color, #333333);\r\n  overflow: hidden;\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n}\r\n\r\n/* ── Control buttons ──────────────────────────────────── */\r\n.wos-btn {\r\n  width: 24px;\r\n  height: 24px;\r\n  border: none;\r\n  border-radius: 4px;\r\n  background: transparent;\r\n  cursor: pointer;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 14px;\r\n  color: var(--wos-window-btn-color, #555555);\r\n  margin-left: 2px;\r\n  transition: background 0.1s;\r\n}\r\n.wos-btn:hover { background: var(--wos-window-btn-hover-bg, #e0e0e0); }\r\n.wos-btn.wos-btn-close:hover {\r\n  background: var(--wos-window-btn-close-hover-bg, #ff5f57);\r\n  color: var(--wos-window-btn-close-hover-color, #ffffff);\r\n}\r\n.wos-btn:disabled {\r\n  opacity: 0.3;\r\n  cursor: not-allowed;\r\n}\r\n.wos-btn:disabled:hover { background: transparent; }\r\n\r\n/* ── Body ─────────────────────────────────────────────── */\r\n.wos-body {\r\n  flex: 1;\r\n  overflow: auto;\r\n  position: relative;\r\n  background: var(--wos-window-body-bg, #ffffff);\r\n  color: var(--wos-window-body-color, #222222);\r\n}\r\n.wos-body.wos-has-layout {\r\n  overflow: hidden;\r\n}\r\n\r\n/* ── Snap guide lines ─────────────────────────────────── */\r\n.wos-snap-guide {\r\n  position: absolute;\r\n  pointer-events: none;\r\n  z-index: 2147483647;\r\n  display: none;\r\n  background: var(--wos-snap-guide-color, rgba(0, 120, 255, 0.55));\r\n}\r\n.wos-snap-guide--v {\r\n  width: 1px;\r\n  top: 0;\r\n  bottom: 0;\r\n}\r\n.wos-snap-guide--h {\r\n  height: 1px;\r\n  left: 0;\r\n  right: 0;\r\n}\r\n";
-
-// ============================================================
-// WebOS-Core — DOM Window Renderer
-// 負責建立視窗外殼 DOM 節點、注入樣式
-// ============================================================
-const STYLE_ID$1 = 'wos-core-styles';
-/** 回傳 Core CSS 字串，供 injectStyles:false 的使用者自行管理樣式注入 */
-function getCoreCSS() {
-    return BASE_CSS;
-}
-function injectStyles() {
-    if (document.getElementById(STYLE_ID$1))
-        return;
-    const style = document.createElement('style');
-    style.id = STYLE_ID$1;
-    style.textContent = BASE_CSS;
-    document.head.appendChild(style);
-}
-/** 建立視窗外殼 DOM，回傳各主要元素參照 */
-function createWindowDOM(state) {
-    const root = document.createElement('div');
-    root.className = 'wos-window';
-    root.dataset.wosId = state.id;
-    applyGeometry(root, state);
-    root.style.zIndex = String(state.zIndex);
-    // ── Header ──
-    const header = document.createElement('div');
-    header.className = 'wos-header';
-    const title = document.createElement('span');
-    title.className = 'wos-title';
-    title.textContent = state.title;
-    const btnMin = createButton('－', 'wos-btn-min', '最小化');
-    const btnMax = createButton('□', 'wos-btn-max', '最大化');
-    const btnClose = createButton('✕', 'wos-btn-close', '關閉');
-    if (!state.resizable) {
-        btnMax.disabled = true;
-        btnMax.title = '此視窗不可調整大小';
-    }
-    header.append(title, btnMin, btnMax, btnClose);
-    // ── Body ──
-    const body = document.createElement('div');
-    body.className = 'wos-body';
-    root.append(header, body);
-    // 注入視窗內容（DOM 型別）
-    if (state.slotType === 'dom' && state.content instanceof HTMLElement) {
-        body.appendChild(state.content);
-    }
-    return { root, header, title, body, btnMin, btnMax, btnClose };
-}
-function createButton(text, cls, ariaLabel) {
-    const btn = document.createElement('button');
-    btn.className = `wos-btn ${cls}`;
-    btn.textContent = text;
-    btn.setAttribute('aria-label', ariaLabel);
-    return btn;
-}
-/** 將 WindowState 的幾何資訊套用到 DOM 元素 */
-function applyGeometry(el, state) {
-    if (state.x !== undefined)
-        el.style.left = `${state.x}px`;
-    if (state.y !== undefined)
-        el.style.top = `${state.y}px`;
-    if (state.width !== undefined)
-        el.style.width = `${state.width}px`;
-    if (state.height !== undefined)
-        el.style.height = `${state.height}px`;
-}
-
 // ============================================================
 // WebOS-Core — Global Event Bus
 // 跨視窗事件系統，允許不同視窗間即時資料聯動
@@ -108,8 +39,6 @@ class EventBus {
         this._listeners.clear();
     }
 }
-/** 全域單例 */
-const eventBus = new EventBus();
 
 // ============================================================
 // WebOS-Core — Drag & Resize Handler
@@ -352,6 +281,71 @@ class DragResizeHandler {
     }
 }
 
+var BASE_CSS = "/* ============================================================\r\n * WebOS-Core — Default Styles\r\n * Version: 0.1.0\r\n *\r\n * Copy this file to your project and link it with:\r\n *   <link rel=\"stylesheet\" href=\"webos-core.css\">\r\n *\r\n * When using injectStyles: false option, these styles will\r\n * NOT be injected automatically — this file is your starting\r\n * point for customization.\r\n *\r\n * All values use CSS custom properties (--wos-*) so you can\r\n * override them in :root without touching this file.\r\n * ============================================================ */\r\n\r\n.wos-window {\r\n  position: fixed;\r\n  box-sizing: border-box;\r\n  display: flex;\r\n  flex-direction: column;\r\n  border: 4px solid var(--wos-window-border, #d0d0d0);\r\n  border-radius: 6px;\r\n  box-shadow: var(--wos-window-shadow, 0 4px 24px rgba(0,0,0,0.18));\r\n  background: transparent;\r\n  overflow: hidden;\r\n  min-width: 200px;\r\n  min-height: 120px;\r\n  transition: box-shadow 0.15s, border-color 0.15s;\r\n  pointer-events: auto;\r\n}\r\n.wos-window.wos-active {\r\n  border-color: var(--wos-window-border-active, #b0b8c8);\r\n  box-shadow: var(--wos-window-shadow-active, 0 8px 36px rgba(0,0,0,0.28));\r\n}\r\n.wos-window.wos-minimized {\r\n  display: none !important;\r\n}\r\n.wos-window.wos-maximized {\r\n  left: 72px !important;\r\n  top: 0 !important;\r\n  width: calc(100vw - 72px) !important;\r\n  height: calc(100vh - 48px) !important;\r\n  border-radius: 0;\r\n  border-width: 0;\r\n}\r\n\r\n/* ── Isolated container mode ──────────────────────────── */\r\n.wos-isolated {\r\n  position: relative;\r\n  overflow: clip;\r\n}\r\n.wos-isolated .wos-window {\r\n  position: absolute;\r\n}\r\n.wos-isolated .wos-window.wos-maximized {\r\n  left:   var(--wos-dock-inset-left,   0px) !important;\r\n  top:    var(--wos-dock-inset-top,    0px) !important;\r\n  width:  calc(100% - var(--wos-dock-inset-left, 0px) - var(--wos-dock-inset-right,  0px)) !important;\r\n  height: calc(100% - var(--wos-dock-inset-top,  0px) - var(--wos-dock-inset-bottom, 0px)) !important;\r\n  border-radius: 0;\r\n}\r\n\r\n/* ── Header ───────────────────────────────────────────── */\r\n.wos-header {\r\n  display: flex;\r\n  align-items: center;\r\n  padding: 0 8px;\r\n  height: 36px;\r\n  background: var(--wos-window-header-bg, #f5f5f5);\r\n  border-bottom: 1px solid var(--wos-window-header-border, #e0e0e0);\r\n  cursor: move;\r\n  user-select: none;\r\n  flex-shrink: 0;\r\n}\r\n.wos-title {\r\n  flex: 1;\r\n  font-size: 13px;\r\n  font-weight: 600;\r\n  color: var(--wos-window-title-color, #333333);\r\n  overflow: hidden;\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n}\r\n\r\n/* ── Control buttons ──────────────────────────────────── */\r\n.wos-btn {\r\n  width: 24px;\r\n  height: 24px;\r\n  border: none;\r\n  border-radius: 4px;\r\n  background: transparent;\r\n  cursor: pointer;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 14px;\r\n  color: var(--wos-window-btn-color, #555555);\r\n  margin-left: 2px;\r\n  transition: background 0.1s;\r\n}\r\n.wos-btn:hover { background: var(--wos-window-btn-hover-bg, #e0e0e0); }\r\n.wos-btn.wos-btn-close:hover {\r\n  background: var(--wos-window-btn-close-hover-bg, #ff5f57);\r\n  color: var(--wos-window-btn-close-hover-color, #ffffff);\r\n}\r\n.wos-btn:disabled {\r\n  opacity: 0.3;\r\n  cursor: not-allowed;\r\n}\r\n.wos-btn:disabled:hover { background: transparent; }\r\n\r\n/* ── Body ─────────────────────────────────────────────── */\r\n.wos-body {\r\n  flex: 1;\r\n  overflow: auto;\r\n  position: relative;\r\n  background: var(--wos-window-body-bg, #ffffff);\r\n  color: var(--wos-window-body-color, #222222);\r\n}\r\n.wos-body.wos-has-layout {\r\n  overflow: hidden;\r\n}\r\n\r\n/* ── Snap guide lines ─────────────────────────────────── */\r\n.wos-snap-guide {\r\n  position: absolute;\r\n  pointer-events: none;\r\n  z-index: 2147483647;\r\n  display: none;\r\n  background: var(--wos-snap-guide-color, rgba(0, 120, 255, 0.55));\r\n}\r\n.wos-snap-guide--v {\r\n  width: 1px;\r\n  top: 0;\r\n  bottom: 0;\r\n}\r\n.wos-snap-guide--h {\r\n  height: 1px;\r\n  left: 0;\r\n  right: 0;\r\n}\r\n";
+
+// ============================================================
+// WebOS-Core — DOM Window Renderer
+// 負責建立視窗外殼 DOM 節點、注入樣式
+// ============================================================
+const STYLE_ID$1 = 'wos-core-styles';
+function injectStyles() {
+    if (document.getElementById(STYLE_ID$1))
+        return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID$1;
+    style.textContent = BASE_CSS;
+    document.head.appendChild(style);
+}
+/** 建立視窗外殼 DOM，回傳各主要元素參照 */
+function createWindowDOM(state) {
+    const root = document.createElement('div');
+    root.className = 'wos-window';
+    root.dataset.wosId = state.id;
+    applyGeometry(root, state);
+    root.style.zIndex = String(state.zIndex);
+    // ── Header ──
+    const header = document.createElement('div');
+    header.className = 'wos-header';
+    const title = document.createElement('span');
+    title.className = 'wos-title';
+    title.textContent = state.title;
+    const btnMin = createButton('－', 'wos-btn-min', '最小化');
+    const btnMax = createButton('□', 'wos-btn-max', '最大化');
+    const btnClose = createButton('✕', 'wos-btn-close', '關閉');
+    if (!state.resizable) {
+        btnMax.disabled = true;
+        btnMax.title = '此視窗不可調整大小';
+    }
+    header.append(title, btnMin, btnMax, btnClose);
+    // ── Body ──
+    const body = document.createElement('div');
+    body.className = 'wos-body';
+    root.append(header, body);
+    // 注入視窗內容（DOM 型別）
+    if (state.slotType === 'dom' && state.content instanceof HTMLElement) {
+        body.appendChild(state.content);
+    }
+    return { root, header, title, body, btnMin, btnMax, btnClose };
+}
+function createButton(text, cls, ariaLabel) {
+    const btn = document.createElement('button');
+    btn.className = `wos-btn ${cls}`;
+    btn.textContent = text;
+    btn.setAttribute('aria-label', ariaLabel);
+    return btn;
+}
+/** 將 WindowState 的幾何資訊套用到 DOM 元素 */
+function applyGeometry(el, state) {
+    if (state.x !== undefined)
+        el.style.left = `${state.x}px`;
+    if (state.y !== undefined)
+        el.style.top = `${state.y}px`;
+    if (state.width !== undefined)
+        el.style.width = `${state.width}px`;
+    if (state.height !== undefined)
+        el.style.height = `${state.height}px`;
+}
+
 // ============================================================
 // WebOS-Core — Snap Helper
 // 純計算模組：計算視窗拖曳時的吸附位置與 guide 線位置
@@ -506,10 +500,6 @@ var LAYOUT_CSS = "/* ===========================================================
 // WebOS-Core — Layout CSS Injection
 // ============================================================
 const STYLE_ID = 'wos-layout-styles';
-/** 回傳 Layout CSS 字串，供 injectStyles:false 的使用者自行管理樣式注入 */
-function getLayoutCSS() {
-    return LAYOUT_CSS;
-}
 function injectLayoutStyles() {
     if (document.getElementById(STYLE_ID))
         return;
@@ -1430,44 +1420,635 @@ class WindowManager {
     }
 }
 
+var WORKSPACE_CSS = "/* ============================================================\r\n   WebOS-Core — Workspace Styles\r\n   工作區容器佈局 + 左右滑入動畫\r\n   ============================================================ */\r\n\r\n/* ── Root container ──────────────────────────────────────── */\r\n\r\n/**\r\n * WorkspaceManager 掛載的根容器。\r\n * position:relative + overflow:hidden 讓工作區在裡面滑動。\r\n */\r\n.wos-workspace-root {\r\n  position: relative;\r\n  overflow: hidden;\r\n  width: 100%;\r\n  height: 100%;\r\n  pointer-events: none;\r\n}\r\n\r\n/* ── Workspace container ─────────────────────────────────── */\r\n\r\n.wos-workspace {\r\n  /* !important：防止 .wos-isolated { position: relative } 被後注入的 Core CSS 覆蓋 */\r\n  position: absolute !important;\r\n  inset: 0;\r\n  width: 100%;\r\n  height: 100%;\r\n  /* 非活躍工作區：平移到可見範圍外 */\r\n  transform: translateX(100%);\r\n  /* 切換時滑入 */\r\n  transition: transform var(--wos-workspace-animation-ms, 250ms) cubic-bezier(0.4, 0, 0.2, 1);\r\n  /* 非活躍時不接受滑鼠事件，避免誤觸 */\r\n  pointer-events: none;\r\n  visibility: hidden;\r\n}\r\n\r\n.wos-workspace.wos-workspace--active {\r\n  transform: translateX(0);\r\n  pointer-events: none;\r\n  visibility: visible;\r\n}\r\n\r\n/* 從右往左：下一個工作區（切換到更大 index）初始位置在右側 */\r\n.wos-workspace.wos-workspace--enter-right {\r\n  transform: translateX(100%);\r\n}\r\n\r\n/* 從左往右：下一個工作區（切換到更小 index）初始位置在左側 */\r\n.wos-workspace.wos-workspace--enter-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向左滑出 */\r\n.wos-workspace.wos-workspace--leave-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向右滑出 */\r\n.wos-workspace.wos-workspace--leave-right {\r\n  transform: translateX(100%);\r\n}\r\n\r\n/* ── Workspace indicator bar ─────────────────────────────── */\r\n\r\n.wos-workspace-indicator {\r\n  position: absolute;\r\n  bottom: 8px;\r\n  left: 50%;\r\n  transform: translateX(-50%);\r\n  display: flex;\r\n  gap: 6px;\r\n  z-index: 9990;\r\n  pointer-events: none;\r\n}\r\n\r\n.wos-workspace-dot {\r\n  width: 6px;\r\n  height: 6px;\r\n  border-radius: 50%;\r\n  background: var(--wos-workspace-dot-bg, rgba(255, 255, 255, 0.4));\r\n  transition: background 0.2s, transform 0.2s;\r\n}\r\n\r\n.wos-workspace-dot.wos-workspace-dot--active {\r\n  background: var(--wos-workspace-dot-active-bg, rgba(255, 255, 255, 0.9));\r\n  transform: scale(1.3);\r\n}\r\n";
+
 // ============================================================
-// WebOS-Core — Theme Switcher
-// 動態切換主題 CSS 的工具函式
+// WebOS-Core — WorkspaceManager
+// 管理多個虛擬工作區（每個工作區有獨立的 WindowManager + 容器）
+// 支援：
+//   • addWorkspace / removeWorkspace / switchTo
+//   • 左右滑入動畫（CSS transform）
+//   • 工作區指示點（可選）
+//   • EventBus：workspace:added / workspace:removed / workspace:switched
 // ============================================================
-/**
- * 動態切換 WebOS 主題。
- *
- * 第一次呼叫時，若頁面中不存在指定 id 的 `<link>` 元素，
- * 會自動建立一個並插入 `<head>`。
- *
- * @param preset  `'light'` 或 `'dark'`
- * @param options 選填設定（basePath / linkId）
- *
- * @example
- * // ESM
- * import { setTheme } from 'webos-core';
- * setTheme('dark');
- *
- * // UMD
- * WebOS.setTheme('dark');
- *
- * // 自訂路徑（例如主題放在 /assets/themes/）
- * setTheme('dark', { basePath: '/assets/themes' });
- */
-function setTheme(preset, options = {}) {
-    const { basePath = 'themes', linkId = 'wos-theme' } = options;
-    const href = `${basePath}/${preset}.css`;
-    let link = document.getElementById(linkId);
-    if (!link) {
-        link = document.createElement('link');
-        link.id = linkId;
-        link.rel = 'stylesheet';
-        document.head.appendChild(link);
+const WORKSPACE_STYLE_ID = 'wos-workspace-styles';
+function injectWorkspaceStyles() {
+    if (document.getElementById(WORKSPACE_STYLE_ID))
+        return;
+    const style = document.createElement('style');
+    style.id = WORKSPACE_STYLE_ID;
+    style.textContent = WORKSPACE_CSS;
+    document.head.appendChild(style);
+}
+/** 取得 WorkspaceManager CSS（供 SSR 或自訂注入使用） */
+function getWorkspaceCSS() {
+    return WORKSPACE_CSS;
+}
+class WorkspaceManager {
+    constructor(container, options = {}) {
+        this._workspaces = new Map();
+        this._windowManagers = new Map();
+        this._currentId = null;
+        this._isAnimating = false;
+        this._indicatorEl = null;
+        const el = typeof container === 'string'
+            ? (() => {
+                const found = document.querySelector(container);
+                if (!found)
+                    throw new Error(`[WorkspaceManager] Container not found: ${container}`);
+                return found;
+            })()
+            : container;
+        this._animationMs = options.animationMs ?? 250;
+        this._wmOptions = options.windowManagerOptions ?? {};
+        this.events = new EventBus();
+        if (options.injectStyles !== false)
+            injectWorkspaceStyles();
+        // Wrap the container
+        this._root = document.createElement('div');
+        this._root.className = 'wos-workspace-root';
+        // Pass animation duration as CSS variable
+        this._root.style.setProperty('--wos-workspace-animation-ms', `${this._animationMs}ms`);
+        el.appendChild(this._root);
     }
-    if (link.getAttribute('href') !== href) {
-        link.href = href;
+    // ── Public API ─────────────────────────────────────────────
+    /** 所有工作區的唯讀清單 */
+    get workspaces() {
+        return [...this._workspaces.values()];
+    }
+    /** 目前活躍的工作區，若尚無工作區則為 null */
+    get current() {
+        return this._currentId ? (this._workspaces.get(this._currentId) ?? null) : null;
+    }
+    /**
+     * 新增工作區。
+     * 若目前沒有活躍工作區，自動切換到新建的工作區。
+     */
+    addWorkspace(config) {
+        if (this._workspaces.has(config.id)) {
+            throw new Error(`[WorkspaceManager] Workspace already exists: ${config.id}`);
+        }
+        // Create workspace container div
+        const wsEl = document.createElement('div');
+        wsEl.className = 'wos-workspace';
+        wsEl.dataset.workspaceId = config.id;
+        // Initially off-screen to the right
+        wsEl.classList.add('wos-workspace--enter-right');
+        this._root.appendChild(wsEl);
+        // Create dedicated WindowManager
+        const wm = new WindowManager({
+            ...this._wmOptions,
+            container: wsEl,
+            isolated: true,
+        });
+        const state = {
+            id: config.id,
+            label: config.label ?? config.id,
+            icon: config.icon,
+            container: wsEl,
+        };
+        this._workspaces.set(config.id, state);
+        this._windowManagers.set(config.id, wm);
+        this._updateIndicator();
+        this.events.emit('workspace:added', state);
+        // Auto-activate if this is the first workspace
+        if (this._currentId === null) {
+            this._activateImmediate(config.id);
+        }
+        return state;
+    }
+    /**
+     * 移除工作區（同時銷毀其 WindowManager）。
+     * 若移除的是目前工作區，自動切換到前一個（或後一個）。
+     */
+    removeWorkspace(id) {
+        const state = this._workspaces.get(id);
+        if (!state)
+            return;
+        const wm = this._windowManagers.get(id);
+        wm?.destroy();
+        state.container.remove();
+        this._workspaces.delete(id);
+        this._windowManagers.delete(id);
+        this._updateIndicator();
+        this.events.emit('workspace:removed', { id });
+        // If current was removed, switch to nearest remaining workspace
+        if (this._currentId === id) {
+            this._currentId = null;
+            const remaining = [...this._workspaces.keys()];
+            if (remaining.length > 0) {
+                this._activateImmediate(remaining[0]);
+                this.events.emit('workspace:switched', {
+                    from: id,
+                    to: remaining[0],
+                });
+            }
+        }
+    }
+    /**
+     * 切換到指定工作區，附帶左右滑入動畫。
+     * 若目前正在切換動畫中，忽略此次呼叫。
+     */
+    switchTo(id) {
+        if (id === this._currentId)
+            return;
+        if (this._isAnimating)
+            return;
+        const next = this._workspaces.get(id);
+        if (!next)
+            throw new Error(`[WorkspaceManager] Workspace not found: ${id}`);
+        const ids = [...this._workspaces.keys()];
+        const currentIndex = this._currentId ? ids.indexOf(this._currentId) : -1;
+        const nextIndex = ids.indexOf(id);
+        const goingRight = nextIndex > currentIndex;
+        const currentEl = this._currentId
+            ? this._workspaces.get(this._currentId)?.container ?? null
+            : null;
+        const nextEl = next.container;
+        this._isAnimating = true;
+        // Position next workspace off-screen
+        nextEl.classList.remove('wos-workspace--enter-left', 'wos-workspace--enter-right');
+        nextEl.classList.add(goingRight ? 'wos-workspace--enter-right' : 'wos-workspace--enter-left');
+        // Make it visible but off-screen so transition can play
+        nextEl.style.visibility = 'visible';
+        // Force reflow so the initial transform is applied before transition
+        nextEl.getBoundingClientRect();
+        // Slide current out
+        if (currentEl) {
+            currentEl.classList.add(goingRight ? 'wos-workspace--leave-left' : 'wos-workspace--leave-right');
+            currentEl.classList.remove('wos-workspace--active');
+        }
+        // Slide next in
+        nextEl.classList.remove('wos-workspace--enter-left', 'wos-workspace--enter-right');
+        nextEl.classList.add('wos-workspace--active');
+        const prevId = this._currentId;
+        this._currentId = id;
+        this._updateIndicator();
+        const cleanup = () => {
+            this._isAnimating = false;
+            if (currentEl) {
+                currentEl.classList.remove('wos-workspace--leave-left', 'wos-workspace--leave-right');
+                currentEl.style.visibility = '';
+            }
+            this.events.emit('workspace:switched', {
+                from: prevId,
+                to: id,
+            });
+        };
+        if (this._animationMs > 0) {
+            let cleanupCalled = false;
+            const safeCleanup = () => {
+                if (cleanupCalled)
+                    return;
+                cleanupCalled = true;
+                nextEl.removeEventListener('transitionend', safeCleanup);
+                cleanup();
+            };
+            nextEl.addEventListener('transitionend', safeCleanup, { once: true });
+            // Fallback: ensure cleanup fires even if transitionend doesn't fire
+            setTimeout(safeCleanup, this._animationMs + 50);
+        }
+        else {
+            cleanup();
+        }
+    }
+    /**
+     * 取得指定工作區的 WindowManager。
+     * 用於直接呼叫 wm.open() / wm.close() 等操作。
+     */
+    getWindowManager(workspaceId) {
+        const wm = this._windowManagers.get(workspaceId);
+        if (!wm)
+            throw new Error(`[WorkspaceManager] Workspace not found: ${workspaceId}`);
+        return wm;
+    }
+    /**
+     * 啟用工作區指示點（小圓點）。
+     * 會在根容器底部顯示，指示當前所在工作區。
+     */
+    enableIndicator() {
+        if (this._indicatorEl)
+            return;
+        const bar = document.createElement('div');
+        bar.className = 'wos-workspace-indicator';
+        this._root.appendChild(bar);
+        this._indicatorEl = bar;
+        this._updateIndicator();
+    }
+    disableIndicator() {
+        this._indicatorEl?.remove();
+        this._indicatorEl = null;
+    }
+    /** 銷毀所有工作區並清理資源 */
+    destroy() {
+        this._windowManagers.forEach(wm => wm.destroy());
+        this._windowManagers.clear();
+        this._workspaces.clear();
+        this._root.remove();
+        this._currentId = null;
+    }
+    // ── Private helpers ────────────────────────────────────────
+    /** 無動畫直接啟用（初始化或移除當前工作區時使用） */
+    _activateImmediate(id) {
+        const state = this._workspaces.get(id);
+        if (!state)
+            return;
+        // Deactivate previous
+        if (this._currentId && this._currentId !== id) {
+            const prev = this._workspaces.get(this._currentId);
+            if (prev) {
+                prev.container.classList.remove('wos-workspace--active');
+                prev.container.style.visibility = '';
+            }
+        }
+        state.container.classList.remove('wos-workspace--enter-left', 'wos-workspace--enter-right');
+        state.container.classList.add('wos-workspace--active');
+        this._currentId = id;
+        this._updateIndicator();
+    }
+    /** 更新底部指示點 */
+    _updateIndicator() {
+        if (!this._indicatorEl)
+            return;
+        this._indicatorEl.innerHTML = '';
+        this._workspaces.forEach((_, id) => {
+            const dot = document.createElement('div');
+            dot.className = 'wos-workspace-dot' + (id === this._currentId ? ' wos-workspace-dot--active' : '');
+            this._indicatorEl.appendChild(dot);
+        });
     }
 }
 
-export { BorderLayout, EventBus, Panel, WindowManager, eventBus, getCoreCSS, getLayoutCSS, setTheme, snapPosition };
-//# sourceMappingURL=webos-core.es.js.map
+var TASKVIEW_CSS = "/* ============================================================\r\n   WebOS-Core — TaskView Styles\r\n   Task View overlay for virtual desktop switching\r\n   ============================================================ */\r\n\r\n/* ── 覆蓋層 ── */\r\n.wos-task-view {\r\n  position: fixed;\r\n  inset: 0;\r\n  z-index: 99999;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  background: rgba(0, 0, 0, 0.55);\r\n  backdrop-filter: blur(8px);\r\n  -webkit-backdrop-filter: blur(8px);\r\n  opacity: 0;\r\n  pointer-events: none;\r\n  transition: opacity 0.2s;\r\n}\r\n.wos-task-view--open {\r\n  opacity: 1;\r\n  pointer-events: auto;\r\n}\r\n\r\n/* ── 面板 ── */\r\n.wos-task-view-panel {\r\n  display: flex;\r\n  align-items: flex-end;\r\n  gap: 14px;\r\n  padding: 20px 24px;\r\n  background: rgba(22, 28, 42, 0.92);\r\n  border: 1px solid rgba(255, 255, 255, 0.1);\r\n  border-radius: 16px;\r\n  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);\r\n  transform: translateY(16px);\r\n  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);\r\n  max-width: 90vw;\r\n  overflow-x: auto;\r\n}\r\n.wos-task-view--open .wos-task-view-panel {\r\n  transform: translateY(0);\r\n}\r\n\r\n/* ── 工作區卡片 ── */\r\n.wos-tv-card {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n  position: relative;\r\n}\r\n.wos-tv-preview {\r\n  width: 210px;\r\n  height: 132px;\r\n  background: rgba(255, 255, 255, 0.04);\r\n  border: 2px solid rgba(255, 255, 255, 0.14);\r\n  border-radius: 8px;\r\n  overflow: hidden;\r\n  transition: border-color 0.15s, box-shadow 0.15s;\r\n  position: relative;\r\n}\r\n.wos-tv-card:hover .wos-tv-preview {\r\n  border-color: rgba(255, 255, 255, 0.45);\r\n}\r\n.wos-tv-card--active .wos-tv-preview {\r\n  border-color: #0078d4;\r\n  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.35);\r\n}\r\n.wos-tv-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.8);\r\n  white-space: nowrap;\r\n}\r\n.wos-tv-card--active .wos-tv-label {\r\n  color: #59aeff;\r\n  font-weight: 600;\r\n}\r\n\r\n/* ── 刪除按鈕 ── */\r\n.wos-tv-delete {\r\n  position: absolute;\r\n  top: -7px;\r\n  right: -7px;\r\n  width: 20px;\r\n  height: 20px;\r\n  border-radius: 50%;\r\n  background: rgba(50, 50, 55, 0.95);\r\n  border: 1px solid rgba(255, 255, 255, 0.18);\r\n  color: rgba(255, 255, 255, 0.7);\r\n  font-size: 11px;\r\n  cursor: pointer;\r\n  display: none;\r\n  align-items: center;\r\n  justify-content: center;\r\n  z-index: 1;\r\n  transition: background 0.1s;\r\n}\r\n.wos-tv-card:hover .wos-tv-delete { display: flex; }\r\n.wos-tv-delete:hover { background: #c42b1c; color: #fff; }\r\n\r\n/* ── 新增桌面按鈕 ── */\r\n.wos-tv-add-wrap {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n}\r\n.wos-tv-add {\r\n  width: 210px;\r\n  height: 132px;\r\n  border: 2px dashed rgba(255, 255, 255, 0.18);\r\n  border-radius: 8px;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 36px;\r\n  color: rgba(255, 255, 255, 0.35);\r\n  transition: border-color 0.15s, color 0.15s;\r\n}\r\n.wos-tv-add-wrap:hover .wos-tv-add {\r\n  border-color: rgba(255, 255, 255, 0.5);\r\n  color: rgba(255, 255, 255, 0.7);\r\n}\r\n.wos-tv-add-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.45);\r\n}\r\n.wos-tv-add-wrap:hover .wos-tv-add-label { color: rgba(255, 255, 255, 0.7); }\r\n";
+
+// ============================================================
+// WebOS-Core — TaskView
+// 虛擬桌面切換 Task View 覆蓋層
+// 功能：
+//   • 顯示所有工作區的 DOM clone 縮略圖
+//   • 點擊卡片切換工作區
+//   • 新增 / 刪除工作區按鈕（可透過 options 控制）
+//   • Escape 鍵關閉（預設開）
+//   • EventBus：taskview:open / taskview:close
+// ============================================================
+const TASKVIEW_STYLE_ID = 'wos-taskview-styles';
+function injectTaskViewStyles() {
+    if (document.getElementById(TASKVIEW_STYLE_ID))
+        return;
+    const style = document.createElement('style');
+    style.id = TASKVIEW_STYLE_ID;
+    style.textContent = TASKVIEW_CSS;
+    document.head.appendChild(style);
+}
+/** 取得 TaskView CSS（供 SSR 或自訂注入使用） */
+function getTaskViewCSS() {
+    return TASKVIEW_CSS;
+}
+class TaskView {
+    constructor(wsMgr, options = {}) {
+        this._isOpen = false;
+        this._wsCounter = 0;
+        this._wsMgr = wsMgr;
+        this._opts = {
+            target: options.target ?? document.body,
+            allowAdd: options.allowAdd ?? true,
+            allowDelete: options.allowDelete ?? true,
+            keyboard: options.keyboard ?? true,
+            closeOnBackdrop: options.closeOnBackdrop ?? true,
+            injectStyles: options.injectStyles ?? true,
+            showButton: options.showButton ?? true,
+            buttonLabel: options.buttonLabel ?? '虛擬桌面',
+            buttonIcon: options.buttonIcon ?? '⧉',
+            buttonId: options.buttonId ?? 'wos-tv-button',
+            onCreateWorkspace: options.onCreateWorkspace,
+            dock: options.dock,
+        };
+        this._buttonId = this._opts.buttonId;
+        if (this._opts.injectStyles)
+            injectTaskViewStyles();
+        this.events = new EventBus();
+        // ── 建立覆蓋層 DOM ──────────────────────────────────────
+        this._overlayEl = document.createElement('div');
+        this._overlayEl.className = 'wos-task-view';
+        this._panelEl = document.createElement('div');
+        this._panelEl.className = 'wos-task-view-panel';
+        this._overlayEl.appendChild(this._panelEl);
+        this._opts.target.appendChild(this._overlayEl);
+        // ── Dock 按鈕（可選）─────────────────────────────────────
+        if (this._opts.dock && this._opts.showButton) {
+            this._opts.dock.addItemAt({
+                id: this._buttonId,
+                label: this._opts.buttonLabel,
+                icon: this._opts.buttonIcon,
+                action: () => this.toggle(),
+            }, 0);
+        }
+        // ── 綁定事件 ───────────────────────────────────────────
+        if (this._opts.closeOnBackdrop) {
+            this._overlayEl.addEventListener('click', (e) => {
+                if (e.target === this._overlayEl)
+                    this.close();
+            });
+        }
+        this._onKeyDown = (e) => {
+            if (this._isOpen && e.key === 'Escape') {
+                e.preventDefault();
+                this.close();
+            }
+        };
+        if (this._opts.keyboard) {
+            document.addEventListener('keydown', this._onKeyDown);
+        }
+        // 工作區切換時若 Task View 已開啟則重新渲染
+        this._onSwitched = () => {
+            if (this._isOpen)
+                this._render();
+        };
+        this._wsMgr.events.on('workspace:switched', this._onSwitched);
+        // 計算初始 wsCounter（讓新增的桌面編號不重複）
+        this._syncCounter();
+    }
+    // ── Public API ─────────────────────────────────────────────
+    get isOpen() { return this._isOpen; }
+    open() {
+        if (this._isOpen)
+            return;
+        this._isOpen = true;
+        this._render();
+        this._overlayEl.classList.add('wos-task-view--open');
+        this.events.emit('taskview:open', undefined);
+    }
+    close() {
+        if (!this._isOpen)
+            return;
+        this._isOpen = false;
+        this._overlayEl.classList.remove('wos-task-view--open');
+        this.events.emit('taskview:close', undefined);
+    }
+    toggle() {
+        this._isOpen ? this.close() : this.open();
+    }
+    /** 銷毀 Task View，移除 DOM 與事件監聽 */
+    destroy() {
+        this.close();
+        document.removeEventListener('keydown', this._onKeyDown);
+        this._wsMgr.events.off('workspace:switched', this._onSwitched);
+        if (this._opts.dock && this._opts.showButton) {
+            this._opts.dock.removeItem(this._buttonId);
+        }
+        this._overlayEl.remove();
+    }
+    // ── Private ────────────────────────────────────────────────
+    _syncCounter() {
+        this._wsMgr.workspaces.forEach(ws => {
+            const m = ws.id.match(/^ws-(\d+)$/);
+            if (m) {
+                const n = parseInt(m[1], 10);
+                if (n > this._wsCounter)
+                    this._wsCounter = n;
+            }
+        });
+    }
+    _render() {
+        this._panelEl.innerHTML = '';
+        const workspaces = this._wsMgr.workspaces;
+        const currentId = this._wsMgr.current?.id;
+        workspaces.forEach(ws => {
+            const card = document.createElement('div');
+            card.className = 'wos-tv-card' + (ws.id === currentId ? ' wos-tv-card--active' : '');
+            // 縮略圖（DOM clone）
+            const preview = document.createElement('div');
+            preview.className = 'wos-tv-preview';
+            this._buildPreview(preview, ws.container);
+            card.appendChild(preview);
+            // 工作區名稱
+            const lbl = document.createElement('div');
+            lbl.className = 'wos-tv-label';
+            lbl.textContent = ws.label;
+            card.appendChild(lbl);
+            // 刪除按鈕（需 allowDelete，且 > 1 個工作區才顯示）
+            if (this._opts.allowDelete && workspaces.length > 1) {
+                const del = document.createElement('button');
+                del.className = 'wos-tv-delete';
+                del.textContent = '✕';
+                del.title = '刪除此桌面';
+                del.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this._wsMgr.removeWorkspace(ws.id);
+                    this._render();
+                });
+                card.appendChild(del);
+            }
+            card.addEventListener('click', () => {
+                this._wsMgr.switchTo(ws.id);
+                this.close();
+            });
+            this._panelEl.appendChild(card);
+        });
+        // 新增桌面按鈕
+        if (this._opts.allowAdd) {
+            const addWrap = document.createElement('div');
+            addWrap.className = 'wos-tv-add-wrap';
+            addWrap.title = '新增虛擬桌面';
+            const addBox = document.createElement('div');
+            addBox.className = 'wos-tv-add';
+            addBox.textContent = '+';
+            const addLbl = document.createElement('div');
+            addLbl.className = 'wos-tv-add-label';
+            addLbl.textContent = '新增桌面';
+            addWrap.append(addBox, addLbl);
+            addWrap.addEventListener('click', () => {
+                const config = this._opts.onCreateWorkspace
+                    ? this._opts.onCreateWorkspace()
+                    : this._defaultWorkspaceConfig();
+                this._wsMgr.addWorkspace(config);
+                this._wsMgr.switchTo(config.id);
+                this.close();
+            });
+            this._panelEl.appendChild(addWrap);
+        }
+    }
+    /** 預設新增桌面設定：ws-N / 桌面 N */
+    _defaultWorkspaceConfig() {
+        this._wsCounter++;
+        return { id: `ws-${this._wsCounter}`, label: `桌面 ${this._wsCounter}` };
+    }
+    /** DOM clone + CSS scale 縮略圖 */
+    _buildPreview(preview, container) {
+        const vw = container.offsetWidth || window.innerWidth;
+        const vh = container.offsetHeight || window.innerHeight;
+        const pw = 210;
+        const ph = 132;
+        const scale = Math.min(pw / vw, ph / vh);
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText =
+            `position:absolute;top:0;left:0;width:${vw}px;height:${vh}px;` +
+                `transform:scale(${scale});transform-origin:top left;` +
+                `pointer-events:none;overflow:hidden;`;
+        const clone = container.cloneNode(true);
+        clone.classList.remove('wos-workspace--enter-right', 'wos-workspace--enter-left', 'wos-workspace--leave-left', 'wos-workspace--leave-right');
+        clone.classList.add('wos-workspace--active');
+        clone.style.cssText =
+            'position:absolute;inset:0;width:100%;height:100%;' +
+                'transform:translateX(0);visibility:visible;transition:none;pointer-events:none;';
+        wrapper.appendChild(clone);
+        preview.appendChild(wrapper);
+    }
+}
+
+// ============================================================
+// WebOS-Core — SessionManager
+// 視窗狀態序列化 / 還原工具
+// 支援：
+//   • 單一 WindowManager 模式
+//   • 多工作區 WorkspaceManager 模式
+// ============================================================
+class SessionManager {
+    // ── Serialize ──────────────────────────────────────────────
+    /**
+     * 序列化單一 WindowManager 的視窗狀態，回傳 JSON 字串。
+     * 僅保留可序列化的幾何與元資料；content 不保存。
+     * 若視窗的 props.appId 不存在，該視窗會被略過（無法還原）。
+     */
+    static serializeWindows(wm) {
+        const snapshot = {
+            version: 1,
+            currentWorkspaceId: null,
+            windows: SessionManager._snapshotWindows(wm),
+        };
+        return JSON.stringify(snapshot);
+    }
+    /**
+     * 序列化 WorkspaceManager（含所有工作區與各自的視窗），回傳 JSON 字串。
+     */
+    static serializeWorkspaces(wsm) {
+        const workspaces = wsm.workspaces.map(ws => ({
+            id: ws.id,
+            label: ws.label,
+            icon: ws.icon,
+            windows: SessionManager._snapshotWindows(wsm.getWindowManager(ws.id)),
+        }));
+        const snapshot = {
+            version: 1,
+            currentWorkspaceId: wsm.current?.id ?? null,
+            workspaces,
+        };
+        return JSON.stringify(snapshot);
+    }
+    // ── Restore ────────────────────────────────────────────────
+    /**
+     * 從 JSON 字串還原視窗到指定 WindowManager。
+     * content 透過 registry[appId](props) 重建。
+     * 無法在 registry 找到對應 appId 的視窗會被略過（跳過並 console.warn）。
+     */
+    static restoreWindows(json, registry, wm) {
+        const snapshot = SessionManager._parse(json);
+        if (!snapshot.windows) {
+            console.warn('[SessionManager] restoreWindows: snapshot has no windows array');
+            return;
+        }
+        SessionManager._restoreWindowList(snapshot.windows, registry, wm);
+    }
+    /**
+     * 從 JSON 字串還原多工作區狀態到 WorkspaceManager。
+     * 每個工作區若已存在則直接使用，若不存在則新建。
+     * 所有工作區還原完畢後，切換到快照記錄的活躍工作區。
+     */
+    static restoreWorkspaces(json, registry, wsm) {
+        const snapshot = SessionManager._parse(json);
+        if (!snapshot.workspaces) {
+            console.warn('[SessionManager] restoreWorkspaces: snapshot has no workspaces array');
+            return;
+        }
+        for (const wsSnap of snapshot.workspaces) {
+            // Create workspace if not already present
+            const existing = wsm.workspaces.find(w => w.id === wsSnap.id);
+            if (!existing) {
+                wsm.addWorkspace({ id: wsSnap.id, label: wsSnap.label, icon: wsSnap.icon });
+            }
+            const wm = wsm.getWindowManager(wsSnap.id);
+            SessionManager._restoreWindowList(wsSnap.windows, registry, wm);
+        }
+        // Switch to the previously active workspace
+        if (snapshot.currentWorkspaceId) {
+            try {
+                wsm.switchTo(snapshot.currentWorkspaceId);
+            }
+            catch {
+                // workspace might not exist; ignore
+            }
+        }
+    }
+    // ── Private helpers ────────────────────────────────────────
+    static _snapshotWindows(wm) {
+        const states = wm.getAllStates();
+        const snapshots = [];
+        for (const state of states) {
+            const appId = state.props?.appId;
+            if (!appId) {
+                // Can't restore without appId; skip silently
+                continue;
+            }
+            snapshots.push({
+                id: state.id,
+                title: state.title,
+                icon: state.icon,
+                label: state.label,
+                appId,
+                x: state.x,
+                y: state.y,
+                width: state.width,
+                height: state.height,
+                zIndex: state.zIndex,
+                isMinimized: state.isMinimized,
+                isMaximized: state.isMaximized,
+                resizable: state.resizable,
+                props: state.props,
+            });
+        }
+        // Sort by zIndex so open() calls restore correct stacking order
+        return snapshots.sort((a, b) => a.zIndex - b.zIndex);
+    }
+    static _restoreWindowList(windows, registry, wm) {
+        for (const snap of windows) {
+            const factory = registry[snap.appId];
+            if (!factory) {
+                console.warn(`[SessionManager] No factory found for appId: "${snap.appId}" — skipping window "${snap.id}"`);
+                continue;
+            }
+            const content = factory(snap.props);
+            wm.open({
+                id: snap.id,
+                title: snap.title,
+                icon: snap.icon,
+                label: snap.label,
+                content,
+                x: snap.x,
+                y: snap.y,
+                width: snap.width,
+                height: snap.height,
+                resizable: snap.resizable,
+                props: snap.props,
+            });
+            if (snap.isMinimized)
+                wm.minimize(snap.id);
+            if (snap.isMaximized)
+                wm.maximize(snap.id);
+        }
+    }
+    static _parse(json) {
+        try {
+            const data = JSON.parse(json);
+            if (data.version !== 1) {
+                console.warn(`[SessionManager] Unknown snapshot version: ${data.version}`);
+            }
+            return data;
+        }
+        catch (e) {
+            throw new Error(`[SessionManager] Failed to parse session snapshot: ${e}`);
+        }
+    }
+}
+
+export { SessionManager, TaskView, WorkspaceManager, getTaskViewCSS, getWorkspaceCSS };
+//# sourceMappingURL=webos-workspace.es.js.map

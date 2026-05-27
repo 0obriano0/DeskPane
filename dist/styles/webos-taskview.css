@@ -1,0 +1,135 @@
+/* ============================================================
+   WebOS-Core — TaskView Styles
+   Task View overlay for virtual desktop switching
+   ============================================================ */
+
+/* ── 覆蓋層 ── */
+.wos-task-view {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.wos-task-view--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── 面板 ── */
+.wos-task-view-panel {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 20px 24px;
+  background: rgba(22, 28, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+  transform: translateY(16px);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 90vw;
+  overflow-x: auto;
+}
+.wos-task-view--open .wos-task-view-panel {
+  transform: translateY(0);
+}
+
+/* ── 工作區卡片 ── */
+.wos-tv-card {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  position: relative;
+}
+.wos-tv-preview {
+  width: 210px;
+  height: 132px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+.wos-tv-card:hover .wos-tv-preview {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+.wos-tv-card--active .wos-tv-preview {
+  border-color: #0078d4;
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.35);
+}
+.wos-tv-label {
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+.wos-tv-card--active .wos-tv-label {
+  color: #59aeff;
+  font-weight: 600;
+}
+
+/* ── 刪除按鈕 ── */
+.wos-tv-delete {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(50, 50, 55, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  transition: background 0.1s;
+}
+.wos-tv-card:hover .wos-tv-delete { display: flex; }
+.wos-tv-delete:hover { background: #c42b1c; color: #fff; }
+
+/* ── 新增桌面按鈕 ── */
+.wos-tv-add-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.wos-tv-add {
+  width: 210px;
+  height: 132px;
+  border: 2px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: rgba(255, 255, 255, 0.35);
+  transition: border-color 0.15s, color 0.15s;
+}
+.wos-tv-add-wrap:hover .wos-tv-add {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
+}
+.wos-tv-add-label {
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.wos-tv-add-wrap:hover .wos-tv-add-label { color: rgba(255, 255, 255, 0.7); }

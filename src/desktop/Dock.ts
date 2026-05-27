@@ -4,6 +4,7 @@
 // ============================================================
 
 import { DockConfig, DockItemConfig, DockPosition } from './types.js';
+import { appendIconContent } from './iconUtils.js';
 
 function resolveIconEl(icon: string, size: number): HTMLElement {
   const el = document.createElement('div');
@@ -12,17 +13,7 @@ function resolveIconEl(icon: string, size: number): HTMLElement {
   el.style.height = `${size}px`;
   el.style.fontSize = `${Math.floor(size * 0.72)}px`;
   el.style.lineHeight = '1';
-
-  if (icon.startsWith('http') || icon.startsWith('/') || icon.startsWith('data:')) {
-    const img = document.createElement('img');
-    img.src = icon;
-    img.alt = '';
-    el.appendChild(img);
-  } else if (icon.trim().startsWith('<svg')) {
-    el.innerHTML = icon;
-  } else {
-    el.textContent = icon;
-  }
+  appendIconContent(el, icon);
   return el;
 }
 
@@ -33,6 +24,8 @@ export class Dock {
   private readonly _iconSize: number;
   private readonly _showLabels: boolean;
   private _dragSrcIndex = -1;
+  private _activeId: string | null = null;
+  private readonly _renderCallbacks = new Set<() => void>();
 
   constructor(config: DockConfig = {}) {
     this._items = [...(config.items ?? [])];
@@ -52,6 +45,7 @@ export class Dock {
     this._items.forEach((item, index) => {
       this._el.appendChild(this._createItemEl(item, index));
     });
+    this._renderCallbacks.forEach(cb => cb());
   }
 
   private _createItemEl(item: DockItemConfig, index: number): HTMLElement {
@@ -134,7 +128,14 @@ export class Dock {
   addItem(item: DockItemConfig): void {
     this._items.push(item);
     this._render();
-    // 恢復 active 狀態
+    if (this._activeId) this._applyActive(this._activeId);
+  }
+
+  /** 在指定索引位置插入 item（0 = 最左/最上）。超出範圍時自動夾緊。 */
+  addItemAt(item: DockItemConfig, index: number): void {
+    const i = Math.max(0, Math.min(index, this._items.length));
+    this._items.splice(i, 0, item);
+    this._render();
     if (this._activeId) this._applyActive(this._activeId);
   }
 
@@ -146,8 +147,6 @@ export class Dock {
     this._activeId = id;
     this._applyActive(id);
   }
-
-  private _activeId: string | null = null;
 
   private _applyActive(id: string | null): void {
     this._el.querySelectorAll<HTMLElement>('.wos-dock-item').forEach(el => {
@@ -175,8 +174,27 @@ export class Dock {
     this._el.classList.add(`wos-dock-${this._position}`);
   }
 
+  /** 取得特定 item 的 DOM 元素 */
+  getItemElement(id: string): HTMLElement | null {
+    return this._el.querySelector<HTMLElement>(`.wos-dock-item[data-id="${CSS.escape(id)}"]`);
+  }
+
+  /** 取得目前 Dock 停靠位置 */
+  getPosition(): DockPosition {
+    return this._position;
+  }
+
   getElement(): HTMLElement {
     return this._el;
+  }
+
+  /**
+   * 每次 Dock 重新渲染（addItem / addItemAt / removeItem / 拖曳排序）後觸發 cb。
+   * 回傳取消訂閱函式。
+   */
+  onRender(cb: () => void): () => void {
+    this._renderCallbacks.add(cb);
+    return () => this._renderCallbacks.delete(cb);
   }
 
   destroy(): void {

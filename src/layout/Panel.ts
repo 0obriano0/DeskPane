@@ -7,69 +7,7 @@
 //   • 折疊 / 展開（動畫 height）
 // ============================================================
 
-const PANEL_STYLE_ID = 'wos-panel-styles';
-
-const PANEL_CSS = `
-.wos-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-}
-.wos-panel-header {
-  display: flex;
-  align-items: center;
-  height: 30px;
-  min-height: 30px;
-  padding: 0 8px;
-  background: var(--wos-layout-header-bg, #f5f5f5);
-  border-bottom: 1px solid var(--wos-layout-header-border, #e0e0e0);
-  user-select: none;
-  flex-shrink: 0;
-  cursor: default;
-}
-.wos-panel-title {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--wos-layout-title-color, #333);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.wos-panel-toggle {
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-  background: transparent;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-size: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--wos-layout-btn-color, #555);
-  flex-shrink: 0;
-  transition: background 0.1s;
-  line-height: 1;
-}
-.wos-panel-toggle:hover {
-  background: var(--wos-layout-btn-hover-bg, #e0e0e0);
-  border-color: var(--wos-layout-splitter-bg, #d0d0d0);
-}
-.wos-panel-body {
-  flex: 1;
-  overflow: auto;
-  box-sizing: border-box;
-  transition: max-height 0.2s ease;
-}
-.wos-panel-body.wos-panel-collapsed {
-  max-height: 0 !important;
-  overflow: hidden;
-}
-`;
+import { injectLayoutStyles } from './styles.js';
 
 export interface PanelOptions {
   /** Container element or CSS selector */
@@ -82,14 +20,6 @@ export interface PanelOptions {
   collapsed?: boolean;
 }
 
-function injectPanelStyles(): void {
-  if (document.getElementById(PANEL_STYLE_ID)) return;
-  const style = document.createElement('style');
-  style.id = PANEL_STYLE_ID;
-  style.textContent = PANEL_CSS;
-  document.head.appendChild(style);
-}
-
 export class Panel {
   private container: HTMLElement;
   private headerEl:  HTMLElement | null = null;
@@ -100,7 +30,7 @@ export class Panel {
   private cleanups: (() => void)[] = [];
 
   constructor(options: PanelOptions) {
-    injectPanelStyles();
+    injectLayoutStyles();
 
     this.container = typeof options.container === 'string'
       ? (() => {
@@ -204,3 +134,4 @@ export class Panel {
     this.container.classList.remove('wos-panel');
   }
 }
+

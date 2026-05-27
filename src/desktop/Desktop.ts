@@ -16,6 +16,68 @@ import { DesktopIcon, IconSnapFn } from './DesktopIcon.js';
 import { injectDesktopStyles } from './styles.js';
 import { snapPosition } from '../core/SnapHelper.js';
 
+const PREVIEW_MAX_W = 240;
+const PREVIEW_MAX_H = 150;
+
+function buildDockPreview(
+  winEl: HTMLElement,
+  anchorEl: HTMLElement,
+  dockPos: DockPosition,
+  winState?: { width?: number; height?: number },
+  maxW = PREVIEW_MAX_W,
+  maxH = PREVIEW_MAX_H,
+): HTMLElement {
+  const winW = winState?.width  || winEl.offsetWidth  || 640;
+  const winH = winState?.height || winEl.offsetHeight || 480;
+  const scale = Math.min(maxW / winW, maxH / winH, 1);
+  const previewW = Math.round(winW * scale);
+  const previewH = Math.round(winH * scale);
+
+  const popup = document.createElement('div');
+  popup.className = `wos-dock-win-preview wos-dock-win-preview--${dockPos}`;
+  popup.style.width  = `${previewW}px`;
+  popup.style.height = `${previewH}px`;
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText =
+    `position:absolute;top:0;left:0;width:${winW}px;height:${winH}px;` +
+    `transform:scale(${scale});transform-origin:top left;pointer-events:none;overflow:hidden;`;
+
+  const clone = winEl.cloneNode(true) as HTMLElement;
+  clone.classList.remove('wos-minimized', 'wos-maximized');
+  clone.style.cssText =
+    'position:absolute;left:0;top:0;width:100%;height:100%;' +
+    'transform:none;transition:none;pointer-events:none;';
+
+  wrapper.appendChild(clone);
+  popup.appendChild(wrapper);
+
+  const rect = anchorEl.getBoundingClientRect();
+  const MARGIN = 10;
+  let x: number, y: number;
+
+  if (dockPos === 'bottom') {
+    x = rect.left + rect.width / 2 - previewW / 2;
+    y = rect.top - previewH - MARGIN;
+  } else if (dockPos === 'top') {
+    x = rect.left + rect.width / 2 - previewW / 2;
+    y = rect.bottom + MARGIN;
+  } else if (dockPos === 'left') {
+    x = rect.right + MARGIN;
+    y = rect.top + rect.height / 2 - previewH / 2;
+  } else {
+    x = rect.left - previewW - MARGIN;
+    y = rect.top + rect.height / 2 - previewH / 2;
+  }
+
+  x = Math.max(8, Math.min(window.innerWidth  - previewW - 8, x));
+  y = Math.max(8, Math.min(window.innerHeight - previewH - 8, y));
+
+  popup.style.left = `${x}px`;
+  popup.style.top  = `${y}px`;
+  return popup;
+}
+
 /** 圖示自動排列：每欄最多幾個 icon */
 const AUTO_ROWS = 6;
 /** 圖示格子寬度（px） */
@@ -24,6 +86,8 @@ const ICON_COL_W = 92;
 const ICON_ROW_H = 100;
 /** 起始邊距（px） */
 const ICON_MARGIN = 12;
+/** Dock 停靠列高度 / 寬度（px）；對齊 CSS .wos-dock-* */
+const DOCK_SIZE = 68;
 
 /** 計算第 index 個自動排列 icon 的位置 */
 function autoPosition(index: number): { x: number; y: number } {
@@ -110,7 +174,6 @@ export class Desktop {
 
     // 根據 Dock 位置調整 icon 區域邊距；視窗區域故意全尺寸，讓視窗可滑入 Dock 下方
     const dockPos = config.dock?.position ?? 'bottom';
-    const DOCK_SIZE = 68;  // 對齊 CSS .wos-dock-* 的高/寬
     const inset = dockInset(dockPos, DOCK_SIZE);
     this._applyInset(inset);
 
@@ -236,20 +299,12 @@ export class Desktop {
       const hGuide = result.guides.find(g => g.axis === 'h');
 
       if (guideV) {
-        if (vGuide != null) {
-          guideV.style.left = `${vGuide.pos}px`;
-          guideV.style.display = 'block';
-        } else {
-          guideV.style.display = 'none';
-        }
+        guideV.style.display = vGuide ? 'block' : 'none';
+        if (vGuide) guideV.style.left = `${vGuide.pos}px`;
       }
       if (guideH) {
-        if (hGuide != null) {
-          guideH.style.top = `${hGuide.pos}px`;
-          guideH.style.display = 'block';
-        } else {
-          guideH.style.display = 'none';
-        }
+        guideH.style.display = hGuide ? 'block' : 'none';
+        if (hGuide) guideH.style.top = `${hGuide.pos}px`;
       }
 
       return { x: result.x, y: result.y };
@@ -319,7 +374,6 @@ export class Desktop {
    * 同時更新 icon 區域 inset，使 icon 不被 Dock 遮住。
    */
   setDockPosition(position: DockPosition): void {
-    const DOCK_SIZE = 68;
     this._dock.setPosition(position);
     this._applyInset(dockInset(position, DOCK_SIZE));
   }
@@ -349,6 +403,56 @@ export class Desktop {
     const runningDockIds = new Set<string>();
     const dockIdToWindowId = new Map<string, string>();
     let activeDockId: string | null = null;
+
+    const enablePreview = options.showWindowPreview !== false && !!manager.getWindowElement;
+    const previewMaxW = options.previewSize?.width  ?? PREVIEW_MAX_W;
+    const previewMaxH = options.previewSize?.height ?? PREVIEW_MAX_H;
+    let previewEl: HTMLElement | null = null;
+    let previewTimer: ReturnType<typeof setTimeout> | undefined;
+    const hoverCleanups: Array<() => void> = [];
+
+    const hidePreview = () => {
+      clearTimeout(previewTimer);
+      previewEl?.remove();
+      previewEl = null;
+    };
+
+    const showPreview = (anchorEl: HTMLElement, windowId: string) => {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => {
+        hidePreview();
+        const winEl = manager.getWindowElement!(windowId);
+        if (!winEl) return;
+        const state = manager.getState?.(windowId) as { width?: number; height?: number } | undefined;
+        previewEl = buildDockPreview(winEl, anchorEl, this._dock.getPosition(), state, previewMaxW, previewMaxH);
+        document.body.appendChild(previewEl);
+        requestAnimationFrame(() => previewEl?.classList.add('wos-dock-win-preview--visible'));
+      }, 300);
+    };
+
+    const attachPreviewHover = (dockId: string, windowId: string) => {
+      if (!enablePreview) return;
+      const itemEl = this._dock.getItemElement(dockId);
+      if (!itemEl) return;
+      const enter = () => showPreview(itemEl, windowId);
+      const leave = () => hidePreview();
+      itemEl.addEventListener('mouseenter', enter);
+      itemEl.addEventListener('mouseleave', leave);
+      hoverCleanups.push(() => {
+        itemEl.removeEventListener('mouseenter', enter);
+        itemEl.removeEventListener('mouseleave', leave);
+      });
+    };
+
+    /** Dock._render() 每次都重建 DOM，必須重綁所有 hover 事件 */
+    const refreshAllPreviewHovers = () => {
+      hoverCleanups.forEach(fn => fn());
+      hoverCleanups.length = 0;
+      runningDockIds.forEach(id => {
+        const wid = dockIdToWindowId.get(id);
+        if (wid) attachPreviewHover(id, wid);
+      });
+    };
 
     const toDockId = (appId: string, windowId: string): string => {
       const key = dedupeByAppId ? appId : windowId;
@@ -384,6 +488,7 @@ export class Desktop {
       // 新視窗開啟後即為 active（WindowManager 不另外 emit window:focused）
       activeDockId = dockId;
       this._dock.setActiveItem(dockId);
+      // hover 重綁由 onRender 統一處理（addItem 會觸發 _render → onRender）
     };
 
     const removeDockItemForWindow = (event?: DockSyncWindowEvent): void => {
@@ -415,6 +520,8 @@ export class Desktop {
     const offOpened = manager.events.on<DockSyncWindowEvent>('window:opened', addDockItemForWindow);
     const offClosed = manager.events.on<DockSyncWindowEvent>('window:closed', removeDockItemForWindow);
     const offFocused = manager.events.on<DockSyncWindowEvent>('window:focused', setFocused);
+    // 拖曳排序後 Dock 重建 DOM，需重綁所有 hover
+    const offRender = enablePreview ? this._dock.onRender(refreshAllPreviewHovers) : () => {};
 
     if (syncExisting && manager.getWindowIds) {
       manager.getWindowIds().forEach((id) => {
@@ -422,6 +529,8 @@ export class Desktop {
         addDockItemForWindow({
           id,
           title: state?.title,
+          label: state?.label,
+          icon:  state?.icon,
         });
       });
     }
@@ -430,6 +539,10 @@ export class Desktop {
       offOpened();
       offClosed();
       offFocused();
+      offRender();
+      hidePreview();
+      hoverCleanups.forEach(fn => fn());
+      hoverCleanups.length = 0;
       runningDockIds.forEach((dockId) => this._dock.removeItem(dockId));
       runningDockIds.clear();
       dockIdToWindowId.clear();

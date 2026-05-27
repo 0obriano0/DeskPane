@@ -4,25 +4,16 @@
 // ============================================================
 
 import { DesktopIconConfig } from './types.js';
+import { appendIconContent } from './iconUtils.js';
 
 export type IconMoveCallback = (id: string, x: number, y: number) => void;
 /** 傳入建議座標與大小，回傳吸附後座標（guides 更新由 Desktop 閉包處理） */
 export type IconSnapFn = (x: number, y: number, w: number, h: number) => { x: number; y: number };
 
-/** 判斷 icon 字串屬於哪種類型 */
 function resolveIconEl(icon: string): HTMLElement {
   const el = document.createElement('div');
   el.className = 'wos-desktop-icon-img';
-  if (icon.startsWith('http') || icon.startsWith('/') || icon.startsWith('data:')) {
-    const img = document.createElement('img');
-    img.src = icon;
-    img.alt = '';
-    el.appendChild(img);
-  } else if (icon.trim().startsWith('<svg')) {
-    el.innerHTML = icon;
-  } else {
-    el.textContent = icon;
-  }
+  appendIconContent(el, icon);
   return el;
 }
 
