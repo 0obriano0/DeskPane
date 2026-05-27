@@ -32,6 +32,11 @@ export interface DragResizeOptions {
    * 預設 true。
    */
   resizable?: boolean;
+  /**
+   * 拖曳邊界保留量（px）。視窗拖曳到容器邊緣時，至少保留此寬度在容器內，
+   * 確保使用者仍可抓取視窗標題列。預設 60。設為 0 則不限制。
+   */
+  dragEdgeMargin?: number;
   onDragStart?: () => void;
   onDrag?: (x: number, y: number) => void;
   onDragEnd?: () => void;
@@ -58,6 +63,7 @@ export class DragResizeHandler {
   private _winEl: HTMLElement;
   private _headerEl: HTMLElement;
   private _opts: Required<Omit<DragResizeOptions, 'containerEl' | 'snapFn' | 'resizeSnapFn'>> & { containerEl?: HTMLElement; snapFn?: DragResizeOptions['snapFn']; resizeSnapFn?: DragResizeOptions['resizeSnapFn'] };
+
 
   // 拖曳狀態
   private _dragging = false;
@@ -92,6 +98,7 @@ export class DragResizeHandler {
       snapFn: opts.snapFn,
       resizeSnapFn: opts.resizeSnapFn,
       resizable: opts.resizable ?? true,
+      dragEdgeMargin: opts.dragEdgeMargin ?? 60,
       onDragStart: opts.onDragStart ?? (() => {}),
       onDrag: opts.onDrag ?? (() => {}),
       onDragEnd: opts.onDragEnd ?? (() => {}),
@@ -181,6 +188,29 @@ export class DragResizeHandler {
         const snapped = this._opts.snapFn(x, y, this._winEl.offsetWidth, this._winEl.offsetHeight);
         x = snapped.x;
         y = snapped.y;
+      }
+      // 邊界保留：確保視窗至少留 dragEdgeMargin px 在容器內，使用者仍可抓取
+      const margin = this._opts.dragEdgeMargin;
+      if (margin > 0 && this._opts.containerEl) {
+        const cW = this._opts.containerEl.offsetWidth;
+        const cH = this._opts.containerEl.offsetHeight;
+        const winW = this._winEl.offsetWidth;
+
+        // 讀取容器繼承的 Dock inset CSS 變數（Desktop 模式自動設定，非 Desktop 模式為 0）
+        const cs = getComputedStyle(this._opts.containerEl);
+        const dockTop    = parseFloat(cs.getPropertyValue('--wos-dock-inset-top'))    || 0;
+        const dockRight  = parseFloat(cs.getPropertyValue('--wos-dock-inset-right'))  || 0;
+        const dockBottom = parseFloat(cs.getPropertyValue('--wos-dock-inset-bottom')) || 0;
+        const dockLeft   = parseFloat(cs.getPropertyValue('--wos-dock-inset-left'))   || 0;
+
+        // 各方向邊界 = 使用者設定的 margin + Dock 佔用空間
+        const bTop    = dockTop;                   // 頂部：不允許標題列超出（含 top-dock）
+        const bRight  = margin + dockRight;
+        const bBottom = margin + dockBottom;       // 底部加上 Dock 高度，視窗不沉入 Dock
+        const bLeft   = margin + dockLeft;
+
+        x = Math.max(bLeft - winW, Math.min(x, cW - bRight));
+        y = Math.max(bTop,         Math.min(y, cH - bBottom));
       }
       this._winEl.style.left = `${x}px`;
       this._winEl.style.top = `${y}px`;

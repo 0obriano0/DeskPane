@@ -1,6 +1,6 @@
 # WebOS-Core — 專案狀態（AI 快查版）
 
-> 最後更新：2026-05-27 13:40 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
+> 最後更新：2026-05-27 15:17 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
 > 此文件為 AI 輔助開發設計，優先說明「現在是什麼」，歷史細節見備份。
 
 ---
@@ -43,6 +43,8 @@
 | **TaskView Dock 按鈕管理** — 建立時傳入 `dock`，自動在最左側插入按鈕；`showButton: false` 可關閉但 `open()` 仍可呼叫 | ✅ | `src/workspace/TaskView.ts`, `src/workspace/types.ts` |
 | **Dock hover 縮略圖預覽** — 滑鼠懸停 300ms 後顯示視窗 DOM clone 縮圖（240×150，比例縮放）；拖曳重排或多視窗後事件自動重綁 | ✅ | `src/desktop/Desktop.ts`, `src/desktop/Dock.ts` |
 | **Dock.addItemAt(item, index)** — 在指定位置插入 item（0 = 最左）；`Dock.onRender(cb)` 每次重建 DOM 後觸發回呼 | ✅ | `src/desktop/Dock.ts` |
+| **src 重構整理** — 提取 `iconUtils.ts` 共用 `appendIconContent()`，消除 `Dock.ts`/`DesktopIcon.ts` 重複 icon 邏輯；修正 `workspace/types.ts` 自我 import；簡化 `Desktop.ts` snap guide 嵌套 null check | ✅ | `src/desktop/iconUtils.ts`, `Dock.ts`, `DesktopIcon.ts`, `Desktop.ts`, `workspace/types.ts` |
+| **拖曳邊界保留（dragEdgeMargin）** — 視窗拖曳到容器邊緣時至少保留 60px（可設定）在容器內，確保使用者可抓回；Desktop 模式自動讀取 `--wos-dock-inset-*` CSS 變數，底部邊界加計 Dock 高度，視窗無法沉入 Dock 遮蔽區 | ✅ | `src/core/DragResizeHandler.ts` |
 
 **尚未實作：**
 - [ ] CDN 發佈（jsDelivr / unpkg）
@@ -89,8 +91,9 @@ WebOS/
 │   ├── desktop/
 │   │   ├── index.ts                ← Desktop 公開 Entry Point
 │   │   ├── Desktop.ts              ← 桌面主容器（icon 拖放、Snap、Sentinel、RWD）
-│   │   ├── Dock.ts                 ← 快速啟動 Dock（HTML5 D&D 排序、active 指示）
+│   │   ├── Dock.ts                 ← 快速啟動 Dock（HTML5 D&D 排序、active 指示、onRender 回呼）
 │   │   ├── DesktopIcon.ts          ← 桌面圖示（dragThreshold、snapFn、localStorage）
+│   │   ├── iconUtils.ts            ← appendIconContent() 共用 icon 類型判斷（URL/SVG/emoji）
 │   │   ├── styles.ts               ← injectDesktopStyles()（import DESKTOP_CSS from styles/webos-desktop.css）
 │   │   └── types.ts                ← DesktopConfig / DockConfig / DesktopIconConfig
 │   └── adapters/
@@ -333,6 +336,7 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | 28 | TaskView 工作區切換後的 `_wsCounter` 同步 | 建構時掃描現有工作區 id 以 `/^ws-(\d+)$/` pattern 取最大 N，確保新增桌面編號不會重複 |
 | 29 | TaskView Dock 按鈕固定位置 | `addItemAt(item, index)` 插入指定位置（0=最左）；TaskView 呼叫 `addItemAt(btn, 0)` 確保虛擬桌面按鈕永遠在最左側；`showButton: false` 可關閉自動插入但 `open()` 仍可呼叫 |
 | 30 | Dock hover 縮略圖多視窗/拖曳失效 | `Dock.addItem/addItemAt/removeItem` 及拖曳排序每次都觸發 `_render()` 重建所有 DOM，導致舊 hover 事件消失。修法：新增 `onRender(cb)` 回呼，`syncDockWithWindows` 訂閱後統一呼叫 `refreshAllPreviewHovers()` 重綁所有現有視窗；cleanup 時加入 `offRender()` 避免 memory leak |
+| 31 | `Dock.ts` / `DesktopIcon.ts` 重複 icon 判斷 | 兩者都需判斷 icon 字串是 URL/SVG/emoji，邏輯完全相同。提取至 `src/desktop/iconUtils.ts` 的 `appendIconContent(container, icon)` 共用函式，各自保留不同的包裝元素和 size 邏輯 |
 
 ---
 

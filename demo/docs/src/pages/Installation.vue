@@ -163,6 +163,24 @@ import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
         </tr>
       </tbody>
     </table>
+
+    <h2>{{ t('install.h2WorkspaceBundle') }}</h2>
+    <p v-html="t('install.workspaceBundleDesc')"></p>
+    <table class="api-table">
+      <thead><tr><th>{{ t('install.sizes.file') }}</th><th>{{ t('install.sizes.format') }}</th><th>{{ t('common.description') }}</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>dist/webos-workspace.es.js</code></td>
+          <td>ESM</td>
+          <td v-html="t('install.sizes.es.use')"></td>
+        </tr>
+        <tr>
+          <td><code>dist/webos-workspace.umd.js</code></td>
+          <td>UMD</td>
+          <td>{{ t('install.sizes.umd.use') }} — <code>window.WebOSWorkspace</code></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 

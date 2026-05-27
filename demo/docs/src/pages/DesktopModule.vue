@@ -56,6 +56,37 @@
 
     <h2>{{ t('desktop.h2Sync') }}</h2>
     <p v-html="t('desktop.syncDesc')"></p>
+
+    <h2>{{ t('desktop.h2SyncOpts') }}</h2>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('desktop.col.option') }}</th>
+          <th>{{ t('desktop.col.type') }}</th>
+          <th>{{ t('wmopt.col.default') }}</th>
+          <th>{{ t('desktop.col.desc') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>showWindowPreview</code></td><td><code>boolean</code></td><td><code>true</code></td><td v-html="t('desktop.sync.preview')"></td></tr>
+        <tr><td><code>previewSize</code></td><td><code>{ width: number; height: number }</code></td><td><code>{ width: 200, height: 130 }</code></td><td v-html="t('desktop.sync.previewSize')"></td></tr>
+      </tbody>
+    </table>
+
+    <h2>{{ t('desktop.h2DockMethods') }}</h2>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('desktop.col.option') }}</th>
+          <th>{{ t('desktop.col.type') }}</th>
+          <th>{{ t('desktop.col.desc') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>dock.addItemAt(item, index)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.addItemAt')"></td></tr>
+        <tr><td><code>dock.onRender(cb)</code></td><td><code>() => void</code></td><td v-html="t('desktop.dock.onRender')"></td></tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
@@ -198,6 +229,10 @@ const stopSync = desktop.syncDockWithWindows(wm, {
 
   dedupeByAppId: true,   // one Dock entry per app
   syncExisting: true,    // include already-open windows
+
+  // Hover thumbnail preview
+  showWindowPreview: true,
+  previewSize: { width: 200, height: 130 },
 })
 
 // Detach when done

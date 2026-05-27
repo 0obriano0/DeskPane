@@ -15,6 +15,9 @@
       <li>✅ {{ t('overview.feat5') }}</li>
       <li>✅ <span v-html="t('overview.feat6')"></span></li>
       <li>✅ <span v-html="t('overview.feat7')"></span></li>
+      <li>✅ <span v-html="t('overview.feat8')"></span></li>
+      <li>✅ <span v-html="t('overview.feat9')"></span></li>
+      <li>✅ <span v-html="t('overview.feat10')"></span></li>
     </ul>
 
     <h2>{{ t('overview.h2CoreApi') }}</h2>
@@ -63,11 +66,14 @@
       <tbody>
         <tr><td><code>id</code></td><td>string</td><td><span class="badge badge-blue">{{ t('common.required') }}</span></td><td>{{ t('overview.config.id') }}</td></tr>
         <tr><td><code>title</code></td><td>string</td><td><span class="badge badge-blue">{{ t('common.required') }}</span></td><td>{{ t('overview.config.title') }}</td></tr>
+        <tr><td><code>icon</code></td><td>string</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td v-html="t('overview.config.icon')"></td></tr>
+        <tr><td><code>label</code></td><td>string</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td v-html="t('overview.config.label')"></td></tr>
         <tr><td><code>content</code></td><td>HTMLElement | null</td><td><span class="badge badge-blue">{{ t('common.required') }}</span></td><td>{{ t('overview.config.content') }}</td></tr>
         <tr><td><code>slotType</code></td><td>'dom' | 'vue' | 'react'</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td v-html="t('overview.config.slotType')"></td></tr>
         <tr><td><code>x, y</code></td><td>number</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td>{{ t('overview.config.xy') }}</td></tr>
         <tr><td><code>width, height</code></td><td>number</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td>{{ t('overview.config.wh') }}</td></tr>
         <tr><td><code>props</code></td><td>Record&lt;string, unknown&gt;</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td>{{ t('overview.config.props') }}</td></tr>
+        <tr><td><code>resizable</code></td><td>boolean</td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td v-html="t('overview.config.resizable')"></td></tr>
       </tbody>
     </table>
   </div>

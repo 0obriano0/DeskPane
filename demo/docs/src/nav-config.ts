@@ -42,6 +42,14 @@ export function getNavConfig(t: (key: string) => string): NavCategory[] {
       ],
     },
     {
+      label: t('nav.workspaceModule'),
+      items: [
+        { id: 'workspace-manager', label: t('nav.workspaceManager') },
+        { id: 'task-view',         label: t('nav.taskView') },
+        { id: 'session-manager',   label: t('nav.sessionManager') },
+      ],
+    },
+    {
       label: t('nav.vanillaJs'),
       items: [
         { id: 'hello-world', label: t('nav.helloWorld') },
