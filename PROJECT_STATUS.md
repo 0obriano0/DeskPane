@@ -1,6 +1,6 @@
 # WebOS-Core — 專案狀態（AI 快查版）
 
-> 最後更新：2026-05-27 15:17 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
+> 最後更新：2026-05-27 16:44 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
 > 此文件為 AI 輔助開發設計，優先說明「現在是什麼」，歷史細節見備份。
 
 ---
@@ -45,6 +45,8 @@
 | **Dock.addItemAt(item, index)** — 在指定位置插入 item（0 = 最左）；`Dock.onRender(cb)` 每次重建 DOM 後觸發回呼 | ✅ | `src/desktop/Dock.ts` |
 | **src 重構整理** — 提取 `iconUtils.ts` 共用 `appendIconContent()`，消除 `Dock.ts`/`DesktopIcon.ts` 重複 icon 邏輯；修正 `workspace/types.ts` 自我 import；簡化 `Desktop.ts` snap guide 嵌套 null check | ✅ | `src/desktop/iconUtils.ts`, `Dock.ts`, `DesktopIcon.ts`, `Desktop.ts`, `workspace/types.ts` |
 | **拖曳邊界保留（dragEdgeMargin）** — 視窗拖曳到容器邊緣時至少保留 60px（可設定）在容器內，確保使用者可抓回；Desktop 模式自動讀取 `--wos-dock-inset-*` CSS 變數，底部邊界加計 Dock 高度，視窗無法沉入 Dock 遮蔽區 | ✅ | `src/core/DragResizeHandler.ts` |
+| **縮放邊界保留** — 所有 4 個縮放方向（N/S/E/W）皆套用邊界限制：向外延伸（S/E）無限制，向內縮小不超過對側拖曳邊界；N/W 移動端加計上/左邊界，防止把手消失在容器外 | ✅ | `src/core/DragResizeHandler.ts` |
+| **最小化 restore 修正** — 修正 `minimize()` 未清除 `isActive`，導致單一視窗最小化後 `focus()` 提前返回、無法 restore 的 bug | ✅ | `src/core/WindowManager.ts` |
 
 **尚未實作：**
 - [ ] CDN 發佈（jsDelivr / unpkg）

@@ -256,7 +256,9 @@ export class WindowManager {
     const win = this._wins.get(id);
     if (!win || win.state.isMinimized) return;
     win.state.isMinimized = true;
+    win.state.isActive = false;
     win.elements.root.classList.add('wos-minimized');
+    win.elements.root.classList.remove('wos-active');
     this.events.emit<WindowState>('window:minimized', { ...win.state });
     this._focusTopWindow();
   }

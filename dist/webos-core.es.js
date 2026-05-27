@@ -291,6 +291,45 @@ class DragResizeHandler {
             newW = snapped.width;
             newH = snapped.height;
         }
+        // 縮放邊界保留：與拖曳使用相同的邊界規則
+        const margin = this._opts.dragEdgeMargin;
+        if (margin > 0 && this._opts.containerEl) {
+            const cW = this._opts.containerEl.offsetWidth;
+            const cH = this._opts.containerEl.offsetHeight;
+            const cs = getComputedStyle(this._opts.containerEl);
+            const dockTop = parseFloat(cs.getPropertyValue('--wos-dock-inset-top')) || 0;
+            const dockRight = parseFloat(cs.getPropertyValue('--wos-dock-inset-right')) || 0;
+            const dockBottom = parseFloat(cs.getPropertyValue('--wos-dock-inset-bottom')) || 0;
+            const dockLeft = parseFloat(cs.getPropertyValue('--wos-dock-inset-left')) || 0;
+            const bTop = dockTop;
+            const bRight = margin + dockRight;
+            const bBottom = margin + dockBottom;
+            const bLeft = margin + dockLeft;
+            // 北邊（n/nw/ne）：cy 移動 → 套用與拖曳完全相同的上下界，底部固定，newH 補償
+            if (edge.includes('n')) {
+                const bottomSide = cy + newH;
+                cy = Math.max(bTop, Math.min(cy, cH - bBottom));
+                newH = Math.max(minHeight, bottomSide - cy);
+            }
+            // 西邊（w/nw/sw）：cx 移動 → 下限 dockLeft（保持把手可見），上限同拖曳右界，右側固定，newW 補償
+            if (edge.includes('w')) {
+                const rightSide = cx + newW;
+                cx = Math.max(dockLeft, Math.min(cx, cW - bRight));
+                newW = Math.max(minWidth, rightSide - cx);
+            }
+            // 東邊（e/ne/se）：cx 不動，標題欄不會離開容器，無需限制右側延伸
+            //   只限制右邊線不能往左超過左側拖曳邊界（與拖曳限制距離相同）
+            if (edge.includes('e') && !edge.includes('w')) {
+                const minW = Math.max(minWidth, bLeft - cx);
+                newW = Math.max(minW, newW);
+            }
+            // 南邊（s/se/sw）：cy 不動，標題欄不會離開容器，無需限制底部延伸
+            //   只限制底邊不能往上超過頂部拖曳邊界（防止視窗倒縮）
+            if (edge.includes('s') && !edge.includes('n')) {
+                const minH = Math.max(minHeight, bTop - cy);
+                newH = Math.max(minH, newH);
+            }
+        }
         this._winEl.style.left = `${cx}px`;
         this._winEl.style.top = `${cy}px`;
         this._winEl.style.width = `${newW}px`;
@@ -1169,7 +1208,9 @@ class WindowManager {
         if (!win || win.state.isMinimized)
             return;
         win.state.isMinimized = true;
+        win.state.isActive = false;
         win.elements.root.classList.add('wos-minimized');
+        win.elements.root.classList.remove('wos-active');
         this.events.emit('window:minimized', { ...win.state });
         this._focusTopWindow();
     }
