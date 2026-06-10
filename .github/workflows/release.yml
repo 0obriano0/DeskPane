@@ -20,8 +20,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-          # 已補上 registry-url，這是 OIDC (Trusted Publisher) 所必須的設定
+          # ⚠️ 不設定 registry-url，避免 setup-node 自動注入 github.token 作為 NODE_AUTH_TOKEN
+          # npm publish --provenance 會自行透過 OIDC 與 npm registry 交換
 
       - name: Install dependencies
         run: npm install
