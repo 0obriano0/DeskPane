@@ -62,7 +62,7 @@ function reset() {
   align-items: center;
   gap: 10px;
   padding: 16px;
-  background: var(--wos-window-body-bg, #0f172a);
+  background: var(--dp-window-body-bg, #13131f);
   color: #e2e8f0;
   overflow-y: auto;
 }

@@ -2,44 +2,37 @@
   <div class="todo-app">
     <div class="input-row">
       <input
-        v-model.trim="newTodo"
+        v-model="input"
         class="todo-input"
         placeholder="新增待辦事項..."
         @keydown.enter="addTodo"
       />
-      <button class="btn btn-primary" @click="addTodo" :disabled="!newTodo">新增</button>
+      <button class="btn btn-add" @click="addTodo">新增</button>
     </div>
 
     <div class="filter-row">
       <button
-        v-for="f in ['all','active','done']"
-        :key="f"
-        class="filter-btn"
-        :class="{ active: filter === f }"
-        @click="filter = f as FilterType"
-      >{{ filterLabel(f) }}</button>
+        v-for="f in filters" :key="f.id"
+        class="btn filter-btn"
+        :class="{ active: filter === f.id }"
+        @click="filter = f.id"
+      >{{ f.label }}</button>
     </div>
 
     <div class="todo-list">
-      <div
-        v-for="item in filteredTodos"
-        :key="item.id"
-        class="todo-item"
-        :class="{ done: item.done }"
-      >
-        <input type="checkbox" v-model="item.done" class="todo-check" />
-        <span class="todo-text">{{ item.text }}</span>
-        <button class="btn-del" @click="remove(item.id)">✕</button>
-      </div>
-      <div v-if="filteredTodos.length === 0" class="empty">
-        {{ filter === 'done' ? '尚無已完成項目' : filter === 'active' ? '全部完成 🎉' : '新增第一項待辦' }}
+      <div v-if="visible.length === 0" class="empty">無待辦項目</div>
+      <div v-for="todo in visible" :key="todo.id" class="todo-item">
+        <input type="checkbox" :checked="todo.done" @change="toggle(todo.id)" class="check" />
+        <span
+          class="todo-text"
+          :class="{ done: todo.done }"
+          @click="toggle(todo.id)"
+        >{{ todo.text }}</span>
+        <button class="btn btn-del" @click="remove(todo.id)">✕</button>
       </div>
     </div>
 
-    <div class="footer">
-      <span class="count">{{ pendingCount }} 項待完成</span>
-      <button class="btn" @click="clearDone" :disabled="doneCount === 0">清除已完成</button>
-    </div>
+    <div class="footer">{{ pending }} 項待完成</div>
   </div>
 </template>
 
@@ -47,142 +40,74 @@
 import { ref, computed } from 'vue'
 
 interface Todo { id: number; text: string; done: boolean }
-type FilterType = 'all' | 'active' | 'done'
+type Filter = 'all' | 'active' | 'done'
 
 const todos = ref<Todo[]>([
-  { id: 1, text: '探索 WebOS-Core 功能', done: false },
-  { id: 2, text: '嘗試最小化與還原視窗', done: false },
-  { id: 3, text: '體驗 KeepAlive 狀態保留', done: true },
+  { id: 1, text: '體驗 DeskPane Vue 3 整合', done: false },
+  { id: 2, text: '開啟計算機視窗並試算', done: false },
+  { id: 3, text: '最小化再開啟驗證 KeepAlive', done: true },
 ])
-let nextId = 4
-const newTodo = ref('')
-const filter = ref<FilterType>('all')
+const input = ref('')
+const filter = ref<Filter>('all')
 
-const pendingCount = computed(() => todos.value.filter(t => !t.done).length)
-const doneCount = computed(() => todos.value.filter(t => t.done).length)
+const filters = [
+  { id: 'all' as Filter, label: '全部' },
+  { id: 'active' as Filter, label: '進行中' },
+  { id: 'done' as Filter, label: '已完成' },
+]
 
-const filteredTodos = computed(() => {
-  if (filter.value === 'active') return todos.value.filter(t => !t.done)
-  if (filter.value === 'done') return todos.value.filter(t => t.done)
-  return todos.value
-})
-
-function filterLabel(f: string) {
-  if (f === 'all') return `全部 (${todos.value.length})`
-  if (f === 'active') return `進行中 (${pendingCount.value})`
-  return `已完成 (${doneCount.value})`
-}
+const visible = computed(() =>
+  todos.value.filter(t =>
+    filter.value === 'all' ? true : filter.value === 'active' ? !t.done : t.done
+  )
+)
+const pending = computed(() => todos.value.filter(t => !t.done).length)
 
 function addTodo() {
-  if (!newTodo.value) return
-  todos.value.push({ id: nextId++, text: newTodo.value, done: false })
-  newTodo.value = ''
+  const text = input.value.trim()
+  if (!text) return
+  todos.value.push({ id: Date.now(), text, done: false })
+  input.value = ''
 }
-
+function toggle(id: number) {
+  const t = todos.value.find(t => t.id === id)
+  if (t) t.done = !t.done
+}
 function remove(id: number) {
   todos.value = todos.value.filter(t => t.id !== id)
-}
-
-function clearDone() {
-  todos.value = todos.value.filter(t => !t.done)
 }
 </script>
 
 <style scoped>
 .todo-app {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background: var(--wos-window-body-bg, #0f172a);
-  color: #e2e8f0;
-  overflow: hidden;
+  height: 100%; display: flex; flex-direction: column; gap: 10px;
+  padding: 14px; background: var(--dp-window-body-bg, #13131f);
+  color: var(--dp-window-body-color, #e0e0f0); font-family: system-ui, sans-serif; font-size: 13px;
+  box-sizing: border-box;
 }
-.input-row { display: flex; gap: 6px; }
+.input-row { display: flex; gap: 8px; }
 .todo-input {
-  flex: 1;
-  padding: 7px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.05);
-  color: #e2e8f0;
-  font-size: 13px;
-  outline: none;
+  flex: 1; padding: 7px 10px; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06);
+  color: inherit; font-size: 13px; outline: none;
 }
-.todo-input:focus { border-color: #3b82f6; }
-.todo-input::placeholder { color: rgba(226,232,240,0.3); }
-.filter-row { display: flex; gap: 4px; }
-.filter-btn {
-  flex: 1;
-  padding: 5px 4px;
-  border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.05);
-  color: rgba(226,232,240,0.6);
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.filter-btn.active {
-  background: rgba(59,130,246,0.2);
-  border-color: rgba(59,130,246,0.5);
-  color: #93c5fd;
-  font-weight: 600;
-}
+.filter-row { display: flex; gap: 6px; }
 .todo-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.empty { text-align: center; color: rgba(255,255,255,0.25); padding-top: 20px; }
 .todo-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.03);
-  transition: background 0.15s;
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 6px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
 }
-.todo-item.done { background: rgba(52,211,153,0.05); border-color: rgba(52,211,153,0.15); }
-.todo-item.done .todo-text { text-decoration: line-through; color: rgba(226,232,240,0.35); }
-.todo-check { accent-color: #3b82f6; width: 14px; height: 14px; flex-shrink: 0; cursor: pointer; }
-.todo-text { flex: 1; font-size: 13px; }
-.btn-del {
-  border: none;
-  background: transparent;
-  color: rgba(226,232,240,0.3);
-  cursor: pointer;
-  font-size: 11px;
-  padding: 2px 5px;
-  border-radius: 4px;
-  line-height: 1;
-}
-.btn-del:hover { background: rgba(239,68,68,0.2); color: #f87171; }
-.empty { color: rgba(226,232,240,0.35); font-size: 13px; text-align: center; padding: 20px 0; }
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255,255,255,0.07);
-}
-.count { font-size: 11px; color: rgba(226,232,240,0.5); }
+.check { cursor: pointer; accent-color: #3b82f6; }
+.todo-text { flex: 1; cursor: pointer; }
+.todo-text.done { text-decoration: line-through; color: rgba(255,255,255,0.3); }
+.footer { font-size: 11px; color: rgba(255,255,255,0.4); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; }
 .btn {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.06);
-  color: #e2e8f0;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.15s;
+  padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08); color: inherit; cursor: pointer; font-size: 12px;
 }
-.btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
-.btn:disabled { opacity: 0.3; cursor: default; }
-.btn-primary {
-  background: rgba(59,130,246,0.25);
-  border-color: rgba(59,130,246,0.45);
-  color: #93c5fd;
-  white-space: nowrap;
-  font-weight: 600;
-}
-.btn-primary:hover:not(:disabled) { background: rgba(59,130,246,0.4); }
+.btn-add { background: rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.4); color: #93c5fd; }
+.btn-del { padding: 2px 8px; font-size: 11px; color: rgba(255,255,255,0.4); }
+.filter-btn.active { background: rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.5); color: #93c5fd; }
 </style>

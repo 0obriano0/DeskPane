@@ -1,162 +1,115 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { useWindowManager } from '@webos/adapters/react/useWindowManager'
-import type { ReactWindowEntry } from '@webos/adapters/react/useWindowManager'
-import { setTheme } from '@webos/themes/setTheme'
+import { Desktop } from '@deskpane/desktop'
+import { WorkspaceManager, TaskView } from '@deskpane/workspace'
 
 import GuideApp   from './windows/GuideApp'
 import EditorApp  from './windows/EditorApp'
-import CounterApp from './windows/CounterApp'
 import TodoApp    from './windows/TodoApp'
-import DataPanel  from './windows/DataPanel'
+import CounterApp from './windows/CounterApp'
+import CalcApp    from './windows/CalcApp'
 
-interface AppDef {
+interface WinEntry {
   id: string
-  label: string
-  icon: string
-  title: string
+  bodyEl: HTMLElement
   component: React.ComponentType<any>
-  width?: number
-  height?: number
-  x?: number
-  y?: number
 }
 
-const APP_LIST: AppDef[] = [
-  { id: 'guide',   label: 'Hook',   icon: '⚛️', title: 'useWindowManager Hook 指南', component: GuideApp,   width: 480, height: 380, x: 80,  y: 40  },
-  { id: 'editor',  label: '文字',   icon: '📝', title: 'React 文字編輯器',            component: EditorApp,  width: 420, height: 320, x: 120, y: 60  },
-  { id: 'counter', label: '計數器', icon: '🔢', title: 'React 計數器 (KeepAlive)',    component: CounterApp, width: 300, height: 300, x: 240, y: 100 },
-  { id: 'todo',    label: '待辦',   icon: '✅', title: 'React 待辦清單',              component: TodoApp,    width: 360, height: 420, x: 160, y: 80  },
-  { id: 'data',    label: '資料',   icon: '📊', title: 'React 資料面板',              component: DataPanel,  width: 500, height: 360, x: 200, y: 60  },
+const APP_DEFS = [
+  { id: 'guide',   icon: '⚛️', label: 'React 指南', title: 'React 整合指南',    component: GuideApp,   width: 520, height: 420, x: 60,  y: 40  },
+  { id: 'editor',  icon: '📝', label: '文字編輯',   title: 'React 文字編輯器',   component: EditorApp,  width: 560, height: 380, x: 100, y: 60  },
+  { id: 'todo',    icon: '✅', label: '待辦清單',   title: 'React 待辦清單',      component: TodoApp,    width: 360, height: 440, x: 140, y: 80  },
+  { id: 'counter', icon: '🔢', label: 'Counter',    title: 'React 計數器',        component: CounterApp, width: 300, height: 320, x: 180, y: 100 },
+  { id: 'calc',    icon: '🧮', label: '計算機',     title: 'React 計算機',        component: CalcApp,    width: 300, height: 400, x: 220, y: 60  },
 ]
 
-const APP_MAP = Object.fromEntries(APP_LIST.map(a => [a.id, a]))
+const COMP_MAP = new Map(APP_DEFS.map(a => [a.id, a.component]))
 
 export default function App() {
-  const { wm, windows, openReactWindow, minimize, restore, focus, destroy } =
-    useWindowManager({ throttleMs: 16, snap: true })
+  const desktopRef = useRef<HTMLDivElement>(null)
+  const wsMgrRef = useRef<WorkspaceManager | null>(null)
+  const [windows, setWindows] = useState<WinEntry[]>([])
 
-  const [logs, setLogs] = useState<string[]>(['📡 Event Log'])
-  const [theme, setThemeState] = useState<'light' | 'dark'>('light')
+  function currentWm() {
+    const cur = wsMgrRef.current?.current
+    if (!cur) throw new Error('No active workspace')
+    return wsMgrRef.current!.getWindowManager(cur.id) as any
+  }
 
-  const toggleTheme = useCallback(() => {
-    const next = theme === 'light' ? 'dark' : 'light'
-    setThemeState(next)
-    setTheme(next, { basePath: '/themes' })
-  }, [theme])
+  const syncWindows = useCallback(() => {
+    try {
+      const wm = currentWm()
+      setWindows(
+        (wm.getWindowIds() as string[]).map((id: string) => {
+          const bodyEl = wm.getBodyElement(id) as HTMLElement | undefined
+          if (!bodyEl) return null
+          const appId = id.replace(/^app-/, '')
+          const comp = COMP_MAP.get(appId)
+          if (!comp) return null
+          return { id, bodyEl, component: comp } as WinEntry
+        }).filter((w): w is WinEntry => w !== null)
+      )
+    } catch { /* ignore during init */ }
+  }, [])
 
-  const openApp = (appId: string) => {
-    const app = APP_MAP[appId]
-    if (!app) return
-    openReactWindow({
-      id:        app.id,
-      title:     app.title,
-      component: app.component,
-      width:     app.width,
-      height:    app.height,
-      x:         app.x,
-      y:         app.y,
+  function openApp(id: string) {
+    const def = APP_DEFS.find(a => a.id === id)
+    if (!def) return
+    const wm = currentWm()
+    wm.open({
+      id: 'app-' + id,
+      title: def.title,
+      slotType: 'react',
+      content: null,
+      width: def.width,
+      height: def.height,
+      x: def.x,
+      y: def.y,
     })
   }
 
   useEffect(() => {
-    const EVENTS = [
-      'window:opened', 'window:closed', 'window:focused',
-      'window:minimized', 'window:maximized', 'window:restored',
-    ]
-    EVENTS.forEach(ev => {
-      wm.events.on(ev, (d: any) => {
-        setLogs(prev => [`▶ ${ev} [${d?.id ?? ''}]`, ...prev.slice(0, 39)])
-      })
+    if (!desktopRef.current) return
+
+    const desktop = new Desktop({
+      container: desktopRef.current,
+      dragThreshold: 10,
+      dock: { position: 'bottom', showLabels: true, iconSize: 44, items: [] },
+      icons: APP_DEFS.map(a => ({
+        id: 'icon-' + a.id,
+        label: a.label,
+        icon: a.icon,
+        action: () => openApp(a.id),
+      })),
     })
-    // 啟動時開啟歡迎視窗
+
+    const wsMgr = new WorkspaceManager(desktop.getElement(), {
+      animationMs: 220,
+      windowManagerOptions: { isolated: true, snap: true },
+    })
+    wsMgrRef.current = wsMgr
+
+    wsMgr.addWorkspace({ id: 'ws-1', label: '桌面 1' })
+    desktop.syncDockWithWindows(wsMgr.getWindowManager('ws-1') as any)
+
+    wsMgr.events.on('workspace:switched', ({ to }: { to: string }) => {
+      desktop.syncDockWithWindows(wsMgr.getWindowManager(to) as any)
+    })
+
+    new TaskView(wsMgr, { dock: desktop.getDock() as any })
+
+    const wm = wsMgr.getWindowManager('ws-1') as any
+    const EVENTS = ['window:opened','window:closed','window:focused','window:minimized','window:maximized','window:restored']
+    EVENTS.forEach(ev => wm.events.on(ev, syncWindows))
+
     openApp('guide')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const openIds = new Set(windows.map(w => w.id))
-
-  function onTaskbarClick(win: ReactWindowEntry) {
-    if (win.state.isMinimized) {
-      restore(win.id)
-      focus(win.id)
-    } else if (win.state.isActive) {
-      minimize(win.id)
-    } else {
-      focus(win.id)
-    }
-  }
-
   return (
-    <div className="desktop">
-
-      {/* ── 左側 Dock ── */}
-      <nav id="app-dock">
-        {APP_LIST.map(app => (
-          <button
-            key={app.id}
-            className={`dock-item${openIds.has(app.id) ? ' running' : ''}`}
-            title={app.title}
-            onClick={() => openApp(app.id)}
-          >
-            <span className="dock-icon">{app.icon}</span>
-            <span className="dock-label">{app.label}</span>
-          </button>
-        ))}
-
-        <div className="dock-separator" />
-
-        <button className="dock-item" title="關閉全部" onClick={() => destroy()}>
-          <span className="dock-icon">💣</span>
-          <span className="dock-label">關閉全部</span>
-        </button>
-
-        <div className="dock-separator" />
-
-        <button
-          className="dock-item"
-          title={theme === 'light' ? '切換暗色' : '切換亮色'}
-          onClick={toggleTheme}
-        >
-          <span className="dock-icon">{theme === 'light' ? '🌙' : '☀️'}</span>
-          <span className="dock-label">{theme === 'light' ? '暗色' : '亮色'}</span>
-        </button>
-      </nav>
-
-      {/* ── 下方任務列 ── */}
-      <div id="taskbar">
-        {windows.map(win => (
-          <button
-            key={win.id}
-            className={[
-              'task-item',
-              win.state.isActive    ? 'active'    : '',
-              win.state.isMinimized ? 'minimized' : '',
-            ].join(' ').trim()}
-            onClick={() => onTaskbarClick(win)}
-          >
-            <span className="task-icon">{APP_MAP[win.id]?.icon ?? '🪟'}</span>
-            {win.state.title}
-          </button>
-        ))}
-      </div>
-
-      {/* ── 事件 Log ── */}
-      <div id="event-log">
-        {logs.map((entry, i) => <p key={i}>{entry}</p>)}
-      </div>
-
-      {/* ── React Portals：渲染進 WM 管理的 DOM body ── */}
-      {windows.map(win =>
-        win.component
-          ? createPortal(
-              <win.component {...(win.props ?? {})} />,
-              win.bodyEl,
-              win.id
-            )
-          : null
-      )}
-
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <div ref={desktopRef} style={{ width: '100%', height: '100%' }} />
+      {windows.map(w => createPortal(<w.component />, w.bodyEl, w.id))}
     </div>
   )
 }

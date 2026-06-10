@@ -1,262 +1,331 @@
-﻿<!DOCTYPE html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DeskPane — jQuery</title>
-  <link rel="stylesheet" href="../shared/base.css" />
-  <link id="dp-theme" rel="stylesheet" href="../../dist/themes/dark.css" />
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="../../dist/deskpane.umd.js"></script>
+  <title>DeskPane — jQuery Demo</title>
+  <link rel="stylesheet" href="../../dist/themes/dark.css" />
   <style>
-    .d-sidebar { width: 220px; }
-    .sidebar-log {
-      height: 160px; border-top: 1px solid var(--d-border);
-      padding: 8px 10px; overflow-y: auto;
-      font-family: monospace; font-size: 10px; flex-shrink: 0;
-    }
-    .log-line { color: rgba(34,197,94,.85); padding: 1px 0; }
-    .log-line.ev-close { color: rgba(239,68,68,.8); }
-    .log-line.ev-focus { color: rgba(59,130,246,.85); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    #desktop-root { width: 100vw; height: 100vh; }
   </style>
 </head>
 <body>
+  <div id="desktop-root"></div>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="../../dist/deskpane.umd.js"></script>
+  <script src="../../dist/deskpane-desktop.umd.js"></script>
+  <script src="../../dist/deskpane-workspace.umd.js"></script>
+  <script>
+    const { BorderLayout } = DeskPane;
+    const { Desktop } = DeskPaneDesktop;
+    const { WorkspaceManager, TaskView } = DeskPaneWorkspace;
 
-<header class="dh">
-  <a class="dh-back" href="../index.html">← Demo</a>
-  <span class="dh-logo">💙</span>
-  <span class="dh-title">jQuery</span>
-  <span class="dh-badge b-jq">jQuery 3.7</span>
-  <div class="dh-sep"></div>
-  <div class="dh-actions">
-    <button class="d-btn" id="btn-theme">🌙 暗色</button>
-    <button class="d-btn" id="btn-destroy">💣 關閉全部</button>
-  </div>
-</header>
-
-<div class="d-layout">
-  <aside class="d-sidebar">
-    <div class="d-sidebar-scroll">
-      <div class="d-section-title">應用程式</div>
-      <button class="d-app-btn" data-app="jq-intro">
-        <span class="icon">💙</span><span class="label">jQuery 整合說明</span>
-      </button>
-      <button class="d-app-btn" data-app="jq-form">
-        <span class="icon">📋</span><span class="label">jQuery Form</span>
-      </button>
-      <button class="d-app-btn" data-app="jq-table">
-        <span class="icon">📊</span><span class="label">動態 Table</span>
-      </button>
-      <button class="d-app-btn" data-app="jq-animate">
-        <span class="icon">🎬</span><span class="label">jQuery 動畫</span>
-      </button>
-    </div>
-    <div class="sidebar-log" id="event-log"><div class="log-line">📡 Event Log</div></div>
-  </aside>
-  <div class="d-canvas" id="canvas"></div>
-</div>
-
-<script>
-$(function () {
-  const { WindowManager, setTheme } = DeskPane;
-  const canvas = document.getElementById('canvas');
-  const wm = new WindowManager({ container: canvas, isolated: true, snap: true });
-
-  // ── Event Log ──────────────────────────────────────────
-  const CLASS = { 'window:closed':'ev-close','window:focused':'ev-focus' };
-  ['window:opened','window:closed','window:focused','window:minimized','window:maximized','window:restored'].forEach(ev => {
-    wm.events.on(ev, d => {
-      const line = $('<div class="log-line">').addClass(CLASS[ev]||'');
-      line.text(new Date().toLocaleTimeString('zh-TW',{hour12:false}) + ' ' + ev.replace('window:','') + ' [' + (d?.id||'') + ']');
-      $('#event-log').prepend(line);
-      if ($('#event-log div').length > 60) $('#event-log div:last').remove();
-      refreshDots();
+    const desktop = new Desktop({
+      container: document.getElementById('desktop-root'),
+      dragThreshold: 10,
+      dock: { position: 'bottom', showLabels: true, iconSize: 44, items: [] },
+      icons: [
+        { id: 'icon-intro',   label: 'jQuery 說明', icon: '💙', action: () => openApp('intro')   },
+        { id: 'icon-form',    label: 'jQuery Form', icon: '📋', action: () => openApp('form')    },
+        { id: 'icon-table',   label: '動態 Table',  icon: '📊', action: () => openApp('table')   },
+        { id: 'icon-animate', label: 'jQuery 動畫', icon: '🎬', action: () => openApp('animate') },
+        { id: 'icon-calc',    label: '計算機',      icon: '🧮', action: () => openApp('calc')    },
+        { id: 'icon-layout',  label: 'BorderLayout', icon: '📐', action: () => openApp('layout') },
+      ],
     });
-  });
 
-  function refreshDots() {
-    const ids = wm.getWindowIds();
-    $('.d-app-btn[data-app]').each(function() {
-      const id = $(this).data('app');
-      const open = ids.includes(id);
-      $(this).toggleClass('active', open);
-      if (open && !$(this).find('.d-app-dot').length) $(this).append('<span class="d-app-dot"></span>');
-      if (!open) $(this).find('.d-app-dot').remove();
+    const wsMgr = new WorkspaceManager(desktop.getElement(), {
+      animationMs: 220,
+      windowManagerOptions: { isolated: true, snap: true },
     });
-  }
+    wsMgr.addWorkspace({ id: 'ws-1', label: '桌面 1' });
+    desktop.syncDockWithWindows(wsMgr.getWindowManager('ws-1'));
+    wsMgr.events.on('workspace:switched', ({ to }) => {
+      desktop.syncDockWithWindows(wsMgr.getWindowManager(to));
+    });
+    const taskView = new TaskView(wsMgr, { dock: desktop.getDock() });
 
-  // ── App 內容 ──────────────────────────────────────────
-  const APPS = {
+    function currentWm() {
+      const cur = wsMgr.current;
+      if (!cur) throw new Error('No active workspace');
+      return wsMgr.getWindowManager(cur.id);
+    }
 
-    'jq-intro': {
-      title: '💙 jQuery 整合說明', width: 480, height: 360, x: 30, y: 20,
-      content() {
-        return $('<div>').css({padding:'20px',fontFamily:'system-ui',lineHeight:1.8}).html(`
-          <h3 style="margin:0 0 10px;color:#4fb3f7;font-size:16px">DeskPane + jQuery</h3>
-          <p style="font-size:13px;color:#94a3b8;margin-bottom:12px">使用 UMD bundle，直接透過 <code>window.DeskPane</code> 取得所有 API</p>
-          <pre style="background:rgba(255,255,255,0.05);padding:12px;border-radius:8px;font-size:12px;color:#e2e8f0;overflow:auto"><code>&lt;!-- 1. 載入 jQuery --&gt;
-&lt;script src="jquery.min.js"&gt;&lt;/script&gt;
-&lt;!-- 2. 載入 DeskPane UMD --&gt;
-&lt;script src="deskpane.umd.js"&gt;&lt;/script&gt;
-
-&lt;script&gt;
-const { WindowManager } = DeskPane;
-const wm = new WindowManager();
-
-// 用 jQuery 建立視窗內容
-const $body = $(wm.getBodyElement('my-win'));
-$body.html('&lt;p&gt;Hello from jQuery!&lt;/p&gt;');
-&lt;/script&gt;</code></pre>`);
-      }
-    },
-
-    'jq-form': {
-      title: '📋 jQuery Form', width: 360, height: 380, x: 80, y: 60,
-      content() {
-        const $wrap = $('<div>').css({padding:'20px'});
-        $wrap.html(`
-          <style>
-            .jq-field { margin-bottom:14px }
-            .jq-field label { display:block;font-size:11px;color:#94a3b8;margin-bottom:4px }
-            .jq-field input,.jq-field select {
-              width:100%;padding:7px 10px;border-radius:6px;
-              border:1px solid rgba(255,255,255,0.1);
-              background:rgba(255,255,255,0.05);color:#e2e8f0;
-              font-size:13px;font-family:system-ui;outline:none;
-            }
-            .jq-field input:focus,.jq-field select:focus { border-color:#3b82f6; }
-            .jq-err { color:#ef4444;font-size:11px;margin-top:3px;display:none }
-            .jq-msg { padding:10px;border-radius:6px;background:rgba(34,197,94,.15);
-              color:#22c55e;font-size:12px;display:none;margin-top:8px }
-          </style>
-          <form id="jq-form-inner">
-            <div class="jq-field">
-              <label>姓名 *</label>
-              <input name="name" placeholder="請輸入姓名" />
-              <div class="jq-err" data-for="name">姓名不可空白</div>
-            </div>
-            <div class="jq-field">
-              <label>部門 *</label>
-              <select name="dept">
-                <option value="">-- 請選擇 --</option>
-                <option>財務部</option><option>研發部</option><option>業務部</option><option>人資部</option>
-              </select>
-              <div class="jq-err" data-for="dept">請選擇部門</div>
-            </div>
-            <div class="jq-field">
-              <label>Email</label>
-              <input name="email" type="email" placeholder="example@company.com" />
-            </div>
-            <button type="submit" class="d-btn d-btn-accent" style="width:100%">送出表單</button>
-            <div class="jq-msg" id="jq-ok">✅ 表單已送出（jQuery .serialize()）</div>
-          </form>`);
-        $wrap.find('#jq-form-inner').on('submit', function(e) {
-          e.preventDefault();
-          let ok = true;
-          $(this).find('[name="name"]').each(function() {
-            const v = $(this).val().trim();
-            const $err = $('[data-for="name"]');
-            if (!v) { $err.show(); ok = false; } else { $err.hide(); }
-          });
-          $(this).find('[name="dept"]').each(function() {
-            const v = $(this).val();
-            const $err = $('[data-for="dept"]');
-            if (!v) { $err.show(); ok = false; } else { $err.hide(); }
-          });
-          if (ok) {
-            const data = $(this).serialize();
-            $('#jq-ok').text('✅ 送出：' + decodeURIComponent(data)).show();
+    // ── makeCalc (with jQuery) ────────────────────────────────
+    function makeCalc() {
+      const $wrap = $('<div>').css({ padding: '12px', fontFamily: 'system-ui', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '10px' });
+      const $out = $('<div>').css({ width: '100%', padding: '10px', fontSize: '22px', textAlign: 'right', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)', minHeight: '48px', wordBreak: 'break-all', color: 'inherit' }).text('0');
+      const $grid = $('<div>').css({ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '6px', flex: '1' });
+      let expr = '';
+      const keys = ['C','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','⌫','='];
+      keys.forEach(k => {
+        const isOp = '÷×−+='.includes(k);
+        const isFn = 'C±%'.includes(k);
+        $('<button>').text(k).css({
+          padding: '0', fontSize: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', fontWeight: '500',
+          background: isOp ? '#ff9500' : isFn ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)',
+          color: isOp ? '#fff' : 'inherit',
+        }).on('click', () => {
+          if (k === 'C') { expr = ''; $out.text('0'); }
+          else if (k === '=') {
+            try { const r = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))(); $out.text(r); expr = String(r); }
+            catch { $out.text('錯誤'); expr = ''; }
           }
+          else if (k === '⌫') { expr = expr.slice(0,-1); $out.text(expr || '0'); }
+          else if (k === '±') { try { const v = -Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))(); $out.text(v); expr = String(v); } catch {} }
+          else if (k === '%') { try { const v = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))() / 100; $out.text(v); expr = String(v); } catch {} }
+          else { expr += k; $out.text(expr); }
+        }).appendTo($grid);
+      });
+      $wrap.append($out, $grid);
+      return $wrap[0];
+    }
+
+    // ── makeLayoutDemo ────────────────────────────────────────
+    function makeLayoutDemo() {
+      const root = document.createElement('div');
+      root.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;font-family:system-ui;font-size:13px';
+      const tabs = document.createElement('div');
+      tabs.style.cssText = 'display:flex;gap:4px;padding:6px 8px;background:var(--dp-window-header-bg,#1e1e2e);border-bottom:1px solid var(--dp-window-header-border,#3a3a4a);flex-shrink:0';
+      const tabDefs = [
+        { id: 'tab-border', label: '📐 BorderLayout' },
+        { id: 'tab-nested', label: '🗂 巢狀 Layout' },
+      ];
+      const paneEls = {};
+      const tabBtns = {};
+      function switchTab(id) {
+        Object.keys(paneEls).forEach(k => {
+          paneEls[k].style.display = k === id ? 'flex' : 'none';
+          tabBtns[k].style.background = k === id ? 'var(--dp-window-border-active,#5b8dee)' : 'transparent';
+          tabBtns[k].style.color = k === id ? '#fff' : 'inherit';
         });
-        return $wrap[0];
       }
-    },
-
-    'jq-table': {
-      title: '📊 動態 Table', width: 480, height: 360, x: 130, y: 80,
-      content() {
-        const $wrap = $('<div>').css({display:'flex',flexDirection:'column',height:'100%',padding:'12px',gap:'8px'});
-        $wrap.html(`
-          <style>
-            .jq-tbl { width:100%;border-collapse:collapse;font-size:12px }
-            .jq-tbl th { background:rgba(59,130,246,.2);padding:6px 10px;text-align:left;color:#93c5fd;font-weight:600 }
-            .jq-tbl td { padding:5px 10px;border-top:1px solid rgba(255,255,255,0.06);color:#e2e8f0 }
-            .jq-tbl tr:hover td { background:rgba(255,255,255,0.03) }
-            .del-btn { background:none;border:none;color:#ef4444;cursor:pointer;font-size:12px }
-          </style>
-          <div style="display:flex;gap:6px">
-            <input id="jq-new-name" placeholder="姓名" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#e2e8f0;font-size:12px" />
-            <input id="jq-new-dept" placeholder="部門" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#e2e8f0;font-size:12px" />
-            <button id="jq-add-row" class="d-btn d-btn-accent">+ 新增</button>
-          </div>
-          <div style="flex:1;overflow-y:auto">
-            <table class="jq-tbl">
-              <thead><tr><th>#</th><th>姓名</th><th>部門</th><th></th></tr></thead>
-              <tbody id="jq-tbody">
-                <tr><td>1</td><td>王小明</td><td>研發部</td><td><button class="del-btn">✕</button></td></tr>
-                <tr><td>2</td><td>李美花</td><td>財務部</td><td><button class="del-btn">✕</button></td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div style="font-size:11px;color:#64748b">透過 jQuery DOM 動態新增 / 刪除列</div>`);
-        let seq = 3;
-        $wrap.on('click', '#jq-add-row', function() {
-          const name = $('#jq-new-name').val().trim();
-          const dept = $('#jq-new-dept').val().trim();
-          if (!name) return;
-          $('#jq-tbody').append(`<tr><td>${seq++}</td><td>${name}</td><td>${dept||'—'}</td><td><button class="del-btn">✕</button></td></tr>`);
-          $('#jq-new-name,#jq-new-dept').val('');
-        });
-        $wrap.on('click', '.del-btn', function() { $(this).closest('tr').remove(); });
-        return $wrap[0];
+      tabDefs.forEach(({ id, label }) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.style.cssText = 'padding:4px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:5px;cursor:pointer;background:transparent;font-size:12px;color:inherit;transition:background .15s';
+        btn.onclick = () => switchTab(id);
+        tabBtns[id] = btn;
+        tabs.appendChild(btn);
+      });
+      root.appendChild(tabs);
+      function cell(label) {
+        const d = document.createElement('div');
+        d.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:12px;user-select:none';
+        d.textContent = label;
+        return d;
       }
-    },
-
-    'jq-animate': {
-      title: '🎬 jQuery 動畫', width: 340, height: 300, x: 180, y: 100,
-      content() {
-        const $wrap = $('<div>').css({padding:'20px',textAlign:'center',fontFamily:'system-ui'});
-        $wrap.html(`
-          <div id="jq-box" style="width:80px;height:80px;background:#3b82f6;border-radius:12px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:28px">🎨</div>
-          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-            <button id="jq-fadein"  class="d-btn">fadeIn</button>
-            <button id="jq-fadeout" class="d-btn">fadeOut</button>
-            <button id="jq-slide"   class="d-btn">slideToggle</button>
-            <button id="jq-spin"    class="d-btn">rotate</button>
-          </div>
-          <p style="margin-top:16px;font-size:11px;color:#64748b">使用 jQuery 動畫操作視窗內的 DOM</p>`);
-        $wrap.find('#jq-fadein').click(()  => $wrap.find('#jq-box').fadeIn(400));
-        $wrap.find('#jq-fadeout').click(() => $wrap.find('#jq-box').fadeOut(400));
-        $wrap.find('#jq-slide').click(()  => $wrap.find('#jq-box').slideToggle(300));
-        let deg = 0;
-        $wrap.find('#jq-spin').click(() => {
-          deg += 90;
-          $wrap.find('#jq-box').css({transition:'transform .4s',transform:'rotate('+deg+'deg)'});
-        });
-        return $wrap[0];
+      function region(attrs, label) {
+        const d = document.createElement('div');
+        Object.entries(attrs).forEach(([k, v]) => d.dataset[k] = v);
+        d.appendChild(cell(label));
+        return d;
       }
-    },
-  };
+      function makePane() {
+        const d = document.createElement('div');
+        d.style.cssText = 'flex:1;position:relative;overflow:hidden;';
+        return d;
+      }
+      const pane1 = makePane();
+      pane1.appendChild(region({ region:'north', size:'80', title:'工具列', icon:'🔧' }, 'North — 工具列'));
+      pane1.appendChild(region({ region:'south', size:'80', title:'狀態列' }, 'South — 狀態列'));
+      pane1.appendChild(region({ region:'west',  size:'160', collapsible:'', title:'側邊欄', icon:'📁' }, 'West'));
+      pane1.appendChild(region({ region:'east',  size:'140', collapsible:'', title:'屬性', icon:'🔍' }, 'East'));
+      pane1.appendChild(region({ region:'center', title:'主內容' }, 'Center — 主編輯區'));
+      paneEls['tab-border'] = pane1;
+      root.appendChild(pane1);
+      new BorderLayout({ container: pane1 });
+      const pane2 = makePane();
+      pane2.appendChild(region({ region:'north', size:'80', title:'主工具列' }, 'North'));
+      pane2.appendChild(region({ region:'west', size:'140', collapsible:'', title:'導航' }, 'West'));
+      const centerOuter = document.createElement('div');
+      centerOuter.dataset.region = 'center';
+      centerOuter.appendChild(region({ region:'north', size:'70', title:'分頁列' }, 'Inner North — 分頁'));
+      centerOuter.appendChild(region({ region:'south', size:'70', collapsible:'', title:'輸出' }, 'Inner South — 輸出'));
+      centerOuter.appendChild(region({ region:'center', title:'編輯器' }, 'Inner Center'));
+      pane2.appendChild(centerOuter);
+      paneEls['tab-nested'] = pane2;
+      root.appendChild(pane2);
+      new BorderLayout({ container: pane2 });
+      switchTab('tab-border');
+      return root;
+    }
 
-  // ── 開窗 ──────────────────────────────────────────────
-  $('.d-app-btn[data-app]').on('click', function() {
-    const id = $(this).data('app');
-    const app = APPS[id]; if (!app) return;
-    wm.open({ id, title: app.title, width: app.width, height: app.height, x: app.x, y: app.y, content: app.content() });
-  });
+    // ── App definitions ────────────────────────────────────────
+    const defs = {
+      intro: {
+        title: '💙 jQuery 整合說明', width: 520, height: 440,
+        make() {
+          const $div = $('<div>').css({ padding: '20px', fontFamily: 'system-ui', height: '100%', overflow: 'auto', boxSizing: 'border-box' });
+          $div.html(`
+            <h3 style="margin-bottom:12px;font-size:16px">💙 DeskPane + jQuery</h3>
+            <p style="font-size:13px;color:#888;margin-bottom:16px;line-height:1.7">DeskPane 與 jQuery 完全相容，你可以用 jQuery 建立視窗內容，DeskPane 負責視窗管理。</p>
+            <pre style="font-size:11px;color:#7dd3fc;background:#1e293b;padding:12px;border-radius:6px;overflow:auto;margin-bottom:16px">&lt;script src="jquery-3.7.1.min.js"&gt;&lt;/script&gt;
+&lt;script src="deskpane.umd.js"&gt;&lt;/script&gt;
+&lt;script src="deskpane-desktop.umd.js"&gt;&lt;/script&gt;
+// 用 jQuery 建立視窗內容
+wm.open({ id: 'my-app', title: '📋 Form', content: $form[0] })</pre>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📋 <b>jQuery Form</b> — 驗證表單，$.serializeArray()</div>
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📊 <b>動態 Table</b> — jQuery DOM 操作新增/刪除列</div>
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🎬 <b>jQuery 動畫</b> — fadeIn/fadeOut/slideToggle/rotate</div>
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🧮 <b>計算機</b> — 以 jQuery 建立 UI</div>
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📐 <b>BorderLayout</b> — DeskPane.BorderLayout 佈局管理器</div>
+            </div>
+          `);
+          return $div[0];
+        }
+      },
+      form: {
+        title: '📋 jQuery Form', width: 420, height: 400,
+        make() {
+          const $div = $('<div>').css({ padding: '20px', fontFamily: 'system-ui', height: '100%', overflow: 'auto', boxSizing: 'border-box' });
+          $div.html(`
+            <h4 style="margin-bottom:16px;font-size:14px">📋 驗證表單</h4>
+            <form id="jq-form" style="display:flex;flex-direction:column;gap:12px">
+              <div>
+                <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:500">姓名 *</label>
+                <input name="name" type="text" placeholder="請輸入姓名" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);font-size:13px;background:rgba(255,255,255,0.06);color:inherit;box-sizing:border-box"/>
+              </div>
+              <div>
+                <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:500">部門 *</label>
+                <select name="dept" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);font-size:13px;background:rgba(30,30,50,0.9);color:inherit;box-sizing:border-box">
+                  <option value="">-- 請選擇 --</option>
+                  <option>研發部</option><option>業務部</option><option>財務部</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:500">Email *</label>
+                <input name="email" type="email" placeholder="name@company.com" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);font-size:13px;background:rgba(255,255,255,0.06);color:inherit;box-sizing:border-box"/>
+              </div>
+              <button type="submit" style="padding:10px;border-radius:8px;border:none;cursor:pointer;background:#4a90e2;color:#fff;font-size:14px;font-weight:600">送出</button>
+            </form>
+            <div id="form-result" style="margin-top:12px;font-size:12px;display:none"></div>
+          `);
+          $div.find('#jq-form').on('submit', function(e) {
+            e.preventDefault();
+            const data = $(this).serializeArray();
+            const errors = data.filter(f => !f.value.trim());
+            const $res = $div.find('#form-result');
+            if (errors.length) {
+              $res.text('⚠️ 請填寫所有必填欄位').css('color', '#f87171').show();
+              return;
+            }
+            const txt = data.map(f => f.name + ': ' + f.value).join('  |  ');
+            $res.text('✅ 送出成功：' + txt).css('color', '#34d399').show();
+          });
+          return $div[0];
+        }
+      },
+      table: {
+        title: '📊 動態 Table', width: 560, height: 420,
+        make() {
+          const $div = $('<div>').css({ padding: '16px', fontFamily: 'system-ui', height: '100%', overflow: 'auto', boxSizing: 'border-box' });
+          let rowId = 0;
+          const rows = [
+            { id: ++rowId, name: '張小明', dept: '研發部', score: 92 },
+            { id: ++rowId, name: '李大花', dept: '業務部', score: 87 },
+            { id: ++rowId, name: '王志遠', dept: '財務部', score: 78 },
+          ];
+          const names = ['陳美玲','林大鵬','吳明志','黃建成','劉雅琪'];
+          const depts = ['研發部','業務部','財務部','人資部'];
+          function render() {
+            $div.empty();
+            $('<h4>').text('📊 員工資料表').css({ marginBottom: '8px', fontSize: '14px' }).appendTo($div);
+            $('<button>').text('＋ 新增一列').css({
+              padding: '6px 16px', borderRadius: '6px', border: 'none', background: '#4a90e2',
+              color: '#fff', cursor: 'pointer', fontSize: '13px', marginBottom: '12px',
+            }).on('click', () => {
+              rows.push({ id: ++rowId, name: names[Math.floor(Math.random()*names.length)], dept: depts[Math.floor(Math.random()*depts.length)], score: Math.floor(Math.random()*40)+60 });
+              render();
+            }).appendTo($div);
+            const $table = $('<table>').css({ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }).appendTo($div);
+            $('<thead>').append($('<tr>').append(
+              ['ID','姓名','部門','分數','操作'].map(h => $('<th>').text(h).css({ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#888', fontWeight: '500' }))
+            )).appendTo($table);
+            const $tbody = $('<tbody>').appendTo($table);
+            rows.forEach(r => {
+              const idx = rows.indexOf(r);
+              $('<tr>').append(
+                $('<td>').text(r.id).css({ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }),
+                $('<td>').text(r.name).css({ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }),
+                $('<td>').text(r.dept).css({ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }),
+                $('<td>').text(r.score).css({ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }),
+                $('<td>').css({ padding: '4px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }).append(
+                  $('<button>').text('刪除').css({ padding: '3px 10px', borderRadius: '4px', border: '1px solid #f87171', background: 'transparent', color: '#f87171', cursor: 'pointer', fontSize: '12px' })
+                    .on('click', () => { rows.splice(idx, 1); render(); })
+                )
+              ).appendTo($tbody);
+            });
+          }
+          render();
+          return $div[0];
+        }
+      },
+      animate: {
+        title: '🎬 jQuery 動畫', width: 400, height: 380,
+        make() {
+          const $div = $('<div>').css({ padding: '20px', fontFamily: 'system-ui', height: '100%', overflow: 'auto', boxSizing: 'border-box' });
+          const $box = $('<div>').css({
+            width: '120px', height: '80px',
+            background: 'linear-gradient(135deg,#4a90e2,#7c3aed)',
+            borderRadius: '12px', margin: '0 auto 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: '32px',
+          }).text('🎬').appendTo($div);
+          const anims = [
+            ['fadeOut → fadeIn', () => $box.fadeOut(400, () => $box.fadeIn(400))],
+            ['slideUp → slideDown', () => $box.slideUp(400, () => $box.slideDown(400))],
+            ['animate 位移', () => $box.animate({ marginLeft: '80px' }, 300, () => $box.animate({ marginLeft: '0px' }, 300))],
+            ['CSS rotate 旋轉', () => {
+              $box.css({ transition: 'transform 0.5s', transform: 'rotate(360deg)' });
+              setTimeout(() => $box.css({ transform: 'rotate(0deg)' }), 550);
+            }],
+            ['pulse 縮放', () => {
+              $box.animate({ width: '144px', height: '96px' }, 200).animate({ width: '120px', height: '80px' }, 200);
+            }],
+          ];
+          anims.forEach(([label, fn]) => {
+            $('<button>').text(label).css({
+              display: 'block', width: '100%', padding: '9px 16px',
+              borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.06)', color: 'inherit',
+              cursor: 'pointer', fontSize: '13px', marginBottom: '8px', textAlign: 'left',
+              transition: 'background .15s',
+            }).on('mouseenter', function() { $(this).css('background','rgba(255,255,255,0.14)'); })
+              .on('mouseleave', function() { $(this).css('background','rgba(255,255,255,0.06)'); })
+              .on('click', fn).appendTo($div);
+          });
+          return $div[0];
+        }
+      },
+      calc: {
+        title: '🧮 計算機', width: 280, height: 380, resizable: false,
+        make: () => makeCalc(),
+      },
+      layout: {
+        title: '📐 BorderLayout', width: 720, height: 480,
+        make: () => makeLayoutDemo(),
+      },
+    };
 
-  // ── 主題 / 關閉全部 ───────────────────────────────────
-  let dark = true;
-  $('#btn-theme').click(function() {
-    dark = !dark;
-    setTheme(dark ? 'dark' : 'light', { basePath: '../../dist/themes' });
-    $(this).text(dark ? '🌙 暗色' : '☀️ 亮色');
-  });
-  $('#btn-destroy').click(() => { wm.destroy(); refreshDots(); });
+    function openApp(id) {
+      const def = defs[id];
+      if (!def) return;
+      currentWm().open({
+        id: 'app-' + id,
+        title: def.title,
+        width: def.width,
+        height: def.height,
+        resizable: def.resizable,
+        slotType: 'dom',
+        content: def.make(),
+      });
+    }
 
-  // ── 初始 ──────────────────────────────────────────────
-  wm.open({ id: 'jq-intro', title: APPS['jq-intro'].title, width: APPS['jq-intro'].width, height: APPS['jq-intro'].height, x: APPS['jq-intro'].x, y: APPS['jq-intro'].y, content: APPS['jq-intro'].content() });
-});
-</script>
+    openApp('intro');
+  </script>
 </body>
 </html>

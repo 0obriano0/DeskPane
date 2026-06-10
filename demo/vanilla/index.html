@@ -1,329 +1,294 @@
-﻿<!DOCTYPE html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DeskPane — Vanilla JS</title>
-  <link rel="stylesheet" href="../shared/base.css" />
-  <link id="dp-theme" rel="stylesheet" href="../../dist/themes/dark.css" />
+  <title>DeskPane — Vanilla JS Demo</title>
+  <link rel="stylesheet" href="../../dist/themes/dark.css" />
   <style>
-    /* ── Sidebar layout ── */
-    .d-sidebar { width: 220px; }
-
-    /* ── API Console ── */
-    .api-row {
-      display: flex; gap: 4px; margin-bottom: 6px;
-    }
-    .api-row select, .api-row input {
-      flex: 1; padding: 5px 8px; border-radius: 6px;
-      border: 1px solid var(--d-border2);
-      background: var(--d-panel2); color: var(--d-text);
-      font-size: 12px; font-family: var(--d-font);
-    }
-
-    /* ── Log sidebar section ── */
-    .sidebar-log {
-      height: 160px;
-      border-top: 1px solid var(--d-border);
-      padding: 8px 10px;
-      overflow-y: auto;
-      font-family: monospace;
-      font-size: 10px;
-      flex-shrink: 0;
-    }
-    .log-line { color: rgba(34,197,94,.85); padding: 1px 0; }
-    .log-line.ev-close { color: rgba(239,68,68,.8); }
-    .log-line.ev-focus { color: rgba(59,130,246,.85); }
-    .log-line.ev-move, .log-line.ev-resize { color: rgba(245,158,11,.8); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    #desktop-root { width: 100vw; height: 100vh; }
   </style>
 </head>
 <body>
-
-<!-- ── Header ── -->
-<header class="dh">
-  <a class="dh-back" href="../index.html">← Demo</a>
-  <span class="dh-logo">🖥</span>
-  <span class="dh-title">Vanilla JS</span>
-  <span class="dh-badge b-js">JavaScript</span>
-  <div class="dh-sep"></div>
-  <div class="dh-actions">
-    <button class="d-btn" id="btn-theme">🌙 暗色</button>
-    <button class="d-btn" id="btn-destroy">💣 關閉全部</button>
-  </div>
-</header>
-
-<!-- ── Layout ── -->
-<div class="d-layout">
-
-  <!-- 左側邊欄 -->
-  <aside class="d-sidebar">
-    <div class="d-sidebar-scroll">
-      <div class="d-section-title">應用程式</div>
-
-      <button class="d-app-btn" data-app="welcome">
-        <span class="icon">🖥</span><span class="label">功能介紹</span>
-      </button>
-      <button class="d-app-btn" data-app="editor">
-        <span class="icon">📝</span><span class="label">文字視窗</span>
-      </button>
-      <button class="d-app-btn" data-app="snap">
-        <span class="icon">⚡</span><span class="label">Snap 吸附</span>
-      </button>
-      <button class="d-app-btn" data-app="console">
-        <span class="icon">🎛</span><span class="label">API 控制台</span>
-      </button>
-      <button class="d-app-btn" data-app="counter">
-        <span class="icon">🔢</span><span class="label">Keep-Alive 計數器</span>
-      </button>
-      <button class="d-app-btn" data-app="dialog">
-        <span class="icon">🔒</span><span class="label">固定大小對話框</span>
-      </button>
-
-      <div class="d-section-title" style="margin-top:12px">API 控制台</div>
-      <div class="api-row">
-        <select id="api-target"><option value="">-- 選擇視窗 --</option></select>
-      </div>
-      <div class="api-row">
-        <button class="d-btn" style="flex:1" id="api-minimize">最小化</button>
-        <button class="d-btn" style="flex:1" id="api-maximize">最大化</button>
-      </div>
-      <div class="api-row">
-        <button class="d-btn" style="flex:1" id="api-restore">還原</button>
-        <button class="d-btn" style="flex:1" id="api-focus">置頂</button>
-      </div>
-      <div class="api-row">
-        <input id="api-title-input" placeholder="新標題..." />
-      </div>
-      <div class="api-row">
-        <button class="d-btn d-btn-accent" style="flex:1" id="api-set-title">setTitle</button>
-        <button class="d-btn" style="flex:1" id="api-close">close</button>
-      </div>
-    </div>
-
-    <!-- 事件 Log -->
-    <div class="sidebar-log" id="event-log">
-      <div class="log-line">📡 Event Log</div>
-    </div>
-  </aside>
-
-  <!-- 視窗畫布 -->
-  <div class="d-canvas" id="canvas"></div>
-</div>
-
-<script type="module">
-  import { WindowManager, setTheme } from '../../dist/deskpane.es.js';
-
-  const canvas = document.getElementById('canvas');
-  const wm = new WindowManager({ container: canvas, isolated: true, snap: true });
-
-  // ── 事件 Log ────────────────────────────────────────────
-  const log = document.getElementById('event-log');
-  const CLASS = {
-    'window:closed': 'ev-close',
-    'window:focused': 'ev-focus',
-    'window:moved': 'ev-move',
-    'window:resized': 'ev-resize',
-  };
-  const ALL_EVENTS = [
-    'window:opened','window:closed','window:focused',
-    'window:minimized','window:maximized','window:restored',
-    'window:moved','window:resized',
-  ];
-  ALL_EVENTS.forEach(ev => {
-    wm.events.on(ev, d => {
-      const el = document.createElement('div');
-      el.className = 'log-line ' + (CLASS[ev] || '');
-      el.textContent = `${new Date().toLocaleTimeString('zh-TW',{hour12:false})} ${ev.replace('window:','')} [${d?.id ?? ''}]`;
-      log.insertBefore(el, log.firstChild);
-      if (log.children.length > 60) log.lastChild.remove();
-      refreshApiSelect();
-      refreshAppDots();
+  <div id="desktop-root"></div>
+  <script type="module">
+    import { WindowManager, BorderLayout, setTheme } from '../../dist/deskpane.es.js';
+    import { Desktop } from '../../dist/deskpane-desktop.es.js';
+    import { WorkspaceManager, TaskView } from '../../dist/deskpane-workspace.es.js';
+    
+    const desktop = new Desktop({
+      container: document.getElementById('desktop-root'),
+      dragThreshold: 10,
+      dock: { position: 'bottom', showLabels: true, iconSize: 44, items: [] },
+      icons: [
+        { id: 'icon-intro',   label: '功能介紹',    icon: '🖥',  action: () => openApp('intro')   },
+        { id: 'icon-editor',  label: '文字編輯器',  icon: '📝',  action: () => openApp('editor')  },
+        { id: 'icon-counter', label: 'Keep-Alive', icon: '🔢',  action: () => openApp('counter') },
+        { id: 'icon-snap',    label: 'Snap 吸附',  icon: '⚡',  action: () => openApp('snap')    },
+        { id: 'icon-calc',    label: '計算機',      icon: '🧮',  action: () => openApp('calc')    },
+        { id: 'icon-fixed',   label: '固定大小',    icon: '🔒',  action: () => openApp('fixed')   },
+        { id: 'icon-layout',  label: 'BorderLayout', icon: '📐', action: () => openApp('layout')  },
+      ],
     });
-  });
 
-  // ── API Select sync ─────────────────────────────────────
-  const apiTarget = document.getElementById('api-target');
-  function refreshApiSelect() {
-    const cur = apiTarget.value;
-    apiTarget.innerHTML = '<option value="">-- 選擇視窗 --</option>';
-    wm.getWindowIds().forEach(id => {
-      const s = wm.getState(id);
-      const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = s?.title ?? id;
-      if (id === cur) opt.selected = true;
-      apiTarget.appendChild(opt);
+    const wsMgr = new WorkspaceManager(desktop.getElement(), {
+      animationMs: 220,
+      windowManagerOptions: { isolated: true, snap: true },
     });
-  }
-
-  // ── Dot on sidebar buttons ──────────────────────────────
-  function refreshAppDots() {
-    document.querySelectorAll('.d-app-btn[data-app]').forEach(btn => {
-      const id = btn.dataset.app;
-      const open = wm.getWindowIds().includes(id);
-      btn.classList.toggle('active', open);
-      let dot = btn.querySelector('.d-app-dot');
-      if (open && !dot) {
-        dot = document.createElement('span');
-        dot.className = 'd-app-dot';
-        btn.appendChild(dot);
-      } else if (!open && dot) {
-        dot.remove();
-      }
+    wsMgr.addWorkspace({ id: 'ws-1', label: '桌面 1' });
+    desktop.syncDockWithWindows(wsMgr.getWindowManager('ws-1'));
+    wsMgr.events.on('workspace:switched', ({ to }) => {
+      desktop.syncDockWithWindows(wsMgr.getWindowManager(to));
     });
-  }
+    const taskView = new TaskView(wsMgr, { dock: desktop.getDock() });
 
-  // ── App 內容工廠 ────────────────────────────────────────
-  function el(html) {
-    const d = document.createElement('div');
-    d.style.cssText = 'width:100%;height:100%;overflow:auto';
-    d.innerHTML = html;
-    return d;
-  }
+    function currentWm() {
+      const cur = wsMgr.current;
+      if (!cur) throw new Error('No active workspace');
+      return wsMgr.getWindowManager(cur.id);
+    }
 
-  const APPS = {
-    welcome: {
-      title: '🖥 功能介紹', width: 460, height: 360, x: 30, y: 20,
-      content: () => el(`
-        <div style="padding:24px;line-height:1.8;font-family:system-ui">
-          <h2 style="margin:0 0 12px;font-size:17px;color:#60a5fa">DeskPane 功能總覽</h2>
-          <div style="display:grid;gap:6px;font-size:13px">
-            <div>🖱 <strong>拖曳 / 縮放</strong> — 拖曳標題列移動，拖曳邊框縮放</div>
-            <div>⚡ <strong>Snap 吸附</strong> — 拖曳靠近邊緣自動對齊，顯示藍色 guide</div>
-            <div>🔼 <strong>最小化 / 最大化</strong> — 點擊視窗按鈕或使用 API</div>
-            <div>🔒 <strong>Keep-Alive</strong> — 最小化後 DOM 不銷毀，狀態完整保留</div>
-            <div>📡 <strong>EventBus</strong> — 訂閱 opened / closed / moved 等事件</div>
-            <div>🎨 <strong>主題切換</strong> — light / dark CSS 變數，右上角可切換</div>
-          </div>
-          <p style="margin-top:16px;font-size:12px;color:#94a3b8">
-            左側選單開啟各個 Demo 視窗 👈<br/>
-            拖曳此視窗靠近邊框，看 Snap 吸附效果 ⚡
-          </p>
-        </div>`)
-    },
-    editor: {
-      title: '📝 文字視窗', width: 420, height: 320, x: 80, y: 60,
-      content: () => {
-        const d = document.createElement('div');
-        d.style.cssText = 'display:flex;flex-direction:column;height:100%;padding:12px;gap:8px';
-        d.innerHTML = `
-          <div style="font-size:11px;color:#94a3b8">拖曳標題列移動 · 拖曳邊框縮放 · 最小化後文字不會消失</div>
-          <textarea style="flex:1;width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);
-            background:rgba(255,255,255,0.04);color:#e2e8f0;font-size:13px;font-family:monospace;
-            resize:none;outline:none" placeholder="在此輸入文字...
-最小化後再還原，內容完整保留 ✓"></textarea>`;
-        return d;
-      }
-    },
-    snap: {
-      title: '⚡ Snap 吸附 Demo', width: 340, height: 260, x: 130, y: 100,
-      content: () => el(`
-        <div style="padding:20px;line-height:1.9;font-size:13px">
-          <h3 style="margin:0 0 12px;color:#f59e0b;font-size:15px">⚡ Snap 吸附說明</h3>
-          <p>拖曳這個視窗，當它靠近以下位置時會自動吸附並顯示藍色導引線：</p>
-          <ul style="padding-left:18px;margin-top:8px;color:#94a3b8">
-            <li>畫布左 / 右 / 上 / 下邊緣</li>
-            <li>其他視窗的邊緣</li>
-          </ul>
-          <p style="margin-top:12px;font-size:11px;color:#64748b">
-            感應閾值預設 20px，可透過 <code>snapThreshold</code> 選項調整。
-          </p>
-        </div>`)
-    },
-    console: {
-      title: '🎛 API 控制台', width: 400, height: 300, x: 180, y: 60,
-      content: () => el(`
-        <div style="padding:20px;line-height:1.9;font-size:13px">
-          <h3 style="margin:0 0 8px;color:#a78bfa;font-size:15px">🎛 API 控制台</h3>
-          <p>使用左側側欄的「API 控制台」即時呼叫：</p>
-          <ul style="padding-left:18px;margin-top:8px;color:#94a3b8;font-size:12px">
-            <li><code>wm.minimize(id)</code> — 最小化</li>
-            <li><code>wm.maximize(id)</code> — 最大化</li>
-            <li><code>wm.restore(id)</code> — 還原</li>
-            <li><code>wm.focus(id)</code> — 置頂</li>
-            <li><code>wm.setTitle(id, title)</code> — 更新標題</li>
-            <li><code>wm.close(id)</code> — 關閉</li>
-          </ul>
-        </div>`)
-    },
-    counter: {
-      title: '🔢 Keep-Alive 計數器', width: 280, height: 220, x: 230, y: 100,
-      content: () => {
-        const d = document.createElement('div');
-        d.style.cssText = 'padding:28px;text-align:center;font-family:system-ui';
-        let count = 0;
-        const num = document.createElement('div');
-        num.style.cssText = 'font-size:56px;font-weight:700;color:#3b82f6;line-height:1;margin-bottom:16px';
-        num.textContent = '0';
+    // ── makeCalc ──────────────────────────────────────────────
+    function makeCalc() {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'padding:12px;font-family:system-ui;height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px';
+      const out = document.createElement('div');
+      out.style.cssText = 'width:100%;padding:10px;font-size:22px;text-align:right;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);min-height:48px;word-break:break-all;color:inherit';
+      out.textContent = '0';
+      const grid = document.createElement('div');
+      grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:1';
+      let expr = '';
+      const keys = ['C','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','⌫','='];
+      keys.forEach(k => {
         const btn = document.createElement('button');
-        btn.textContent = '+ 計數';
-        btn.style.cssText = 'padding:10px 28px;font-size:14px;border-radius:8px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-family:system-ui';
-        btn.onclick = () => { num.textContent = String(++count); };
-        const note = document.createElement('p');
-        note.style.cssText = 'font-size:11px;color:#64748b;margin-top:12px';
-        note.textContent = '最小化再還原，計數不會重置 ✓';
-        d.append(num, btn, note);
+        btn.textContent = k;
+        const isOp = '÷×−+='.includes(k);
+        const isFn = 'C±%'.includes(k);
+        btn.style.cssText = [
+          'padding:0;font-size:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);cursor:pointer;font-weight:500',
+          'background:' + (isOp ? '#ff9500' : isFn ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)'),
+          'color:' + (isOp ? '#fff' : 'inherit'),
+        ].join(';');
+        btn.onclick = () => {
+          if (k === 'C') { expr = ''; out.textContent = '0'; }
+          else if (k === '=') {
+            try { const r = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))(); out.textContent = r; expr = String(r); }
+            catch { out.textContent = '錯誤'; expr = ''; }
+          }
+          else if (k === '⌫') { expr = expr.slice(0,-1); out.textContent = expr || '0'; }
+          else if (k === '±') { try { const v = -Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))(); out.textContent = v; expr = String(v); } catch {} }
+          else if (k === '%') { try { const v = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))() / 100; out.textContent = v; expr = String(v); } catch {} }
+          else { expr += k; out.textContent = expr; }
+        };
+        grid.appendChild(btn);
+      });
+      wrap.append(out, grid);
+      return wrap;
+    }
+
+    // ── makeLayoutDemo ────────────────────────────────────────
+    function makeLayoutDemo() {
+      const root = document.createElement('div');
+      root.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;font-family:system-ui;font-size:13px';
+      const tabs = document.createElement('div');
+      tabs.style.cssText = 'display:flex;gap:4px;padding:6px 8px;background:var(--dp-window-header-bg,#1e1e2e);border-bottom:1px solid var(--dp-window-header-border,#3a3a4a);flex-shrink:0';
+      const tabDefs = [
+        { id: 'tab-border', label: '📐 BorderLayout' },
+        { id: 'tab-nested', label: '🗂 巢狀 Layout' },
+      ];
+      const paneEls = {};
+      const tabBtns = {};
+      function switchTab(id) {
+        Object.keys(paneEls).forEach(k => {
+          paneEls[k].style.display = k === id ? 'flex' : 'none';
+          tabBtns[k].style.background = k === id ? 'var(--dp-window-border-active,#5b8dee)' : 'transparent';
+          tabBtns[k].style.color = k === id ? '#fff' : 'inherit';
+        });
+      }
+      tabDefs.forEach(({ id, label }) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.style.cssText = 'padding:4px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:5px;cursor:pointer;background:transparent;font-size:12px;color:inherit;transition:background .15s';
+        btn.onclick = () => switchTab(id);
+        tabBtns[id] = btn;
+        tabs.appendChild(btn);
+      });
+      root.appendChild(tabs);
+      function cell(label) {
+        const d = document.createElement('div');
+        d.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:12px;user-select:none';
+        d.textContent = label;
         return d;
       }
-    },
-    dialog: {
-      title: '🔒 固定大小對話框', width: 360, height: 200, x: 160, y: 140,
-      content: () => {
+      function region(attrs, label) {
         const d = document.createElement('div');
-        d.style.cssText = 'padding:28px 24px;font-family:system-ui;display:flex;flex-direction:column;gap:14px;height:100%;box-sizing:border-box';
-        d.innerHTML = `
-          <p style="font-size:14px;line-height:1.7;margin:0">
-            此視窗設定了 <code style="background:rgba(255,255,255,0.12);padding:2px 6px;border-radius:4px">resizable: false</code>。<br>
-            試著拖曳邊框縮放，或點擊中間按鈕——兩者皆無效。
-          </p>
-          <div style="display:flex;justify-content:flex-end;gap:8px">
-            <button id="dlg-cancel" style="padding:6px 18px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:inherit;cursor:pointer;font-size:13px">取消</button>
-            <button style="padding:6px 18px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-size:13px">確認</button>
-          </div>`;
-        d.querySelector('#dlg-cancel').addEventListener('click', () => wm.close('dialog'));
+        Object.entries(attrs).forEach(([k, v]) => d.dataset[k] = v);
+        d.appendChild(cell(label));
         return d;
+      }
+      function makePane() {
+        const d = document.createElement('div');
+        d.style.cssText = 'flex:1;position:relative;overflow:hidden;';
+        return d;
+      }
+      const pane1 = makePane();
+      pane1.appendChild(region({ region:'north', size:'80', title:'工具列', icon:'🔧' }, 'North — 工具列'));
+      pane1.appendChild(region({ region:'south', size:'80', title:'狀態列' }, 'South — 狀態列'));
+      pane1.appendChild(region({ region:'west',  size:'160', collapsible:'', title:'側邊欄', icon:'📁' }, 'West'));
+      pane1.appendChild(region({ region:'east',  size:'140', collapsible:'', title:'屬性', icon:'🔍' }, 'East'));
+      pane1.appendChild(region({ region:'center', title:'主內容' }, 'Center — 主編輯區'));
+      paneEls['tab-border'] = pane1;
+      root.appendChild(pane1);
+      new BorderLayout({ container: pane1 });
+      const pane2 = makePane();
+      pane2.appendChild(region({ region:'north', size:'80', title:'主工具列' }, 'North'));
+      pane2.appendChild(region({ region:'west', size:'140', collapsible:'', title:'導航' }, 'West'));
+      const centerOuter = document.createElement('div');
+      centerOuter.dataset.region = 'center';
+      centerOuter.appendChild(region({ region:'north', size:'70', title:'分頁列' }, 'Inner North — 分頁'));
+      centerOuter.appendChild(region({ region:'south', size:'70', collapsible:'', title:'輸出' }, 'Inner South — 輸出'));
+      centerOuter.appendChild(region({ region:'center', title:'編輯器' }, 'Inner Center'));
+      pane2.appendChild(centerOuter);
+      paneEls['tab-nested'] = pane2;
+      root.appendChild(pane2);
+      new BorderLayout({ container: pane2 });
+      switchTab('tab-border');
+      return root;
+    }
+
+    // ── App state (keep-alive) ────────────────────────────────
+    let editorContent = 'DeskPane Vanilla ES Module Demo\n================================\n\n此為文字編輯器示範。\n最小化後重新開啟，內容依然保留（Keep-Alive）。\n';
+    let counterValue = 0;
+
+    const defs = {
+      intro: {
+        title: '🖥 功能介紹', width: 500, height: 380,
+        make() {
+          const div = document.createElement('div');
+          div.style.cssText = 'padding:20px;font-family:system-ui;height:100%;overflow:auto;box-sizing:border-box;line-height:1.7';
+          div.innerHTML = `
+            <h3 style="margin-bottom:12px;font-size:16px">🖥 Vanilla JS ES Module Demo</h3>
+            <p style="font-size:13px;color:#888;margin-bottom:16px">本頁以原生 ES Module 方式引入 DeskPane，示範框架各項核心功能。</p>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📝 <b>文字編輯器</b> — textarea，最小化後內容保留（Keep-Alive）</div>
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🔢 <b>Keep-Alive 計數器</b> — 最小化後數值不重置</div>
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">⚡ <b>Snap 吸附</b> — 視窗拖曳時自動邊緣吸附</div>
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🧮 <b>計算機</b> — 完整四則運算邏輯</div>
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🔒 <b>固定大小</b> — resizable: false 示範</div>
+              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📐 <b>BorderLayout</b> — 區域佈局管理器</div>
+            </div>
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:16px 0"/>
+            <pre style="font-size:11px;color:#7dd3fc;background:#1e293b;padding:10px;border-radius:6px;overflow:auto">import { WindowManager, BorderLayout } from '../../dist/deskpane.es.js'
+import { Desktop } from '../../dist/deskpane-desktop.es.js'
+import { WorkspaceManager, TaskView } from '../../dist/deskpane-workspace.es.js'</pre>
+          `;
+          return div;
+        }
       },
-      resizable: false,
-    },
-  };
+      editor: {
+        title: '📝 文字編輯器', width: 560, height: 380,
+        make() {
+          const wrap = document.createElement('div');
+          wrap.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column';
+          const ta = document.createElement('textarea');
+          ta.value = editorContent;
+          ta.style.cssText = 'flex:1;padding:12px;font-size:14px;font-family:monospace;border:none;outline:none;resize:none;background:transparent;color:inherit';
+          ta.placeholder = '開始輸入...';
+          ta.oninput = () => { editorContent = ta.value; };
+          const bar = document.createElement('div');
+          bar.style.cssText = 'padding:6px 12px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:rgba(255,255,255,0.4);background:rgba(0,0,0,0.2)';
+          bar.textContent = '最小化後重新開啟，內容依然保留（Keep-Alive 狀態）';
+          wrap.append(ta, bar);
+          return wrap;
+        }
+      },
+      counter: {
+        title: '🔢 Keep-Alive 計數器', width: 300, height: 280,
+        make() {
+          const wrap = document.createElement('div');
+          wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;font-family:system-ui;padding:20px;text-align:center';
+          const num = document.createElement('div');
+          num.textContent = counterValue;
+          num.style.cssText = 'font-size:64px;font-weight:700;line-height:1;color:#3b82f6';
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;gap:12px';
+          [['－', -1], ['＋', 1]].forEach(([label, delta]) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.style.cssText = 'width:48px;height:48px;font-size:24px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);cursor:pointer;background:rgba(255,255,255,0.08);color:inherit';
+            btn.onclick = () => { counterValue += delta; num.textContent = counterValue; num.style.color = counterValue > 0 ? '#34d399' : counterValue < 0 ? '#f87171' : '#3b82f6'; };
+            row.appendChild(btn);
+          });
+          const rst = document.createElement('button');
+          rst.textContent = '重置';
+          rst.style.cssText = 'padding:6px 18px;font-size:13px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);cursor:pointer;background:rgba(255,255,255,0.06);color:inherit';
+          rst.onclick = () => { counterValue = 0; num.textContent = 0; num.style.color = '#3b82f6'; };
+          const hint = document.createElement('p');
+          hint.style.cssText = 'font-size:11px;color:#888;margin:0';
+          hint.textContent = '最小化後重新開啟，數值保留（Keep-Alive）';
+          wrap.append(num, row, rst, hint);
+          return wrap;
+        }
+      },
+      snap: {
+        title: '⚡ Snap 吸附示範', width: 420, height: 280,
+        make() {
+          const div = document.createElement('div');
+          div.style.cssText = 'padding:20px;font-family:system-ui;height:100%;overflow:auto;box-sizing:border-box';
+          div.innerHTML = `
+            <h4 style="margin-bottom:12px;font-size:15px">⚡ 視窗吸附功能</h4>
+            <p style="font-size:13px;line-height:1.8;color:#aaa">拖曳多個視窗靠近時，會自動吸附對齊邊緣。</p>
+            <ul style="margin-top:12px;font-size:13px;line-height:2;padding-left:20px;color:#ccc">
+              <li>視窗間隔小於吸附閾值時自動對齊</li>
+              <li>支援上下左右四個方向</li>
+              <li>WorkspaceManager 選項：<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px">snap: true</code></li>
+              <li>可透過 <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px">wm.setSnapGap(n)</code> 調整間距</li>
+            </ul>
+            <p style="margin-top:16px;font-size:12px;color:#666">試試拖曳本視窗靠近其他視窗的邊緣！</p>
+          `;
+          return div;
+        }
+      },
+      calc: {
+        title: '🧮 計算機', width: 280, height: 380, resizable: false,
+        make: () => makeCalc(),
+      },
+      fixed: {
+        title: '🔒 固定大小對話框', width: 340, height: 200, resizable: false,
+        make() {
+          const div = document.createElement('div');
+          div.style.cssText = 'padding:24px;font-family:system-ui;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;text-align:center';
+          div.innerHTML = `
+            <div style="font-size:36px">🔒</div>
+            <div style="font-size:15px;font-weight:600">固定大小視窗</div>
+            <div style="font-size:13px;color:#888;line-height:1.6">此視窗設定了 <code style="background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:3px">resizable: false</code><br/>無法被調整大小。</div>
+          `;
+          return div;
+        }
+      },
+      layout: {
+        title: '📐 BorderLayout', width: 720, height: 480,
+        make: () => makeLayoutDemo(),
+      },
+    };
 
-  // ── App 開啟 ────────────────────────────────────────────
-  document.querySelectorAll('.d-app-btn[data-app]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.app;
-      const app = APPS[id];
-      if (!app) return;
-      wm.open({ id, title: app.title, width: app.width, height: app.height, x: app.x, y: app.y, resizable: app.resizable, content: app.content() });
-    });
-  });
+    function openApp(id) {
+      const def = defs[id];
+      if (!def) return;
+      currentWm().open({
+        id: 'app-' + id,
+        title: def.title,
+        width: def.width,
+        height: def.height,
+        resizable: def.resizable,
+        slotType: 'dom',
+        content: def.make(),
+      });
+    }
 
-  // ── API console ─────────────────────────────────────────
-  document.getElementById('api-minimize').onclick  = () => { const id = apiTarget.value; if(id) wm.minimize(id); };
-  document.getElementById('api-maximize').onclick  = () => { const id = apiTarget.value; if(id) wm.maximize(id); };
-  document.getElementById('api-restore').onclick   = () => { const id = apiTarget.value; if(id) wm.restore(id); };
-  document.getElementById('api-focus').onclick     = () => { const id = apiTarget.value; if(id) wm.focus(id); };
-  document.getElementById('api-close').onclick     = () => { const id = apiTarget.value; if(id) wm.close(id); };
-  document.getElementById('api-set-title').onclick = () => {
-    const id = apiTarget.value;
-    const title = document.getElementById('api-title-input').value.trim();
-    if (id && title) { wm.setTitle(id, title); refreshApiSelect(); }
-  };
-
-  // ── 主題切換 ────────────────────────────────────────────
-  let darkMode = true;
-  const btnTheme = document.getElementById('btn-theme');
-  btnTheme.addEventListener('click', () => {
-    darkMode = !darkMode;
-    setTheme(darkMode ? 'dark' : 'light', { basePath: '../../dist/themes' });
-    btnTheme.textContent = darkMode ? '🌙 暗色' : '☀️ 亮色';
-  });
-
-  document.getElementById('btn-destroy').onclick = () => {
-    wm.destroy(); refreshApiSelect(); refreshAppDots();
-  };
-
-  // ── 初始開啟 welcome ────────────────────────────────────
-  wm.open({ id: 'welcome', title: APPS.welcome.title, width: APPS.welcome.width, height: APPS.welcome.height, x: APPS.welcome.x, y: APPS.welcome.y, content: APPS.welcome.content() });
-</script>
+    openApp('intro');
+  </script>
 </body>
 </html>
