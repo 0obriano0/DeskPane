@@ -107,8 +107,8 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <div ref={desktopRef} style={{ width: '100%', height: '100%' }} />
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+      <div ref={desktopRef} style={{ width: '100%', height: '100%', position: 'relative' }} />
       {windows.map(w => createPortal(<w.component />, w.bodyEl, w.id))}
     </div>
   )

@@ -1,6 +1,6 @@
 <template>
-  <div style="width:100vw;height:100vh">
-    <div ref="desktopRootEl" style="width:100%;height:100%"></div>
+  <div style="width:100vw;height:100vh;position:relative;overflow:hidden">
+    <div ref="desktopRootEl" style="width:100%;height:100%;position:relative"></div>
 
     <!-- Teleport Vue components into DeskPane window body elements -->
     <template v-for="win in windows" :key="win.id">
