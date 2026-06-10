@@ -1,6 +1,6 @@
 # DeskPane — 專案狀態（AI 快查版）
 
-> 最後更新：2026-06-10 13:55 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
+> 最後更新：2026-06-10 15:25 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
 > 此文件為 AI 輔助開發設計，優先說明「現在是什麼」，歷史細節見備份。
 
 ---
@@ -51,7 +51,7 @@
 | **子視窗管理（parentId / modal）** — `WindowConfig.parentId` 指定父視窗，子視窗 z-index 永遠高於父；`modal:true` = 父視窗加半透明遮罩，點遮罩時子視窗 shake 提示；子視窗隨父最小化/restore；關閉父視窗時 cascade 關閉子視窗；子視窗不在 Dock 獨立顯示；新增 `shake(id)` / `getChildIds(id)` / `getRootWindowId(id)` API；新增事件 `window:child-opened` / `window:child-closed` | ✅ | `src/core/types.ts`, `WindowManager.ts`, `DOMRenderer.ts`, `deskpane.css` |
 | **Dock 群組縮略圖預覽（Windows 風格）** — 父視窗 Dock item hover 280ms 後顯示父+所有子視窗縮略圖卡片列；每張卡片有標題 + × 關閉鈕（hover 才顯示）；Sticky hover（滑鼠移入 popup 不消失）；modal 安全：關閉父視窗前若有 modal 子視窗，shake 子視窗本體並搖晃卡片提示；`syncExisting` 補傳 `parentId` 修正子視窗過濾 bug | ✅ | `src/desktop/Desktop.ts`, `src/desktop/types.ts`, `src/styles/deskpane-desktop.css` |
 | **專案改名 WebOS → DeskPane** — package.json name、UMD global、CSS class prefix（`.dp-*`）、CSS vars（`--dp-*`）、dist 檔名全部更新 | ✅ | 85 個檔案更新 |
-| **npm 發佈 deskpane@0.1.0** — `npm publish` 搶佔套件名稱 | ✅ | npmjs.com/package/deskpane |
+| **npm 發佈 deskpane@0.1.1** — 整合 GitHub Actions OIDC Trusted Publisher 自動發佈 | ✅ | npmjs.com/package/deskpane |
 | **GitHub Repo 改名** — remote URL 更新為 `https://github.com/0obriano0/DeskPane.git` | ✅ | |
 | **git tag v0.1.0** — 第一個 Release 標籤 | ✅ | |
 | **README 改版** — npm/downloads/license/bundle size 四個 badge；Why DeskPane；Features 依模組分組；CDN/unpkg 安裝說明；Roadmap；Contributing | ✅ | `README.md` |
@@ -319,11 +319,9 @@ npm run build:lib     # Rollup 建置 → dist/（ES + UMD + min + .d.ts + theme
 npm run clean         # 清除 dist/（含 Dropbox EBUSY auto-retry）
 npm run release       # clean + build:lib + 打包 release/ 交付資料夾
 
-# ── 發佈 npm ──────────────────────────────────────────────────
-npm login             # 瀏覽器 OAuth 登入（或用 npm token）
-npm version patch/minor/major  # 更新版本號
-npm run build:lib     # 重新 build
-npm publish           # 發佈到 npmjs.com
+# ── 發佈 npm (自動化 CI/CD) ────────────────────────────────────
+npm version patch/minor/major  # 更新版本號並自動產生 git tag
+git push --follow-tags         # push 後 GitHub Actions 自動編譯與發佈
 
 # ── 複製主題 CSS（build:lib 已自動執行）────────────────────────
 node scripts/build-themes.mjs   # src/themes/ → dist/themes/ + demo/*/public/themes/
