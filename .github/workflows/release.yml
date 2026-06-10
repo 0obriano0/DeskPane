@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # 建立 GitHub Release
+  id-token: write   # npm OIDC Trusted Publisher
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 從 tag (e.g. v0.2.0) 取出版本號 0.2.0
+      - name: Extract version
+        id: ver
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      # 將 package.json version 與 tag 同步（不建立額外 git commit）
+      - name: Sync package.json version
+        run: npm version ${{ steps.ver.outputs.VERSION }} --no-git-tag-version
+
+      # 執行 rollup build + build-themes
+      - name: Build library
+        run: npm run build:lib
+
+      # 產生 release/deskpane-vX.X.X/ 資料夾（含 dist + README + slim package.json）
+      - name: Pack release folder
+        run: node scripts/pack-release.mjs
+
+      # 壓縮成 zip
+      - name: Zip release
+        run: |
+          cd release
+          zip -r ../deskpane-v${{ steps.ver.outputs.VERSION }}.zip deskpane-v${{ steps.ver.outputs.VERSION }}/
+
+      # 建立 GitHub Release，附上 zip
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.ver.outputs.VERSION }}
+          generate_release_notes: true
+          files: deskpane-v${{ steps.ver.outputs.VERSION }}.zip
+
+      # 發佈到 npm（使用 OIDC Trusted Publisher，不需要 NPM_TOKEN）
+      - name: Publish to npm
+        run: npm publish --provenance --access public
