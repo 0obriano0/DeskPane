@@ -56,6 +56,10 @@ jobs:
           generate_release_notes: true
           files: deskpane-v${{ steps.ver.outputs.VERSION }}.zip
 
+      # setup-node 寫入的 .npmrc 含空 _authToken 會干擾 OIDC，先清除它
+      - name: Clear _authToken from .npmrc
+        run: sed -i '/^\/\/registry.npmjs.org\/:_authToken/d' ~/.npmrc
+
       # 發佈到 npm（OIDC Trusted Publisher，不需要 NPM_TOKEN）
       - name: Publish to npm
         run: npm publish --provenance --access public
