@@ -1732,7 +1732,7 @@ class WindowManager {
  * 第一次呼叫時，若頁面中不存在指定 id 的 `<link>` 元素，
  * 會自動建立一個並插入 `<head>`。
  *
- * @param preset  `'light'` 或 `'dark'`
+ * @param preset  `'light'`、`'dark'` 或 `'medieval-pixel'`
  * @param options 選填設定（basePath / linkId）
  *
  * @example

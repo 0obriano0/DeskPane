@@ -286,7 +286,7 @@ declare function snapPosition(drag: SnapRect, containerSize: {
 }, others: SnapRect[], threshold: number, gap?: number): SnapResult;
 
 /** 內建主題名稱 */
-type WosThemePreset = 'light' | 'dark';
+type WosThemePreset = 'light' | 'dark' | 'medieval-pixel';
 interface SetThemeOptions {
     /**
      * 主題 CSS 檔案所在目錄路徑（不含結尾 `/`）。
@@ -305,7 +305,7 @@ interface SetThemeOptions {
  * 第一次呼叫時，若頁面中不存在指定 id 的 `<link>` 元素，
  * 會自動建立一個並插入 `<head>`。
  *
- * @param preset  `'light'` 或 `'dark'`
+ * @param preset  `'light'`、`'dark'` 或 `'medieval-pixel'`
  * @param options 選填設定（basePath / linkId）
  *
  * @example
