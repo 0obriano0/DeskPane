@@ -27,7 +27,7 @@
 | CSS 單一來源（Single Source of Truth）— core / desktop / layout / workspace / taskview | ✅ | `src/styles/*.css` |
 | **穩定 CSS 載入策略** — 可關閉 runtime inject、重複偵測、runtime style 前插，避免覆蓋 app override | ✅ | `src/styles/inject.ts`, `DOMRenderer.ts`, `desktop/styles.ts`, `workspace/*` |
 | Rollup rawCss() plugin — build time 將 `.css` 轉為 JS 字串內嵌 | ✅ | `rollup.lib.config.mjs` |
-| light.css / dark.css（Core + Desktop 變數） | ✅ | `src/themes/*.css` |
+| light.css / dark.css / medieval-pixel.css（Core + Desktop 變數） | ✅ | `src/themes/*.css` |
 | `setTheme()` 工具函式 | ✅ | `src/themes/setTheme.ts` |
 | BorderLayout（5 區域 + 折疊 Strip） | ✅ | `src/layout/BorderLayout.ts` |
 | Panel（可折疊標題面板） | ✅ | `src/layout/Panel.ts` |
@@ -122,7 +122,8 @@ DeskPane/
 │   ├── deskpane-workspace.es.js / .min.js
 │   ├── deskpane-workspace.umd.js / .min.js
 │   ├── index.d.ts / desktop.d.ts / workspace.d.ts
-│   ├── themes/light.css, dark.css  ← build-themes.mjs 從 src/themes/ 複製
+│   ├── themes/light.css, dark.css, medieval-pixel.css  ← build-themes.mjs 從 src/themes/ 複製
+│   ├── themes/assets/medieval-pixel/  ← Medieval Pixel 主題素材
 │   └── styles/
 │       ├── deskpane.css          ← build-themes.mjs 從 src/styles/ 複製（可直接 <link>）
 │       ├── deskpane-desktop.css       ← build-themes.mjs 從 src/styles/ 複製（可直接 <link>）
@@ -412,6 +413,8 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | `workspace.d.ts` | TypeScript | Workspace + Session 型別宣告 |
 | `themes/light.css` | CSS | ~2 KB，Core + Desktop 23 vars |
 | `themes/dark.css` | CSS | ~2 KB，Core + Desktop 23 vars |
+| `themes/medieval-pixel.css` | CSS | ~3 KB，中世紀像素主題（Core + Desktop + pixel UI assets） |
+| `themes/assets/medieval-pixel/` | Assets | Medieval Pixel 主題素材 |
 | `styles/deskpane.css` | CSS | Core 視窗結構樣式（可直接 `<link>`） |
 | `styles/deskpane-desktop.css` | CSS | Desktop / Dock / Icon 樣式（可直接 `<link>`） |
 | `styles/deskpane-layout.css` | CSS | BorderLayout / Panel 樣式（可直接 `<link>`） |
@@ -428,6 +431,7 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | Vanilla JS | `demo/vanilla/index.html` | 純 JS，snap=true |
 | jQuery | `demo/jquery/index.html` | UMD + jQuery CDN，5 個應用 |
 | Desktop | `demo/desktop/index.html` | 完整虛擬桌面（Dock + Icons + WindowManager + BorderLayout 範例視窗） |
+| Medieval Pixel Desktop | `demo/desktop-medieval-pixel/index.html` | 獨立桌面範例，載入 Medieval Pixel 主題，不影響原 Desktop demo |
 | Theme Editor | `demo/theme-editor/index.html` | Tab1 Core CSS 變數 / Tab2 Desktop CSS 變數 / Tab3 完整桌面預覽 + 雙 CSS 即時注入（core + desktop）+ Win11 預設樣式 |
 | Layout | `demo/layout/index.html` | BorderLayout 東西南北中 + 巢狀 + Panel |
 | Vue 3 | `demo/vue/` | 全螢幕虛擬桌面風格；Desktop+WorkspaceManager+TaskView；manual CSS import + `injectStyles:false`；workspace-aware Teleport key；5 個 app（GuideApp/EditorApp/TodoApp/CounterApp/CalcApp），port 3001 |

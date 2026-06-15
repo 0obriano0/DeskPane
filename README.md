@@ -276,7 +276,7 @@ wm.events.on('window:child-closed', ({ parentId, childId }) => { })
 
 ## Theming
 
-Built-in `dist/themes/light.css` and `dist/themes/dark.css` each contain **23 CSS custom properties** (15 Core + 8 Desktop). A single `<link>` tag covers both the window manager and the Desktop module.
+Built-in `dist/themes/light.css`, `dist/themes/dark.css`, and `dist/themes/medieval-pixel.css` contain Core + Desktop CSS custom properties. A single `<link>` tag covers both the window manager and the Desktop module.
 
 Structural styles are provided separately as `dist/styles/deskpane.css` (window structure), `dist/styles/deskpane-desktop.css` (Desktop / Dock / Icon), `dist/styles/deskpane-workspace.css` (workspace slide animation), and `dist/styles/deskpane-taskview.css` (TaskView overlay). These are independent of theme variables and can be `<link>`ed directly:
 
@@ -333,6 +333,7 @@ import { setTheme } from 'deskpane'
 
 setTheme('dark')                               // default basePath: 'themes'
 setTheme('light', { basePath: '/themes' })     // Vite SPA
+setTheme('medieval-pixel', { basePath: 'dist/themes' })
 setTheme('dark',  { basePath: 'dist/themes' }) // relative path
 // UMD: DeskPane.setTheme('dark', { basePath: 'dist/themes' })
 ```
@@ -492,6 +493,8 @@ desktop.getDesktopElement()
 > **Vuetify / Scoped CSS** — The popup is auto-mounted inside the nearest `.v-application` ancestor (or `previewMountEl`) so cloned thumbnails correctly inherit Vuetify selectors, Vue `data-v-*` scoped styles, and CSS custom properties. Positioning always uses `position:fixed` with viewport coordinates, unaffected by the mount point.
 
 > **Demo** — `demo/desktop/index.html` ships a full virtual desktop experience with Dock, draggable icons, theme switching, snap-gap control, **live Dock position switching** (top/bottom/left/right), a **📐 BorderLayout demo window** (Basic + Nested tabs), and a **child window / modal dialog demo** (System Settings window).
+>
+> **Theme Demo** — `demo/desktop-medieval-pixel/index.html` is a separate desktop demo that loads the Medieval Pixel theme without changing the default Desktop demo.
 
 ---
 
@@ -760,6 +763,8 @@ When collapsed, a region shrinks to a **28px mini strip**: expand button → ico
 | `dist/workspace.d.ts` | TypeScript | — | Workspace + TaskView + Session type declarations |
 | `dist/themes/light.css` | CSS | ~2 KB | Light theme (Core + Desktop) |
 | `dist/themes/dark.css` | CSS | ~2 KB | Dark theme (Core + Desktop) |
+| `dist/themes/medieval-pixel.css` | CSS | ~3 KB | Medieval pixel theme (Core + Desktop + pixel UI assets) |
+| `dist/themes/assets/medieval-pixel/` | Assets | — | Pixel UI source assets used by the Medieval Pixel theme |
 | `dist/styles/deskpane.css` | CSS | — | Core window structure styles (direct `<link>`) |
 | `dist/styles/deskpane-desktop.css` | CSS | — | Desktop / Dock / Icon styles (direct `<link>`) |
 | `dist/styles/deskpane-layout.css` | CSS | — | BorderLayout / Panel styles (direct `<link>`) |
@@ -795,7 +800,7 @@ Any modern browser supporting ES2020 (`optional chaining`, `nullish coalescing`,
 - [ ] Angular adapter
 - [ ] Window state persistence (localStorage / IndexedDB)
 - [ ] Accessibility (ARIA roles, keyboard navigation)
-- [ ] More built-in themes
+- [x] More built-in themes
 
 ---
 
