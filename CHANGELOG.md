@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3 - 2026-06-15
+
+### Fixed
+
+- Fixed Medieval Pixel theme window border styling.
+- Adjusted `.dp-window` border sizing so the 9-slice panel frame renders more naturally when windows are resized.
+- Updated generated theme CSS in `dist/themes/`, `demo/vue/public/themes/`, and `demo/react/public/themes/`.
+
 ## 0.1.2 - 2026-06-15
 
 ### Added
