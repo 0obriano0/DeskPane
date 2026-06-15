@@ -1,0 +1,440 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeskPane — Medieval Pixel Desktop Demo</title>
+  <link rel="stylesheet" href="../../dist/themes/medieval-pixel.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    #desktop-root { width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="desktop-root"></div>
+
+  <!-- 1. Core -->
+  <script src="../../dist/deskpane.umd.js"></script>
+  <!-- 2. Desktop -->
+  <script src="../../dist/deskpane-desktop.umd.js"></script>
+  <!-- 3. Workspace -->
+  <script src="../../dist/deskpane-workspace.umd.js"></script>
+
+  <script>
+    const { WindowManager } = DeskPane;
+    const { Desktop } = DeskPaneDesktop;
+    const { WorkspaceManager, TaskView } = DeskPaneWorkspace;
+
+    // ── 建立桌面 ─────────────────────────────────────────
+    const desktop = new Desktop({
+      container: document.getElementById('desktop-root'),
+      dragThreshold: 10,
+      dock: {
+        position: 'bottom',
+        showLabels: true,
+        iconSize: 44,
+        items: [],
+      },
+      icons: [
+        { id: 'icon-settings', label: '系統設定', icon: '⚙️', action: () => openApp('settings') },
+        { id: 'icon-finder',   label: '檔案總管', icon: '📁', action: () => openApp('finder')   },
+        { id: 'icon-editor',   label: '文字編輯', icon: '📝', action: () => openApp('editor')   },
+        { id: 'icon-browser',  label: '瀏覽器',   icon: '🌐', action: () => openApp('browser')  },
+        { id: 'icon-calc',     label: '計算機',   icon: '🔢', action: () => openApp('calc')     },
+        { id: 'icon-terminal', label: '終端機',   icon: '💻', action: () => openApp('terminal') },
+        { id: 'icon-music',    label: '音樂',     icon: '🎵', action: () => openApp('music')    },
+        { id: 'icon-photo',    label: '相簿',     icon: '🖼️', action: () => openApp('photo')    },
+        { id: 'icon-layout',   label: '佈局管理', icon: '📐', action: () => openApp('layout')   },
+      ],
+    });
+
+    // ── 建立 WorkspaceManager（多虛擬桌面） ────────────────
+    const wsMgr = new WorkspaceManager(desktop.getElement(), {
+      animationMs: 220,
+      windowManagerOptions: { isolated: true, snap: true },
+    });
+
+    // 初始工作區
+    wsMgr.addWorkspace({ id: 'ws-1', label: '桌面 1' });
+
+    // 同步 Dock 與目前工作區的視窗
+    desktop.syncDockWithWindows(wsMgr.getWindowManager('ws-1'));
+
+    // 切換工作區時重新綁定 Dock
+    wsMgr.events.on('workspace:switched', ({ to }) => {
+      desktop.syncDockWithWindows(wsMgr.getWindowManager(to));
+    });
+
+    // ── Task View（虛擬桌面切換覆蓋層） ───────────────────
+    const taskView = new TaskView(wsMgr, { dock: desktop.getDock() });
+
+    // 取得目前工作區的 WindowManager
+    function currentWm() {
+      const cur = wsMgr.current;
+      if (!cur) throw new Error('No active workspace');
+      return wsMgr.getWindowManager(cur.id);
+    }
+
+    // ── App 定義 ─────────────────────────────────────────
+    function makeSettingsContent() {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'padding:20px;font-family:system-ui;height:100%;overflow:auto;box-sizing:border-box;';
+
+      const bgs = ['linear-gradient(135deg,#1a2a4a,#0d1b2a)','linear-gradient(135deg,#2d1b4e,#1a0a2e)','linear-gradient(135deg,#0d3b2a,#051a14)','linear-gradient(135deg,#3b1a0d,#1a0805)'];
+
+      wrap.innerHTML = `
+        <h3 style="margin-bottom:16px;font-size:16px">⚙️ 系統設定</h3>
+
+        <div style="margin-bottom:14px">
+          <label style="display:block;margin-bottom:6px;font-weight:500">主題</label>
+          <select id="theme-select" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px">
+            <option value="medieval-pixel" selected>Medieval Pixel 中世紀像素</option>
+            <option value="dark">Dark 深色</option>
+            <option value="light">Light 淺色</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <label style="display:block;margin-bottom:6px;font-weight:500">工具列位置</label>
+          <select id="dock-pos-select" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px">
+            <option value="bottom">下方（Bottom）</option>
+            <option value="top">上方（Top）</option>
+            <option value="left">左側（Left）</option>
+            <option value="right">右側（Right）</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <label style="display:block;margin-bottom:6px;font-weight:500">桌面背景</label>
+          <div id="bg-swatches" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+
+        <div style="margin-bottom:20px">
+          <label style="display:block;margin-bottom:6px;font-weight:500">視窗吸附間距（px）</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input id="snap-gap-input" type="number" min="0" max="50" value="0"
+              style="width:80px;padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px" />
+            <span style="font-size:13px;color:#888">0 = 緊貼，設定後立即生效</span>
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid rgba(128,128,128,0.25);margin-bottom:16px" />
+
+        <div style="margin-bottom:10px">
+          <h4 style="font-size:13px;margin-bottom:10px;color:#888;letter-spacing:.5px;text-transform:uppercase">子視窗功能示範</h4>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button id="btn-modal-dialog" style="padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
+              background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;font-size:13px;font-weight:600;
+              box-shadow:0 2px 8px rgba(231,76,60,0.4);transition:opacity .15s">
+              🔴 Modal 確認對話框
+            </button>
+            <button id="btn-child-panel" style="padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
+              background:linear-gradient(135deg,#2980b9,#1a5276);color:#fff;font-size:13px;font-weight:600;
+              box-shadow:0 2px 8px rgba(41,128,185,0.4);transition:opacity .15s">
+              🔵 開啟屬性面板（非獨佔）
+            </button>
+          </div>
+          <p style="margin-top:10px;font-size:12px;color:#888;line-height:1.6">
+            🔴 <b>Modal</b>：子視窗開啟後，父視窗加遮罩不可操作；點擊遮罩子視窗會抖動。<br>
+            🔵 <b>非獨佔</b>：子視窗與父視窗可自由切換，Dock 只顯示父視窗項目。
+          </p>
+        </div>
+      `;
+
+      // 背景色塊
+      const swatches = wrap.querySelector('#bg-swatches');
+      bgs.forEach(bg => {
+        const d = document.createElement('div');
+        d.style.cssText = `width:48px;height:32px;border-radius:6px;cursor:pointer;border:2px solid rgba(255,255,255,0.2);background:${bg}`;
+        d.onclick = () => document.querySelector('.dp-desktop').style.background = bg;
+        swatches.appendChild(d);
+      });
+
+      // 事件綁定
+      wrap.querySelector('#theme-select').onchange = e =>
+        (document.querySelector('link[rel=stylesheet]').href = `../../dist/themes/${e.target.value}.css`);
+      wrap.querySelector('#dock-pos-select').onchange = e =>
+        desktop.setDockPosition(e.target.value);
+      wrap.querySelector('#snap-gap-input').oninput = e =>
+        currentWm().setSnapGap(parseInt(e.target.value) || 0);
+
+      // Modal 確認對話框
+      wrap.querySelector('#btn-modal-dialog').onclick = () => {
+        const wm = currentWm();
+        // 建立對話框內容
+        const dlg = document.createElement('div');
+        dlg.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;gap:16px;font-family:system-ui;text-align:center';
+        dlg.innerHTML = `
+          <div style="font-size:40px">⚠️</div>
+          <div style="font-size:15px;font-weight:600">確認儲存設定？</div>
+          <div style="font-size:13px;color:#888;line-height:1.5">此操作將覆蓋現有設定。<br>確定要繼續嗎？</div>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <button id="dlg-cancel" style="padding:8px 24px;border-radius:8px;border:1px solid #ccc;cursor:pointer;font-size:13px;background:transparent;color:inherit">取消</button>
+            <button id="dlg-ok" style="padding:8px 24px;border-radius:8px;border:none;cursor:pointer;font-size:13px;background:#e74c3c;color:#fff;font-weight:600">確認儲存</button>
+          </div>
+        `;
+
+        wm.open({
+          id: 'settings-confirm',
+          title: '確認操作',
+          content: dlg,
+          parentId: 'app-settings',   // 附屬於系統設定
+          modal: true,                 // 獨佔模式
+          width: 340,
+          height: 220,
+          resizable: false,
+        });
+
+        // 按鈕事件（需等 DOM 掛載）
+        setTimeout(() => {
+          dlg.querySelector('#dlg-cancel')?.addEventListener('click', () => wm.close('settings-confirm'));
+          dlg.querySelector('#dlg-ok')?.addEventListener('click', () => {
+            wm.close('settings-confirm');
+          });
+        }, 50);
+      };
+
+      // 非獨佔子視窗
+      wrap.querySelector('#btn-child-panel').onclick = () => {
+        const wm = currentWm();
+        const panel = document.createElement('div');
+        panel.style.cssText = 'padding:16px;font-family:system-ui;height:100%;overflow:auto;box-sizing:border-box';
+        panel.innerHTML = `
+          <h4 style="margin-bottom:12px;font-size:14px">📋 進階屬性面板</h4>
+          <p style="font-size:13px;color:#888;margin-bottom:12px;line-height:1.6">
+            這是一個非獨佔子視窗。<br>
+            你仍可點擊父視窗（系統設定）進行操作。<br>
+            Dock 不會新增此視窗的項目。
+          </p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="font-size:13px">選項 A：<input type="checkbox" style="margin-left:6px"/></label>
+            <label style="font-size:13px">選項 B：<input type="checkbox" style="margin-left:6px"/></label>
+            <label style="font-size:13px">數值：<input type="number" value="100" style="width:80px;margin-left:6px;padding:4px 8px;border-radius:4px;border:1px solid #ccc"/></label>
+          </div>
+        `;
+
+        wm.open({
+          id: 'settings-properties',
+          title: '進階屬性',
+          content: panel,
+          parentId: 'app-settings',   // 附屬但不獨佔
+          modal: false,
+          width: 300,
+          height: 260,
+          resizable: true,
+        });
+      };
+
+      return wrap;
+    }
+
+    function makeContent(html) {
+      const div = document.createElement('div');
+      div.style.cssText = 'width:100%;height:100%;overflow:auto';
+      div.innerHTML = html;
+      return div;
+    }
+
+    function makeCalc() {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'padding:12px;font-family:system-ui;height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px';
+
+      const out = document.createElement('div');
+      out.style.cssText = 'width:100%;padding:10px;font-size:22px;text-align:right;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);min-height:48px;word-break:break-all;color:inherit';
+      out.textContent = '0';
+
+      const grid = document.createElement('div');
+      grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:1';
+
+      let expr = '';
+      const keys = ['C','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','⌫','='];
+      keys.forEach(k => {
+        const btn = document.createElement('button');
+        btn.textContent = k;
+        const isOp = '÷×−+='.includes(k);
+        const isFn = 'C±%'.includes(k);
+        btn.style.cssText = [
+          'padding:0;font-size:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);cursor:pointer;font-weight:500',
+          'background:' + (isOp ? '#ff9500' : isFn ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)'),
+          'color:' + (isOp ? '#fff' : 'inherit'),
+        ].join(';');
+        btn.onclick = () => {
+          if (k === 'C') { expr = ''; out.textContent = '0'; }
+          else if (k === '=') {
+            try {
+              const result = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))();
+              out.textContent = result;
+              expr = String(result);
+            } catch { out.textContent = '錯誤'; expr = ''; }
+          }
+          else if (k === '⌫') { expr = expr.slice(0,-1); out.textContent = expr || '0'; }
+          else if (k === '±') {
+            try { const v = -Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))(); out.textContent = v; expr = String(v); }
+            catch { /* ignore */ }
+          }
+          else if (k === '%') {
+            try { const v = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))() / 100; out.textContent = v; expr = String(v); }
+            catch { /* ignore */ }
+          }
+          else { expr += k; out.textContent = expr; }
+        };
+        grid.appendChild(btn);
+      });
+
+      wrap.append(out, grid);
+      return wrap;
+    }
+
+    function makeLayoutDemo() {
+      const { BorderLayout } = DeskPane;
+
+      const root = document.createElement('div');
+      root.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;font-family:system-ui;font-size:13px';
+
+      // ── Tab bar ──────────────────────────────────────────────
+      const tabs = document.createElement('div');
+      tabs.style.cssText = 'display:flex;gap:4px;padding:6px 8px;background:var(--dp-window-header-bg,#f0f0f0);border-bottom:1px solid var(--dp-window-header-border,#e0e0e0);flex-shrink:0';
+
+      const tabDefs = [
+        { id: 'tab-border',  label: '📐 BorderLayout' },
+        { id: 'tab-nested',  label: '🗂 巢狀 Layout'  },
+      ];
+
+      const paneEls = {};
+      const tabBtns = {};
+
+      function switchTab(id) {
+        Object.keys(paneEls).forEach(k => {
+          paneEls[k].style.display    = k === id ? 'flex' : 'none';
+          tabBtns[k].style.background = k === id ? 'var(--dp-window-border-active,#4a90e2)' : 'transparent';
+          tabBtns[k].style.color      = k === id ? '#fff' : 'inherit';
+        });
+      }
+
+      tabDefs.forEach(({ id, label }) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.style.cssText = 'padding:4px 10px;border:1px solid var(--dp-window-border,#d0d0d0);border-radius:5px;cursor:pointer;background:transparent;font-size:12px;color:inherit;transition:background .15s';
+        btn.onclick = () => switchTab(id);
+        tabBtns[id] = btn;
+        tabs.appendChild(btn);
+      });
+
+      root.appendChild(tabs);
+
+      // ── Helper: labelled region cell ────────────────────────
+      function cell(label) {
+        const d = document.createElement('div');
+        d.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:12px;user-select:none';
+        d.textContent = label;
+        return d;
+      }
+
+      function region(attrs, label) {
+        const d = document.createElement('div');
+        Object.entries(attrs).forEach(([k, v]) => d.dataset[k] = v);
+        d.appendChild(cell(label));
+        return d;
+      }
+
+      function makePane(style) {
+        const d = document.createElement('div');
+        d.style.cssText = `flex:1;position:relative;overflow:hidden;${style || ''}`;
+        return d;
+      }
+
+      // ── Tab 1: Basic BorderLayout ────────────────────────────
+      const pane1 = makePane();
+      pane1.appendChild(region({ region:'north', size:'80', title:'工具列', icon:'🔧' }, 'North — 工具列'));
+      pane1.appendChild(region({ region:'south', size:'80', title:'狀態列' }, 'South — 狀態列'));
+      pane1.appendChild(region({ region:'west',  size:'160', collapsible:'', title:'側邊欄', icon:'📁' }, 'West'));
+      pane1.appendChild(region({ region:'east',  size:'140', collapsible:'', title:'屬性', icon:'🔍' }, 'East'));
+      pane1.appendChild(region({ region:'center', title:'主內容' }, 'Center — 主編輯區'));
+      paneEls['tab-border'] = pane1;
+      root.appendChild(pane1);
+      new BorderLayout({ container: pane1 });
+
+      // ── Tab 2: Nested BorderLayout ───────────────────────────
+      const pane2 = makePane();
+      pane2.appendChild(region({ region:'north', size:'80', title:'主工具列' }, 'North'));
+      pane2.appendChild(region({ region:'west',  size:'140', collapsible:'', title:'導航' }, 'West'));
+
+      const centerOuter = document.createElement('div');
+      centerOuter.dataset.region = 'center';
+      centerOuter.appendChild(region({ region:'north', size:'70', title:'分頁列' }, 'Inner North — 分頁'));
+      centerOuter.appendChild(region({ region:'south', size:'70', collapsible:'', title:'輸出' }, 'Inner South — 輸出'));
+      centerOuter.appendChild(region({ region:'center', title:'編輯器' }, 'Inner Center'));
+
+      pane2.appendChild(centerOuter);
+      paneEls['tab-nested'] = pane2;
+      root.appendChild(pane2);
+      new BorderLayout({ container: pane2 });
+
+      switchTab('tab-border');
+      return root;
+    }
+
+    const defs = {
+      finder: {
+        title: '📁 檔案總管', label: '檔案總管', icon: '📁', width: 600, height: 420,
+        html: '<div style="padding:16px;font-family:system-ui"><div style="display:flex;gap:8px;margin-bottom:12px"><button style="padding:4px 10px;cursor:pointer;border-radius:4px;border:1px solid #ccc">文件</button><button style="padding:4px 10px;cursor:pointer;border-radius:4px;border:1px solid #ccc">圖片</button><button style="padding:4px 10px;cursor:pointer;border-radius:4px;border:1px solid #ccc">下載</button></div><div style="line-height:2;font-size:14px"><div>📂 文件</div><div>📂 下載</div><div>📂 桌面</div><div>📄 README.md</div><div>📄 report.pdf</div></div></div>'
+      },
+      editor: {
+        title: '📝 文字編輯', label: '文字編輯', icon: '📝', width: 580, height: 400,
+        html: '<textarea style="width:100%;height:100%;padding:12px;font-size:14px;font-family:monospace;border:none;outline:none;resize:none" placeholder="開始輸入...">DeskPane Desktop Demo\n===================\n\n功能特色：\n• 桌面圖示可自由拖曳定位\n• 圖示位置自動儲存（localStorage）\n• Dock 工具列圖示可拖曳排序\n• 點擊圖示開啟應用程式視窗\n• Core 與 Desktop 模組分離載入\n</textarea>'
+      },
+      browser: {
+        title: '🌐 瀏覽器', label: '瀏覽器', icon: '🌐', width: 700, height: 480,
+        html: '<div style="display:flex;flex-direction:column;height:100%"><div style="padding:8px;background:#f0f0f0;display:flex;gap:6px;align-items:center"><button style="padding:3px 8px;cursor:pointer;border-radius:4px;border:1px solid #ccc">←</button><button style="padding:3px 8px;cursor:pointer;border-radius:4px;border:1px solid #ccc">→</button><input value="https://example.com" style="flex:1;padding:4px 8px;border-radius:4px;border:1px solid #ccc;font-size:13px"/></div><div style="flex:1;display:flex;align-items:center;justify-content:center;color:#888;font-size:20px">🌐 瀏覽器頁面預留區域</div></div>'
+      },
+      calc: {
+        title: '🔢 計算機', label: '計算機', icon: '🔢', width: 280, height: 360, resizable: false,
+        make: () => makeCalc(),
+      },
+      settings: {
+        title: '⚙️ 系統設定', label: '系統設定', icon: '⚙️', width: 520, height: 540,
+        make: () => makeSettingsContent(),
+      },
+      terminal: {
+        title: '💻 終端機', label: '終端機', icon: '💻', width: 560, height: 360,
+        html: '<div id="term" style="background:#1a1a1a;color:#33ff33;font-family:monospace;font-size:13px;padding:12px;height:100%;overflow-y:auto;display:flex;flex-direction:column"><div id="term-out"><div>DeskPane Terminal v1.0.0</div><div>輸入 help 查看指令</div><br></div><div style="display:flex;align-items:center"><span style="margin-right:6px">$</span><input id="term-in" style="flex:1;background:transparent;border:none;outline:none;color:#33ff33;font-family:monospace;font-size:13px" autofocus /></div></div><script>(function(){var cmds={help:"指令：help, date, clear, echo [文字]",date:function(){return new Date().toLocaleString("zh-TW")}};document.getElementById("term-in").addEventListener("keydown",function(e){if(e.key!=="Enter")return;var cmd=this.value.trim(),out=document.getElementById("term-out"),line=document.createElement("div");if(cmd==="clear"){out.innerHTML="";this.value="";return;}else if(cmd.startsWith("echo ")){line.textContent=cmd.slice(5);}else if(cmds[cmd]){line.textContent=typeof cmds[cmd]==="function"?cmds[cmd]():cmds[cmd];}else{line.textContent="找不到指令："+cmd;}out.appendChild(line);this.value="";out.parentElement.scrollTop=9999;});})()<\/script>'
+      },
+      music: {
+        title: '🎵 音樂播放器', label: '音樂', icon: '🎵', width: 320, height: 280,
+        html: '<div style="padding:24px;text-align:center;font-family:system-ui"><div style="font-size:64px;margin-bottom:12px">🎵</div><div style="font-size:18px;font-weight:600;margin-bottom:4px">Lofi Beat #1</div><div style="font-size:13px;color:#888;margin-bottom:20px">DeskPane Music</div><div style="display:flex;justify-content:center;gap:16px"><button style="background:none;border:none;cursor:pointer;font-size:24px">⏮</button><button id="play-btn" style="background:none;border:none;cursor:pointer;font-size:32px" onclick="this.textContent=this.textContent===\'▶\'?\'⏸\':\'▶\'">▶</button><button style="background:none;border:none;cursor:pointer;font-size:24px">⏭</button></div><div style="margin-top:16px"><input type="range" value="30" style="width:100%"/></div></div>'
+      },
+      photo: {
+        title: '🖼️ 相簿', label: '相簿', icon: '🖼️', width: 500, height: 380,
+        html: '<div style="padding:12px"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' +
+          ['🌄','🌊','🌸','🌃','🏔️','🌅','🌻','🦁','🦋'].map(e =>
+            '<div style="aspect-ratio:1;background:rgba(128,128,128,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer">'+e+'</div>'
+          ).join('') + '</div></div>'
+      },
+      layout: {
+        title: '📐 佈局管理', label: '佈局管理', icon: '📐', width: 720, height: 480,
+        make: () => makeLayoutDemo(),
+      },
+    };
+
+    function openApp(id) {
+      const def = defs[id];
+      if (!def) return;
+
+      const content = def.make ? def.make() : makeContent(def.html);
+      currentWm().open({
+        id: 'app-' + id,
+        title: def.title,
+        label: def.label,
+        icon: def.icon,
+        width: def.width,
+        height: def.height,
+        resizable: def.resizable,
+        slotType: 'dom',
+        content: content,
+      });
+    }
+  </script>
+</body>
+</html>

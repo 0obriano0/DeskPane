@@ -2,7 +2,7 @@
 // 將 src/themes/ 下的 CSS 檔案複製到 dist/themes/ 及各 demo 的 public/themes/
 // 將 src/styles/ 下的 CSS 檔案複製到 dist/styles/
 
-import { cpSync, mkdirSync } from 'fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -18,7 +18,13 @@ const targets = [
 
 for (const dest of targets) {
   mkdirSync(dest, { recursive: true });
-  cpSync(src, dest, { recursive: true, filter: (s) => s === src || s.endsWith('.css') });
+  for (const file of readdirSync(src).filter((name) => name.endsWith('.css'))) {
+    copyFileSync(join(src, file), join(dest, file));
+  }
+  const assetsSrc = join(src, 'assets');
+  if (existsSync(assetsSrc)) {
+    cpSync(assetsSrc, join(dest, 'assets'), { recursive: true });
+  }
   console.log(`✅ ${dest.replace(root + '\\', '')} — 主題 CSS 已複製`);
 }
 
