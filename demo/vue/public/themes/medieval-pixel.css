@@ -40,7 +40,7 @@
 
 .dp-window {
   border-style: solid;
-  border-width: 18px;
+  border-width: 4px;
   border-image-source: var(--dp-medieval-panel);
   border-image-slice: 58 fill;
   border-image-width: 18px;
