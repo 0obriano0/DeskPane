@@ -1,0 +1,107 @@
+name: Bug report
+description: Report a reproducible DeskPane bug
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include enough detail for us to reproduce it.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+      placeholder: Window content turns black after switching workspaces...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide a minimal sequence of actions.
+      placeholder: |
+        1. Open the React demo
+        2. Open Calculator on Desktop 1
+        3. Switch to Desktop 2
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: integration
+    attributes:
+      label: Integration
+      options:
+        - Plain JavaScript
+        - jQuery / UMD
+        - Vue
+        - React
+        - Desktop module
+        - WorkspaceManager
+        - TaskView
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: styles
+    attributes:
+      label: CSS loading mode
+      options:
+        - Runtime injection
+        - Manual CSS import with injectStyles:false
+        - CDN link tags
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: DeskPane version or commit
+      placeholder: "0.2.0 / commit SHA"
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      placeholder: "Chrome 126 on Windows 11"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Link to a repo, StackBlitz, CodeSandbox, or paste a minimal snippet.
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or recordings
+      description: Dragging, resizing, workspace, and visual bugs are much easier to diagnose with media.
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+

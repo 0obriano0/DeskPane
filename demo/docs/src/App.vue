@@ -1,15 +1,14 @@
 <template>
   <div class="docs-root">
-
-    <!-- ── Header ── -->
     <header class="docs-header">
-      <div class="header-logo">
-        <span class="header-icon">🖥</span>
-        <span class="header-title">DeskPane</span>
-        <span class="header-sub">{{ t('header.sub') }}</span>
+      <div class="brand">
+        <span class="brand-mark">DP</span>
+        <span class="brand-name">DeskPane</span>
+        <span class="brand-divider"></span>
+        <span class="brand-product">{{ t('header.sub') }}</span>
       </div>
       <nav class="header-nav">
-        <a href="../index.html">{{ t('header.demos') }}</a>
+        <a href="../index.html" class="active">{{ t('header.demos') }}</a>
         <a href="../vanilla/index.html" target="_blank">{{ t('header.vanillaDemo') }}</a>
         <a href="../vue/index.html" target="_blank">{{ t('header.vueDemo') }}</a>
         <button class="lang-btn" @click="locale = locale === 'en' ? 'zh-TW' : 'en'">
@@ -18,27 +17,47 @@
       </nav>
     </header>
 
-    <!-- ── 3-Panel Body ── -->
-    <div class="docs-body">
+    <div class="docs-subbar">
+      <button class="menu-btn" type="button" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="breadcrumb">
+        <button type="button" @click="currentPageId = 'overview'">Demos</button>
+        <span>/</span>
+        <button type="button" @click="selectFirstInCategory">{{ currentCategoryLabel }}</button>
+        <span>/</span>
+        <strong>{{ currentPageLabel }}</strong>
+      </div>
+      <label class="search-box">
+        <span>Search</span>
+        <input v-model="searchQuery" type="search" placeholder="Search demos, API, framework..." />
+      </label>
+    </div>
 
-      <!-- Left: sidebar -->
-      <aside class="docs-sidebar">
-        <SideNav :nav="navConfig" v-model:active="currentPageId" />
+    <div class="docs-body">
+      <aside class="docs-sidebar" :class="{ open: sidebarOpen }">
+        <SideNav
+          :nav="navConfig"
+          :query="searchQuery"
+          :active="currentPageId"
+          @update:active="selectPage"
+        />
       </aside>
 
-      <!-- Center: demo + content -->
       <main class="docs-main">
-        <component
-          :is="currentPage"
-          :key="currentPageId"
-        />
+        <div class="content-scroll">
+          <component
+            :is="currentPage"
+            :key="currentPageId"
+          />
+        </div>
       </main>
 
-      <!-- Right: code panel -->
       <aside class="docs-code">
         <CodePanel :files="pageCode" />
       </aside>
-
     </div>
   </div>
 </template>
@@ -64,6 +83,8 @@ const navConfig = computed(() => getNavConfig(t))
 
 // Current page
 const currentPageId = ref('overview')
+const searchQuery = ref('')
+const sidebarOpen = ref(false)
 
 const PAGE_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   'overview':       defineAsyncComponent(() => import('./pages/Overview.vue')),
@@ -89,6 +110,30 @@ const PAGE_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {
 }
 
 const currentPage = computed(() => PAGE_MAP[currentPageId.value])
+
+const flatNav = computed(() =>
+  navConfig.value.flatMap(category =>
+    category.items.map(item => ({ ...item, category: category.label }))
+  )
+)
+
+const currentNavItem = computed(() =>
+  flatNav.value.find(item => item.id === currentPageId.value)
+)
+
+const currentCategoryLabel = computed(() => currentNavItem.value?.category ?? 'Demos')
+const currentPageLabel = computed(() => currentNavItem.value?.label ?? 'Overview')
+
+function selectFirstInCategory() {
+  const category = navConfig.value.find(group => group.label === currentCategoryLabel.value)
+  const first = category?.items[0]
+  if (first) currentPageId.value = first.id
+}
+
+function selectPage(id: string) {
+  currentPageId.value = id
+  sidebarOpen.value = false
+}
 </script>
 
 <style>
@@ -102,90 +147,273 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: #fff;
 }
 
-/* ── Header ── */
 .docs-header {
-  height: 52px;
-  background: var(--color-header-bg);
+  height: 58px;
+  background: #2f9bb3;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  gap: 20px;
+  padding: 0 28px;
+  gap: 24px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
-.header-logo {
+.brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   color: #fff;
+  min-width: 0;
 }
 
-.header-icon { font-size: 22px; }
-.header-title { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
-.header-sub {
-  font-size: 11px;
-  color: rgba(255,255,255,0.55);
-  margin-left: 2px;
-  font-weight: 400;
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255,255,255,0.8);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.brand-name {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 26px;
+  background: rgba(255,255,255,0.5);
+}
+
+.brand-product {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  white-space: nowrap;
 }
 
 .header-nav {
   margin-left: auto;
   display: flex;
-  gap: 20px;
+  align-items: center;
+  gap: 18px;
 }
+
 .header-nav a {
-  color: rgba(255,255,255,0.85);
-  font-size: 13px;
+  color: rgba(255,255,255,0.92);
+  font-size: 14px;
+  font-weight: 700;
   text-decoration: none;
-  transition: color 0.1s;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  padding: 16px 0 12px;
 }
-.header-nav a:hover { color: #fff; }
+
+.header-nav a:hover,
+.header-nav a.active {
+  color: #fff;
+  border-bottom-color: #fff;
+}
 
 .lang-btn {
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.3);
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.85);
   color: #fff;
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 7px 12px;
+  font-size: 13px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background 0.1s;
+  font-weight: 700;
+  border-radius: 0;
 }
-.lang-btn:hover { background: rgba(255,255,255,0.25); }
 
-/* ── 3-Panel Body ── */
+.lang-btn:hover { background: rgba(255,255,255,0.16); }
+
+.docs-subbar {
+  height: 45px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 28px;
+  border-bottom: 1px solid #d9e0e5;
+  background: #f4f6f8;
+  flex-shrink: 0;
+}
+
+.menu-btn {
+  width: 26px;
+  display: none;
+  border: 0;
+  background: transparent;
+  padding: 4px 2px;
+  cursor: pointer;
+}
+
+.menu-btn span {
+  display: block;
+  height: 2px;
+  background: #425466;
+  margin: 4px 0;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: #6b7785;
+  font-size: 14px;
+}
+
+.breadcrumb button {
+  border: 0;
+  background: transparent;
+  color: #536577;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.breadcrumb button:hover { color: #087c98; }
+.breadcrumb strong {
+  color: #2b3a45;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-box {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(320px, 34vw);
+}
+
+.search-box span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.search-box input {
+  width: 100%;
+  height: 30px;
+  border: 1px solid #b8c2cc;
+  border-radius: 3px;
+  padding: 0 12px;
+  font: inherit;
+  background: #fff;
+}
+
+.search-box input:focus {
+  outline: 2px solid rgba(47,155,179,0.22);
+  border-color: #2f9bb3;
+}
+
 .docs-body {
   flex: 1;
   display: flex;
   overflow: hidden;
+  min-height: 0;
 }
 
 .docs-sidebar {
-  width: 220px;
+  width: 310px;
   flex-shrink: 0;
-  border-right: 1px solid var(--color-sidebar-border);
+  border-right: 1px solid #d9e0e5;
   background: var(--color-sidebar-bg);
   overflow-y: auto;
 }
 
 .docs-main {
   flex: 1;
-  overflow-y: auto;
-  padding: 28px 32px 48px;
+  display: flex;
+  min-width: 0;
+  background: #fff;
+}
+
+.content-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 0 34px 56px;
   min-width: 0;
 }
 
 .docs-code {
-  width: 480px;
+  width: clamp(430px, 42vw, 720px);
   flex-shrink: 0;
-  border-left: 1px solid #313244;
+  border-left: 1px solid #d4d9de;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  background: #fff;
+}
+
+@media (max-width: 1180px) {
+  .docs-body {
+    flex-direction: column;
+  }
+
+  .docs-sidebar {
+    position: fixed;
+    top: 103px;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.18s ease;
+    box-shadow: 8px 0 24px rgba(16,24,40,0.15);
+  }
+
+  .docs-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .menu-btn {
+    display: block;
+  }
+
+  .docs-main {
+    min-height: 50vh;
+  }
+
+  .docs-code {
+    width: 100%;
+    height: 40vh;
+    border-left: 0;
+    border-top: 1px solid #d4d9de;
+  }
+}
+
+@media (max-width: 760px) {
+  .docs-header {
+    padding: 0 14px;
+  }
+
+  .brand-product,
+  .header-nav a:nth-child(2),
+  .header-nav a:nth-child(3) {
+    display: none;
+  }
+
+  .docs-subbar {
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .search-box {
+    width: 40vw;
+  }
+
+  .content-scroll {
+    padding: 0 18px 40px;
+  }
 }
 </style>

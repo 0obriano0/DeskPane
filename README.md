@@ -585,7 +585,7 @@ desktop.events.on('items:changed', event => {
 >
 > **Theme Demo** — `demo/desktop/index.html` is the main desktop demo, featuring the Medieval Pixel theme, Dock, draggable icons, virtual desktops, and 9-slice panel borders.
 >
-> **GitHub Pages** — run `npm run build:pages` to build the library, Vue demo, React demo, docs, and the static Pages artifact in `.pages/`. Vue/React/docs demos are served from their generated `dist/` folders on Pages.
+> **GitHub Pages** — run `npm run build:pages` to build the library, Vue demo, React demo, docs, and the static Pages artifact in `.pages/`. Vue/React/docs demos are served from their generated `dist/` folders on Pages. The CI Pages deployment runs from version tags (`v*`), and GitHub Releases also include a downloadable `deskpane-pages-vX.X.X.zip` demo bundle.
 
 ---
 
@@ -800,14 +800,15 @@ An in-depth interactive docs site is included at `demo/docs/` (Vue 3 SPA, i18n E
 cd demo/docs && npm install && npm run dev   # http://localhost:3002
 ```
 
-**Pages covered (17 total):**
+**Pages covered (20 total):**
 
 | Category | Pages |
 |----------|-------|
 | Getting Started | Overview, Installation, Quick Start |
-| Core API | WindowManager Options, Open & Close, Min / Max / Restore, Snap & Alignment, Events |
+| Core API | WindowManager Options, Open & Close, Min / Max / Restore, Snap & Alignment, Events, Session |
 | Theming | Theme System |
 | Desktop Module | Desktop & Dock, BorderLayout |
+| Workspace Module | Workspace, TaskView |
 | Vanilla JS | Hello World, DOM Content, jQuery |
 | Vue 3 | useWindowManager, KeepAlive |
 | React | useWindowManager |
@@ -934,13 +935,27 @@ Any modern browser supporting ES2020 (`optional chaining`, `nullish coalescing`,
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or PR.
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Run the dev server: `npm run dev`
-4. Build: `npm run build:lib`
-5. Submit a PR 🎉
+Useful checks:
+
+```bash
+npm run build
+npm run build:lib
+npm --prefix demo/vue run build
+npm --prefix demo/react run build
+npm --prefix demo/docs run build
+```
+
+---
+
+## Community Standards
+
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Contributing Guide](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Bug reports / feature requests / documentation issues](.github/ISSUE_TEMPLATE)
+- [Pull request template](.github/pull_request_template.md)
 
 ---
 

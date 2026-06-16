@@ -2,6 +2,7 @@
 
 > 最後更新：2026-06-16 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
 > 此文件為 AI 輔助開發設計，優先說明「現在是什麼」，歷史細節見備份。
+> 目前已發佈版本：`0.2.1` ｜ 下一版：`0.2.2`
 
 ---
 
@@ -37,9 +38,10 @@
 | **Vue 3 宣告式元件** — `DpDesktop` / `DpDesktopIcon` / `DpWindowManager` / `DpWindow`，支援 `v-model:items` / `v-model:open` | ✅ | `src/adapters/vue/components.ts`, `demo/vue/src/DeclarativeApp.vue` |
 | React 18 Hook | ✅ | `src/adapters/react/useWindowManager.ts` |
 | Demo（vanilla / jQuery / Vue / React / Desktop / Theme Editor / Layout） | ✅ | `demo/`，GitHub Pages artifact 由 `npm run build:pages` 產生 |
+| GitHub Pages / Release demo bundle | ✅ | tag `v*` 觸發 Pages 部署與 Release asset `deskpane-pages-vX.X.X.zip` |
 | Theme Editor — Tab 3 完整桌面預覽 + 雙 CSS 即時注入（core + desktop 同時） | ✅ | `demo/theme-editor/index.html` |
 | Dock 毛玻璃效果（`--dp-dock-backdrop-filter`）— `overflow:clip` 修正讓視窗可穿透顯示 | ✅ | `src/styles/deskpane-desktop.css`, `deskpane.css`, `desktop/Desktop.ts` |
-| Docs 開發手冊（Vue3 SPA，i18n EN/zh-TW，17 頁，含 WindowConfig 完整選項表） | ✅ | `demo/docs/` |
+| Docs 開發手冊（Vue3 SPA，i18n EN/zh-TW，20 頁，含 WindowConfig 完整選項表） | ✅ | `demo/docs/` |
 | WorkspaceManager — 多工作區切換（獨立容器、左右滑入動畫、指示點） | ✅ | `src/workspace/WorkspaceManager.ts` |
 | SessionManager — 視窗狀態序列化 / 還原（支援單 WM 或多工作區） | ✅ | `src/session/SessionManager.ts` |
 | **TaskView** — 虛擬桌面切換覆蓋層（DOM clone 快照 + 新增/刪除/Escape，獨立 class） | ✅ | `src/workspace/TaskView.ts` |
@@ -52,14 +54,15 @@
 | **最小化 restore 修正** — 修正 `minimize()` 未清除 `isActive`，導致單一視窗最小化後 `focus()` 提前返回、無法 restore 的 bug | ✅ | `src/core/WindowManager.ts` |
 | **子視窗管理（parentId / modal）** — `WindowConfig.parentId` 指定父視窗，子視窗 z-index 永遠高於父；`modal:true` = 父視窗加半透明遮罩，點遮罩時子視窗 shake 提示；子視窗隨父最小化/restore；關閉父視窗時 cascade 關閉子視窗；子視窗不在 Dock 獨立顯示；新增 `shake(id)` / `getChildIds(id)` / `getRootWindowId(id)` API；新增事件 `window:child-opened` / `window:child-closed` | ✅ | `src/core/types.ts`, `WindowManager.ts`, `DOMRenderer.ts`, `deskpane.css` |
 | **Dock 群組縮略圖預覽（Windows 風格）** — 父視窗 Dock item hover 280ms 後顯示父+所有子視窗縮略圖卡片列；每張卡片有標題 + × 關閉鈕（hover 才顯示）；Sticky hover（滑鼠移入 popup 不消失）；modal 安全：關閉父視窗前若有 modal 子視窗，shake 子視窗本體並搖晃卡片提示；`syncExisting` 補傳 `parentId` 修正子視窗過濾 bug | ✅ | `src/desktop/Desktop.ts`, `src/desktop/types.ts`, `src/styles/deskpane-desktop.css` |
-| **專案改名 DeskPane → DeskPane** — package.json name、UMD global、CSS class prefix（`.dp-*`）、CSS vars（`--dp-*`）、dist 檔名全部更新 | ✅ | 85 個檔案更新 |
-| **npm 發佈 deskpane@0.1.1** — 整合 GitHub Actions OIDC Trusted Publisher 自動發佈 | ✅ | npmjs.com/package/deskpane |
+| **舊專案名稱 → DeskPane** — package.json name、UMD global、CSS class prefix（`.dp-*`）、CSS vars（`--dp-*`）、dist 檔名全部更新 | ✅ | 85 個檔案更新 |
+| **npm 發佈 deskpane@0.2.1** — 整合 GitHub Actions OIDC Trusted Publisher 自動發佈 | ✅ | npmjs.com/package/deskpane |
 | **GitHub Repo 改名** — remote URL 更新為 `https://github.com/0obriano0/DeskPane.git` | ✅ | |
 | **git tag v0.1.0** — 第一個 Release 標籤 | ✅ | |
 | **README 改版** — npm/downloads/license/bundle size 四個 badge；Why DeskPane；Features 依模組分組；CDN/unpkg 安裝說明；Roadmap；Contributing | ✅ | `README.md` |
 | **Demo 全部重建**（vanilla/jquery/vue/react）— 改成全螢幕虛擬桌面風格，對齊 demo/desktop；Vue 用 Teleport+KeepAlive；React 用 createPortal | ✅ | `demo/vanilla/`, `demo/jquery/`, `demo/vue/`, `demo/react/` |
 | **Vue/React Workspace demo 修正** — bundler manual CSS import + `injectStyles:false`；Portal/Teleport state 加入 `workspaceId` key，切換工作區時同步 active workspace 視窗 | ✅ | `demo/vue/`, `demo/react/` |
 | **docs-internal 文件** — 發佈流程 + Workspace/TaskView/Vue Teleport 踩雷紀錄 | ✅ | `docs-internal/` |
+| **GitHub Community Standards** — 貢獻指南、行為準則、安全政策、Issue Forms、PR Template | ✅ | `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md` |
 
 **尚未實作：**
 - [ ] CDN 發佈（jsDelivr / unpkg）
@@ -148,6 +151,8 @@ DeskPane/
 ├── scripts/
 │   ├── build-themes.mjs            ← 複製 src/themes/ → dist/themes/ + src/styles/ → dist/styles/ + demo/
 │   ├── clean.mjs                   ← 清除 dist/（含 Dropbox EBUSY retry）
+│   ├── clean-pages-builds.mjs       ← build:pages 前清掉 demo 子專案 dist，避開 stale artifact
+│   ├── prepare-pages.mjs            ← 組出 .pages/ GitHub Pages artifact
 │   └── pack-release.mjs            ← 打包 release/ 交付物
 │
 ├── bak/                            ← 備份（不 commit）
@@ -325,12 +330,13 @@ cd D:\Dropbox\新ERP框架開發\DeskPane
 
 npm run build         # tsc --noEmit（型別檢查，不輸出 JS）
 npm run build:lib     # Rollup 建置 → dist/（ES + UMD + min + .d.ts + themes）
+npm run build:pages   # 建置 GitHub Pages artifact → .pages/（含 Vue/React/Docs dist）
 npm run clean         # 清除 dist/（含 Dropbox EBUSY auto-retry）
 npm run release       # clean + build:lib + 打包 release/ 交付資料夾
 
 # ── 發佈 npm (自動化 CI/CD) ────────────────────────────────────
 npm version patch/minor/major  # 更新版本號並自動產生 git tag
-git push --follow-tags         # push 後 GitHub Actions 自動編譯與發佈
+git push --follow-tags         # push tag v* 後 GitHub Actions 自動編譯、打包、發佈
 
 # ── 複製主題 CSS（build:lib 已自動執行）────────────────────────
 node scripts/build-themes.mjs   # src/themes/ → dist/themes/ + demo/*/public/themes/
@@ -341,12 +347,13 @@ cd demo/react && npm install && npm run dev    # port 3002
 cd demo/docs  && npm install && npm run dev    # port 3002
 ```
 
-> ⚠️ `npm run build` 只做型別檢查，**不產生 JS**。實際建置請用 `npm run build:lib`。  
-> ⚠️ Node.js 18+（目前 18.15.0）。`rollup-plugin-dts` v6 在 Node 18 有 EBADENGINE 警告，**功能正常**。  
-> ⚠️ Vite 快取放 Dropbox 會 EBUSY → `vite.config.ts` 設 `cacheDir: path.join(os.tmpdir(), '...')`。  
-> ⚠️ `package.json` 必須無 BOM（UTF-8 without BOM），否則 PostCSS config 搜尋器會 parse 失敗。  
-> ⚠️ `.github/workflows/release.yml` 的 **`Update npm`** 步驟（`npm install -g npm@latest`）**絕對不能拿掉**。GitHub Actions 內建 npm 版本過舊，不支援 OIDC Trusted Publisher，Publish to npm 步驟會直接失敗。  
-> 📄 發佈詳細教學：`docs-internal/npm-publish-guide.md`  
+> ⚠️ `npm run build` 只做型別檢查，**不產生 JS**。實際建置請用 `npm run build:lib`。
+> ⚠️ Node.js 18+（目前 18.15.0）。`rollup-plugin-dts` v6 在 Node 18 有 EBADENGINE 警告，**功能正常**。
+> ⚠️ Vite 快取放 Dropbox 會 EBUSY → `vite.config.ts` 設 `cacheDir: path.join(os.tmpdir(), '...')`。
+> ⚠️ `package.json` 必須無 BOM（UTF-8 without BOM），否則 PostCSS config 搜尋器會 parse 失敗。
+> ⚠️ `.github/workflows/release.yml` 的 **`Update npm`** 步驟（`npm install -g npm@latest`）**絕對不能拿掉**。GitHub Actions 內建 npm 版本過舊，不支援 OIDC Trusted Publisher，Publish to npm 步驟會直接失敗。
+> ⚠️ GitHub Pages repo 設定要選 **Source: GitHub Actions**，`github-pages` environment 的 Deployment branches and tags 要允許 tag pattern `v*`。
+> 📄 發佈詳細教學：`docs-internal/npm-publish-guide.md`
 > 📄 Release 流程：`docs-internal/release-workflow.md`
 > 📄 Workspace / TaskView / Vue 踩雷紀錄：`docs-internal/workspace-taskview-vue-gotchas.md`
 

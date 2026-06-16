@@ -4,20 +4,20 @@
       <span>← 選擇左側示例後顯示原始碼</span>
     </div>
     <template v-else>
-      <!-- File tabs -->
-      <div class="code-tabs">
-        <button
-          v-for="f in files"
-          :key="f.name"
-          class="code-tab"
-          :class="{ active: activeFile === f.name }"
-          @click="activeFile = f.name"
-        >{{ f.name }}</button>
+      <div class="code-toolbar">
+        <div class="code-tabs">
+          <button
+            v-for="f in files"
+            :key="f.name"
+            class="code-tab"
+            :class="{ active: activeFile === f.name }"
+            @click="activeFile = f.name"
+          >{{ f.name }}</button>
+        </div>
         <button class="copy-btn" title="Copy code" @click="copyCode">
-          {{ copied ? '✓ Copied' : 'Copy' }}
+          {{ copied ? 'Copied' : 'Copy' }}
         </button>
       </div>
-      <!-- Code area -->
       <div class="code-scroll">
         <pre class="hljs-pre"><code
           class="hljs"
@@ -35,7 +35,7 @@ import typescript from 'highlight.js/lib/languages/typescript'
 import javascript from 'highlight.js/lib/languages/javascript'
 import xml from 'highlight.js/lib/languages/xml'
 import css from 'highlight.js/lib/languages/css'
-import 'highlight.js/styles/github-dark.min.css'
+import 'highlight.js/styles/github.min.css'
 
 hljs.registerLanguage('typescript', typescript)
 hljs.registerLanguage('javascript', javascript)
@@ -81,8 +81,8 @@ async function copyCode() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--color-code-bg);
-  color: var(--color-code-text);
+  background: #fff;
+  color: #1f2937;
 }
 
 .code-panel-empty {
@@ -90,71 +90,87 @@ async function copyCode() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6272a4;
+  color: #6b7785;
   font-size: 13px;
   padding: 20px;
   text-align: center;
 }
 
-/* Tabs */
-.code-tabs {
+.code-toolbar {
   display: flex;
   align-items: center;
-  gap: 2px;
-  background: #181825;
-  padding: 6px 8px 0;
-  border-bottom: 1px solid #313244;
+  background: #f4f4f4;
+  border-bottom: 1px solid #d4d9de;
   flex-shrink: 0;
+  min-height: 57px;
+}
+
+.code-tabs {
+  display: flex;
+  align-self: stretch;
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .code-tab {
-  padding: 5px 14px;
+  min-width: 118px;
+  padding: 0 20px;
   background: transparent;
-  border: none;
-  border-radius: 4px 4px 0 0;
-  color: #6272a4;
-  font-size: 12px;
+  border: 0;
+  border-right: 1px solid #d4d9de;
+  color: #666;
+  font-size: 15px;
   cursor: pointer;
   font-family: inherit;
+  white-space: nowrap;
   transition: color 0.1s, background 0.1s;
 }
-.code-tab:hover { color: #cdd6f4; background: #1e1e2e; }
-.code-tab.active { color: #cdd6f4; background: #1e1e2e; border-bottom: 2px solid #89b4fa; }
+
+.code-tab:hover { color: #00758c; background: #fafafa; }
+.code-tab.active {
+  color: #1f2937;
+  background: #fff;
+  box-shadow: inset 0 -3px 0 #2f9bb3;
+}
 
 .copy-btn {
   margin-left: auto;
-  padding: 4px 10px;
-  background: #313244;
-  border: none;
+  margin-right: 14px;
+  padding: 8px 18px;
+  background: #fff;
+  border: 2px solid #008aa8;
   border-radius: 4px;
-  color: #a6adc8;
-  font-size: 11px;
+  color: #00758c;
+  font-size: 14px;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.1s;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
 }
-.copy-btn:hover { background: #45475a; color: #cdd6f4; }
+.copy-btn:hover { background: #e7f5f8; color: #005f73; }
 
-/* Code scroll */
 .code-scroll {
   flex: 1;
   overflow: auto;
+  background: #fff;
 }
 
 .hljs-pre {
   margin: 0;
-  padding: 16px;
+  padding: 0;
   background: transparent !important;
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-  font-size: 12.5px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.55;
   tab-size: 2;
+  counter-reset: line;
 }
 
 .hljs-pre code.hljs {
   background: transparent !important;
-  padding: 0;
+  padding: 18px 22px;
   font-size: inherit;
-  color: var(--color-code-text);
+  color: #1f2937;
 }
 </style>

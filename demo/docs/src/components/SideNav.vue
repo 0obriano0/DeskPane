@@ -1,54 +1,121 @@
 <template>
   <nav class="side-nav">
     <div
-      v-for="cat in nav"
+      v-for="cat in filteredNav"
       :key="cat.label"
       class="nav-category"
     >
-      <div class="nav-cat-label">{{ cat.label }}</div>
+      <button class="nav-cat-label" type="button" @click="toggle(cat.label)">
+        <span class="cat-arrow" :class="{ open: isOpen(cat.label) }"></span>
+        <span>{{ cat.label }}</span>
+      </button>
       <ul class="nav-items">
         <li
           v-for="item in cat.items"
           :key="item.id"
           class="nav-item"
           :class="{ active: item.id === active }"
+          v-show="isOpen(cat.label)"
           @click="$emit('update:active', item.id)"
         >
           {{ item.label }}
         </li>
       </ul>
     </div>
+    <div v-if="!filteredNav.length" class="nav-empty">
+      No matching demos
+    </div>
   </nav>
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import type { NavCategory } from '../nav-config'
 
-defineProps<{
+const props = defineProps<{
   nav: NavCategory[]
   active: string
+  query?: string
 }>()
 defineEmits<{
   (e: 'update:active', id: string): void
 }>()
+
+const collapsed = ref(new Set<string>())
+
+const filteredNav = computed(() => {
+  const query = (props.query ?? '').trim().toLowerCase()
+  if (!query) return props.nav
+
+  return props.nav
+    .map(category => ({
+      ...category,
+      items: category.items.filter(item =>
+        item.label.toLowerCase().includes(query) ||
+        item.id.toLowerCase().includes(query) ||
+        category.label.toLowerCase().includes(query)
+      ),
+    }))
+    .filter(category => category.items.length > 0)
+})
+
+watch(() => props.query, (query) => {
+  if (query?.trim()) collapsed.value = new Set()
+})
+
+function isOpen(label: string) {
+  return !collapsed.value.has(label)
+}
+
+function toggle(label: string) {
+  const next = new Set(collapsed.value)
+  if (next.has(label)) next.delete(label)
+  else next.add(label)
+  collapsed.value = next
+}
 </script>
 
 <style scoped>
 .side-nav {
-  padding: 12px 0;
+  padding: 12px 0 28px;
 }
 
 .nav-category {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .nav-cat-label {
-  padding: 6px 16px 4px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  padding: 8px 16px 8px 18px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: #263744;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-cat-label:hover {
+  background: #eef3f6;
+}
+
+.cat-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #1c2730;
+  border-bottom: 2px solid #1c2730;
+  transform: rotate(-45deg);
+  transition: transform 0.14s ease;
+  flex-shrink: 0;
+}
+
+.cat-arrow.open {
+  transform: rotate(45deg) translateY(-2px);
 }
 
 .nav-items {
@@ -58,22 +125,31 @@ defineEmits<{
 }
 
 .nav-item {
-  padding: 7px 20px;
+  padding: 7px 18px 7px 50px;
   cursor: pointer;
-  font-size: 13px;
-  color: var(--color-text);
-  border-left: 3px solid transparent;
+  font-size: 14px;
+  color: #2c3a45;
+  border-left: 4px solid transparent;
   transition: background 0.12s, color 0.12s;
 }
 
 .nav-item:hover {
-  background: #e9ecef;
+  background: #edf3f6;
 }
 
 .nav-item.active {
-  background: #dbeafe;
-  color: var(--color-primary);
-  border-left-color: var(--color-primary);
+  background: #e1eef5;
+  color: #1684a0;
+  border-left-color: #2f9bb3;
   font-weight: 600;
+}
+
+.nav-empty {
+  margin: 18px;
+  padding: 12px;
+  color: #6b7785;
+  border: 1px dashed #c6d0d8;
+  text-align: center;
+  font-size: 13px;
 }
 </style>
