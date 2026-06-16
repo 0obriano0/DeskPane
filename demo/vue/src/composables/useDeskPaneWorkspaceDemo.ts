@@ -1,7 +1,7 @@
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import { Desktop } from '@deskpane/desktop'
 import type { WindowManager } from '@deskpane/core/WindowManager'
-import { TaskView, WorkspaceManager } from '@deskpane/workspace'
+import { getAppIdFromWorkspaceWindowId, TaskView, WorkspaceManager } from '@deskpane/workspace'
 import { createDesktopIcons, demoAppMap, demoApps } from '../appCatalog'
 import type { WindowTeleportEntry } from '../types'
 
@@ -14,17 +14,8 @@ const WINDOW_SYNC_EVENTS = [
   'window:restored',
 ] as const
 
-const WINDOW_ID_SEPARATOR = '::app-'
-
-function toWorkspaceWindowId(workspaceId: string, appId: string): string {
-  return `${workspaceId}${WINDOW_ID_SEPARATOR}${appId}`
-}
-
 function getAppIdFromWindowId(windowId: string): string {
-  if (windowId.includes(WINDOW_ID_SEPARATOR)) {
-    return windowId.slice(windowId.indexOf(WINDOW_ID_SEPARATOR) + WINDOW_ID_SEPARATOR.length)
-  }
-  return windowId.replace(/^app-/, '')
+  return getAppIdFromWorkspaceWindowId(windowId)
 }
 
 export function useDeskPaneWorkspaceDemo() {
@@ -38,12 +29,6 @@ export function useDeskPaneWorkspaceDemo() {
   const subscribedWorkspaces = new Set<string>()
   const windowEntries = new Map<string, WindowTeleportEntry>()
 
-  function currentWindowManager(): WindowManager {
-    const current = workspaceManager?.current
-    if (!current || !workspaceManager) throw new Error('No active workspace')
-    return workspaceManager.getWindowManager(current.id) as unknown as WindowManager
-  }
-
   function openApp(appId: string) {
     const app = demoAppMap.get(appId)
     if (!app) return
@@ -51,9 +36,9 @@ export function useDeskPaneWorkspaceDemo() {
     const current = workspaceManager?.current
     if (!current) return
 
-    const wm = currentWindowManager()
-    wm.open({
-      id: toWorkspaceWindowId(current.id, app.id),
+    workspaceManager.openWindow({
+      workspaceId: current.id,
+      appId: app.id,
       title: app.title,
       icon: app.icon,
       label: app.label,

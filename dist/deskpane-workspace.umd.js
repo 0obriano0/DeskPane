@@ -1738,6 +1738,7 @@
     //   • EventBus：workspace:added / workspace:removed / workspace:switched
     // ============================================================
     const WORKSPACE_STYLE_ID = 'dp-workspace-styles';
+    const WORKSPACE_WINDOW_ID_SEPARATOR = '::app-';
     function injectWorkspaceStyles() {
         injectRuntimeCSS({
             id: WORKSPACE_STYLE_ID,
@@ -1750,10 +1751,33 @@
     function getWorkspaceCSS() {
         return WORKSPACE_CSS;
     }
+    /** Build a window id that is unique across workspaces for the same app id. */
+    function createWorkspaceWindowId(workspaceId, appId, options = {}) {
+        const separator = options.separator ?? WORKSPACE_WINDOW_ID_SEPARATOR;
+        return `${workspaceId}${separator}${appId}`;
+    }
+    /** Parse an id created by `createWorkspaceWindowId()`. */
+    function parseWorkspaceWindowId(windowId, options = {}) {
+        const separator = options.separator ?? WORKSPACE_WINDOW_ID_SEPARATOR;
+        const index = windowId.indexOf(separator);
+        if (index <= 0)
+            return null;
+        const workspaceId = windowId.slice(0, index);
+        const appId = windowId.slice(index + separator.length);
+        if (!workspaceId || !appId)
+            return null;
+        return { workspaceId, appId };
+    }
+    /** Return the app id from a scoped window id, or a sensible fallback. */
+    function getAppIdFromWorkspaceWindowId(windowId, options = {}) {
+        return parseWorkspaceWindowId(windowId, options)?.appId
+            ?? (windowId.startsWith('app-') ? windowId.slice(4) : windowId);
+    }
     class WorkspaceManager {
         constructor(container, options = {}) {
             this._workspaces = new Map();
             this._windowManagers = new Map();
+            this._windowManagerCleanups = new Map();
             this._currentId = null;
             this._isAnimating = false;
             this._indicatorEl = null;
@@ -1770,6 +1794,7 @@
                 ...(options.windowManagerOptions ?? {}),
                 injectStyles: options.windowManagerOptions?.injectStyles ?? options.injectStyles,
             };
+            this._warnOnDuplicateWindowIds = options.warnOnDuplicateWindowIds ?? true;
             this.events = new EventBus();
             if (options.injectStyles !== false)
                 injectWorkspaceStyles();
@@ -1812,6 +1837,7 @@
                 container: wsEl,
                 isolated: true,
             });
+            this._subscribeWindowManager(config.id, wm);
             const state = {
                 id: config.id,
                 label: config.label ?? config.id,
@@ -1838,6 +1864,8 @@
                 return;
             const wm = this._windowManagers.get(id);
             wm?.destroy();
+            this._windowManagerCleanups.get(id)?.forEach(dispose => dispose());
+            this._windowManagerCleanups.delete(id);
             state.container.remove();
             this._workspaces.delete(id);
             this._windowManagers.delete(id);
@@ -1940,6 +1968,35 @@
             return wm;
         }
         /**
+         * Build a workspace-scoped window id for an app.
+         * Defaults to the current workspace when `workspaceId` is omitted.
+         */
+        createWindowId(appId, workspaceId = this._currentId) {
+            if (!workspaceId)
+                throw new Error('[WorkspaceManager] No active workspace');
+            return createWorkspaceWindowId(workspaceId, appId);
+        }
+        /**
+         * Open a window in a workspace.
+         * Prefer `appId` over manually reusing raw ids across workspaces; DeskPane
+         * will generate a scoped id such as `ws-2::app-counter`.
+         */
+        openWindow(config) {
+            const workspaceId = config.workspaceId ?? this._currentId;
+            if (!workspaceId)
+                throw new Error('[WorkspaceManager] No active workspace');
+            const wm = this.getWindowManager(workspaceId);
+            const { workspaceId: _workspaceId, appId, ...windowConfig } = config;
+            const id = config.id ?? (appId ? createWorkspaceWindowId(workspaceId, appId) : null);
+            if (!id) {
+                throw new Error('[WorkspaceManager] openWindow() requires either id or appId');
+            }
+            return wm.open({
+                ...windowConfig,
+                id,
+            });
+        }
+        /**
          * 啟用工作區指示點（小圓點）。
          * 會在根容器底部顯示，指示當前所在工作區。
          */
@@ -1960,6 +2017,8 @@
         destroy() {
             this._windowManagers.forEach(wm => wm.destroy());
             this._windowManagers.clear();
+            this._windowManagerCleanups.forEach(cleanups => cleanups.forEach(dispose => dispose()));
+            this._windowManagerCleanups.clear();
             this._workspaces.clear();
             this._root.remove();
             this._currentId = null;
@@ -1998,6 +2057,35 @@
         }
         _setWorkspaceVisible(el, visible) {
             el.hidden = !visible;
+        }
+        _subscribeWindowManager(workspaceId, wm) {
+            if (!this._warnOnDuplicateWindowIds)
+                return;
+            const offOpened = wm.events.on('window:opened', (state) => {
+                if (!state?.id)
+                    return;
+                this._warnDuplicateWindowId(workspaceId, state.id);
+            });
+            this._windowManagerCleanups.set(workspaceId, [offOpened]);
+        }
+        _warnDuplicateWindowId(workspaceId, windowId) {
+            if (parseWorkspaceWindowId(windowId))
+                return;
+            const duplicates = [];
+            this._windowManagers.forEach((wm, otherWorkspaceId) => {
+                if (otherWorkspaceId === workspaceId)
+                    return;
+                if (wm.getState(windowId))
+                    duplicates.push(otherWorkspaceId);
+            });
+            if (duplicates.length === 0)
+                return;
+            const scopedExample = createWorkspaceWindowId(workspaceId, getAppIdFromWorkspaceWindowId(windowId));
+            console.warn(`[WorkspaceManager] Window id "${windowId}" is also open in workspace(s): ${duplicates.join(', ')}. ` +
+                `Duplicate raw ids across workspaces can confuse Dock sync and framework Portal/Teleport targets. ` +
+                `Use WorkspaceManager.openWindow({ appId: "${getAppIdFromWorkspaceWindowId(windowId)}", ... }) ` +
+                `or createWorkspaceWindowId("${workspaceId}", "${getAppIdFromWorkspaceWindowId(windowId)}") ` +
+                `for an id like "${scopedExample}".`);
         }
         /** 更新底部指示點 */
         _updateIndicator() {
@@ -2397,8 +2485,11 @@
     exports.SessionManager = SessionManager;
     exports.TaskView = TaskView;
     exports.WorkspaceManager = WorkspaceManager;
+    exports.createWorkspaceWindowId = createWorkspaceWindowId;
+    exports.getAppIdFromWorkspaceWindowId = getAppIdFromWorkspaceWindowId;
     exports.getTaskViewCSS = getTaskViewCSS;
     exports.getWorkspaceCSS = getWorkspaceCSS;
+    exports.parseWorkspaceWindowId = parseWorkspaceWindowId;
 
 }));
 //# sourceMappingURL=deskpane-workspace.umd.js.map

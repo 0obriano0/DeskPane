@@ -607,6 +607,17 @@ wsMgr.switchTo('ws-2')
 const wm = wsMgr.getWindowManager(wsMgr.current.id)
 wm.open({ id: 'app', title: 'My App', content: el })
 
+// Safer: let DeskPane scope the window id to the workspace.
+// This prevents duplicate raw ids when the same app opens on multiple desktops.
+wsMgr.openWindow({
+  appId: 'counter',
+  title: 'Counter',
+  icon: '🔢',
+  label: 'Counter',
+  content: el,
+})
+// Actual window id becomes similar to: ws-2::app-counter
+
 // Events
 wsMgr.events.on('workspace:switched', ({ from, to }) => { })
 wsMgr.events.on('workspace:added',    (state) => { })
@@ -632,9 +643,35 @@ wsMgr.enableIndicator()
 | `removeWorkspace(id)` | Destroy workspace and switch to nearest remaining |
 | `switchTo(id)` | Animate to target workspace |
 | `getWindowManager(id)` | Get the `WindowManager` for a workspace |
+| `openWindow(config)` | Open a window in a workspace. Prefer `appId` to generate a workspace-scoped id automatically. |
+| `createWindowId(appId, workspaceId?)` | Build a workspace-scoped id such as `ws-2::app-counter`. |
 | `enableIndicator()` | Show dot indicator below workspaces |
 | `disableIndicator()` | Remove dot indicator |
 | `destroy()` | Destroy all workspaces and clean up |
+
+#### Workspace-safe window ids
+
+When the same app can open on more than one workspace, avoid reusing a raw id like `app-counter` in every workspace. Use `openWindow({ appId })` or the helper functions exported from `deskpane/workspace`:
+
+```typescript
+import {
+  createWorkspaceWindowId,
+  getAppIdFromWorkspaceWindowId,
+  parseWorkspaceWindowId,
+} from 'deskpane/workspace'
+
+const id = createWorkspaceWindowId('ws-2', 'counter') // ws-2::app-counter
+parseWorkspaceWindowId(id)                            // { workspaceId:'ws-2', appId:'counter' }
+getAppIdFromWorkspaceWindowId(id)                     // counter
+```
+
+`WorkspaceManager` warns by default when the same raw window id is opened in multiple workspaces because it can confuse Dock sync and framework Portal/Teleport targets. Disable this only if you intentionally manage ids yourself:
+
+```typescript
+const wsMgr = new WorkspaceManager(container, {
+  warnOnDuplicateWindowIds: false,
+})
+```
 
 #### React / Vue Portal Content with Workspaces
 

@@ -12,6 +12,9 @@
 - Added Vue `v-model:open` support for declarative DeskPane windows.
 - Added Wijmo-style `initialized` events to Vue declarative components for imperative instance access.
 - Added a Vue declarative demo source at `demo/vue/src/DeclarativeApp.vue`.
+- Added workspace-scoped window id helpers: `createWorkspaceWindowId()`, `parseWorkspaceWindowId()`, and `getAppIdFromWorkspaceWindowId()`.
+- Added `WorkspaceManager.openWindow({ appId })` to open workspace-safe app windows without manually composing cross-workspace ids.
+- Added duplicate raw window id warnings across workspaces, configurable with `warnOnDuplicateWindowIds`.
 
 ### Changed
 
@@ -29,6 +32,7 @@
 - Marked inactive workspace containers as `hidden` after transitions so scoped Vue Teleport content cannot receive clicks from another desktop.
 - Fixed Task View workspace snapshots so cloned inactive workspaces are visible in previews even when the live workspace is hidden.
 - Hid the Task View overlay when closed so its panel cannot intercept clicks after switching desktops.
+- Updated `demo/vue` to use `WorkspaceManager.openWindow({ appId })` instead of hand-written workspace id composition.
 
 ## 0.1.4 - 2026-06-16
 

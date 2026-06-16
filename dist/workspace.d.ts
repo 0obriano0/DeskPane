@@ -270,6 +270,34 @@ interface WorkspaceState {
     /** 工作區的 DOM 容器（已掛載到 WorkspaceManager 根容器內） */
     container: HTMLElement;
 }
+/** Workspace-aware window id helper options. */
+interface WorkspaceWindowIdOptions {
+    /** Separator between workspace id and app id. Default: `::app-`. */
+    separator?: string;
+}
+/** Parsed result from a workspace-scoped window id. */
+interface WorkspaceWindowIdParts {
+    workspaceId: string;
+    appId: string;
+}
+/**
+ * Window config for `WorkspaceManager.openWindow()`.
+ * Use `appId` to let DeskPane generate a workspace-scoped window id.
+ */
+interface WorkspaceOpenWindowConfig extends Omit<WindowConfig, 'id'> {
+    /**
+     * Logical application id. When provided, DeskPane opens the window with a
+     * workspace-scoped id such as `ws-2::app-counter`.
+     */
+    appId?: string;
+    /**
+     * Explicit window id. If omitted, `appId` is required and a scoped id is
+     * generated automatically.
+     */
+    id?: string;
+    /** Target workspace. Defaults to the current workspace. */
+    workspaceId?: string;
+}
 /** Dock 最小介面（duck typing，避免 workspace 直接依賴 desktop bundle） */
 interface DockLike {
     addItem(item: {
@@ -358,17 +386,31 @@ interface WorkspaceManagerOptions {
      * 每個工作區的 WindowManager 都套用相同選項。
      */
     windowManagerOptions?: WindowManagerOptions;
+    /**
+     * Warn when the same raw window id exists in more than one workspace.
+     * This helps catch Dock/Portal/Teleport identity bugs early.
+     * Default: true.
+     */
+    warnOnDuplicateWindowIds?: boolean;
 }
 
 /** 取得 WorkspaceManager CSS（供 SSR 或自訂注入使用） */
 declare function getWorkspaceCSS(): string;
+/** Build a window id that is unique across workspaces for the same app id. */
+declare function createWorkspaceWindowId(workspaceId: string, appId: string, options?: WorkspaceWindowIdOptions): string;
+/** Parse an id created by `createWorkspaceWindowId()`. */
+declare function parseWorkspaceWindowId(windowId: string, options?: WorkspaceWindowIdOptions): WorkspaceWindowIdParts | null;
+/** Return the app id from a scoped window id, or a sensible fallback. */
+declare function getAppIdFromWorkspaceWindowId(windowId: string, options?: WorkspaceWindowIdOptions): string;
 type WorkspaceEvent = 'workspace:added' | 'workspace:removed' | 'workspace:switched';
 declare class WorkspaceManager {
     private readonly _root;
     private readonly _animationMs;
     private readonly _wmOptions;
+    private readonly _warnOnDuplicateWindowIds;
     private readonly _workspaces;
     private readonly _windowManagers;
+    private readonly _windowManagerCleanups;
     private _currentId;
     private _isAnimating;
     private _indicatorEl;
@@ -399,6 +441,17 @@ declare class WorkspaceManager {
      */
     getWindowManager(workspaceId: string): WindowManager;
     /**
+     * Build a workspace-scoped window id for an app.
+     * Defaults to the current workspace when `workspaceId` is omitted.
+     */
+    createWindowId(appId: string, workspaceId?: string | null): string;
+    /**
+     * Open a window in a workspace.
+     * Prefer `appId` over manually reusing raw ids across workspaces; DeskPane
+     * will generate a scoped id such as `ws-2::app-counter`.
+     */
+    openWindow(config: WorkspaceOpenWindowConfig): WindowState;
+    /**
      * 啟用工作區指示點（小圓點）。
      * 會在根容器底部顯示，指示當前所在工作區。
      */
@@ -410,6 +463,8 @@ declare class WorkspaceManager {
     private _activateImmediate;
     private _setWorkspaceInteractive;
     private _setWorkspaceVisible;
+    private _subscribeWindowManager;
+    private _warnDuplicateWindowId;
     /** 更新底部指示點 */
     private _updateIndicator;
 }
@@ -515,5 +570,5 @@ declare class SessionManager {
     private static _parse;
 }
 
-export { SessionManager, TaskView, WorkspaceManager, getTaskViewCSS, getWorkspaceCSS };
-export type { AppRegistry, DockLike, SessionSnapshot, TaskViewEvent, TaskViewOptions, WindowSnapshot, WorkspaceConfig, WorkspaceEvent, WorkspaceManagerOptions, WorkspaceSnapshot, WorkspaceState };
+export { SessionManager, TaskView, WorkspaceManager, createWorkspaceWindowId, getAppIdFromWorkspaceWindowId, getTaskViewCSS, getWorkspaceCSS, parseWorkspaceWindowId };
+export type { AppRegistry, DockLike, SessionSnapshot, TaskViewEvent, TaskViewOptions, WindowSnapshot, WorkspaceConfig, WorkspaceEvent, WorkspaceManagerOptions, WorkspaceOpenWindowConfig, WorkspaceSnapshot, WorkspaceState, WorkspaceWindowIdOptions, WorkspaceWindowIdParts };

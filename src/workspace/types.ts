@@ -2,6 +2,8 @@
 // DeskPane — Workspace Types
 // ============================================================
 
+import type { WindowConfig } from '../core/types.js';
+
 /** 建立工作區時的設定 */
 export interface WorkspaceConfig {
   /** 唯一識別碼（必填） */
@@ -19,6 +21,37 @@ export interface WorkspaceState {
   icon?: string;
   /** 工作區的 DOM 容器（已掛載到 WorkspaceManager 根容器內） */
   container: HTMLElement;
+}
+
+/** Workspace-aware window id helper options. */
+export interface WorkspaceWindowIdOptions {
+  /** Separator between workspace id and app id. Default: `::app-`. */
+  separator?: string;
+}
+
+/** Parsed result from a workspace-scoped window id. */
+export interface WorkspaceWindowIdParts {
+  workspaceId: string;
+  appId: string;
+}
+
+/**
+ * Window config for `WorkspaceManager.openWindow()`.
+ * Use `appId` to let DeskPane generate a workspace-scoped window id.
+ */
+export interface WorkspaceOpenWindowConfig extends Omit<WindowConfig, 'id'> {
+  /**
+   * Logical application id. When provided, DeskPane opens the window with a
+   * workspace-scoped id such as `ws-2::app-counter`.
+   */
+  appId?: string;
+  /**
+   * Explicit window id. If omitted, `appId` is required and a scoped id is
+   * generated automatically.
+   */
+  id?: string;
+  /** Target workspace. Defaults to the current workspace. */
+  workspaceId?: string;
 }
 
 /** Dock 最小介面（duck typing，避免 workspace 直接依賴 desktop bundle） */
@@ -101,4 +134,10 @@ export interface WorkspaceManagerOptions {
    * 每個工作區的 WindowManager 都套用相同選項。
    */
   windowManagerOptions?: import('../core/WindowManager.js').WindowManagerOptions;
+  /**
+   * Warn when the same raw window id exists in more than one workspace.
+   * This helps catch Dock/Portal/Teleport identity bugs early.
+   * Default: true.
+   */
+  warnOnDuplicateWindowIds?: boolean;
 }

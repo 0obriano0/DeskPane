@@ -2,8 +2,21 @@
 // DeskPane-Workspace — Public Entry Point
 // ============================================================
 
-export { WorkspaceManager, getWorkspaceCSS } from './WorkspaceManager.js';
-export type { WorkspaceConfig, WorkspaceState, WorkspaceManagerOptions } from './types.js';
+export {
+  WorkspaceManager,
+  createWorkspaceWindowId,
+  getAppIdFromWorkspaceWindowId,
+  getWorkspaceCSS,
+  parseWorkspaceWindowId,
+} from './WorkspaceManager.js';
+export type {
+  WorkspaceConfig,
+  WorkspaceManagerOptions,
+  WorkspaceOpenWindowConfig,
+  WorkspaceState,
+  WorkspaceWindowIdOptions,
+  WorkspaceWindowIdParts,
+} from './types.js';
 export type { WorkspaceEvent } from './WorkspaceManager.js';
 
 export { TaskView, getTaskViewCSS } from './TaskView.js';

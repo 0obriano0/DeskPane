@@ -265,6 +265,12 @@ wsMgr.addWorkspace({ id: 'ws-1', label: '桌面 1' })
 wsMgr.switchTo('ws-1')
 wsMgr.removeWorkspace('ws-1')
 wsMgr.getWindowManager('ws-1')   // 取得該工作區的 WindowManager
+wsMgr.openWindow({               // 推薦：自動產生 workspace-scoped window id
+  appId: 'counter',
+  title: 'Counter',
+  content: el,
+})
+wsMgr.createWindowId('counter')   // 例如 ws-2::app-counter
 wsMgr.events.on('workspace:switched', ({ from, to }) => { })
 wsMgr.events.on('workspace:added',    (state) => { })
 wsMgr.events.on('workspace:removed',  ({ id }) => { })
@@ -401,6 +407,7 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | 49 | TaskView 快照會 clone live state | `TaskView` 用 `container.cloneNode(true)` 做快照，會連 `hidden` / `inert` / `aria-hidden` 一起複製。clone 後必須清掉這些屬性，再移除 enter/leave class、加回 `dp-workspace--active`，否則 inactive workspace 的預覽會空白 |
 | 50 | TaskView 關閉後 overlay 必須硬 hidden | `opacity:0` 或單靠 `pointer-events:none` 不夠；`dp-task-view-panel` 仍可能在 DevTools / hit-test 中被碰到。`TaskView` constructor 預設 `overlay.hidden=true`，`open()` 解開，`close()` 立刻設回；CSS 加 `.dp-task-view[hidden]` |
 | 51 | Vue `data-v-*` 不是根因 | DevTools 看到 `data-v-cdbe9a07` 只是 Vue scoped CSS。若點到它會切桌面，真正要查的是最近的 `.dp-workspace` 是否 hidden/inert，或 `.dp-task-view` 是否 hidden。詳細排查流程見 `docs-internal/workspace-taskview-vue-gotchas.md` |
+| 52 | Workspace id 預防 API | 使用者不必自己組 `ws-2::app-counter`。`deskpane/workspace` 匯出 `createWorkspaceWindowId()` / `parseWorkspaceWindowId()` / `getAppIdFromWorkspaceWindowId()`，`WorkspaceManager.openWindow({ appId })` 會自動產生 scoped id。`warnOnDuplicateWindowIds` 預設 true，直接用 raw id 跨 workspace 重複開窗會 `console.warn` |
 
 ---
 
