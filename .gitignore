@@ -11,6 +11,9 @@ release/
 bak/
 docs-internal/
 
+# ── Local/private project notes ──────────────────
+PROJECT_STATUS.md
+
 # ── Vite cache (moved to os.tmpdir() but just in case) ──
 .vite/
 

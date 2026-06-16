@@ -2,7 +2,21 @@
 
 ## 0.2.2 - Unreleased
 
-_No changes yet._
+### Added
+
+- Added SEO metadata for the GitHub Pages demo landing page and individual demo entries.
+- Added canonical, Open Graph, and Twitter card metadata for Vue, React, docs, vanilla, jQuery, desktop, layout, and theme editor demos.
+- Added `robots.txt` and `sitemap.xml` generation to the GitHub Pages artifact.
+- Added `homepage` and expanded npm keywords in `package.json` for better npm and GitHub discoverability.
+
+### Changed
+
+- Improved `scripts/prepare-pages.mjs` so the generated root Pages entry includes SEO metadata before redirecting to the demo landing page.
+- Made `.pages` cleanup more tolerant of transient Dropbox file locks during Pages artifact preparation.
+
+### Removed
+
+- Removed `PROJECT_STATUS.md` from the public project tree and added it to `.gitignore` as a local/private project note.
 
 ## 0.2.1 - 2026-06-16
 

@@ -6,6 +6,7 @@
     "type": "git",
     "url": "git+https://github.com/0obriano0/DeskPane.git"
   },
+  "homepage": "https://0obriano0.github.io/DeskPane/",
   "main": "dist/deskpane.umd.js",
   "module": "dist/deskpane.es.js",
   "types": "dist/index.d.ts",
@@ -67,7 +68,16 @@
   },
   "keywords": [
     "window-manager",
+    "web-desktop",
     "desktop",
+    "floating-window",
+    "draggable",
+    "resizable",
+    "typescript",
+    "javascript",
+    "vue",
+    "react",
+    "ui-framework",
     "framework-agnostic"
   ],
   "license": "Apache-2.0"

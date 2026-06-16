@@ -4,6 +4,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pagesDir = path.join(root, '.pages');
+const siteUrl = 'https://0obriano0.github.io/DeskPane';
+
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
 
 function copyRequired(from, to) {
   const src = path.join(root, from);
@@ -21,7 +26,15 @@ function resetPagesDir() {
     if (!existsSync(pagesDir)) return;
     const staleDir = path.join(root, `.pages-stale-${Date.now()}`);
     console.warn(`Could not remove .pages directly; moving old output to ${path.basename(staleDir)}.`);
-    renameSync(pagesDir, staleDir);
+    for (let attempt = 1; attempt <= 10; attempt += 1) {
+      try {
+        renameSync(pagesDir, staleDir);
+        return;
+      } catch (renameError) {
+        if (attempt === 10) throw renameError;
+        sleep(200);
+      }
+    }
   }
 }
 
@@ -30,7 +43,58 @@ mkdirSync(pagesDir, { recursive: true });
 
 writeFileSync(
   path.join(pagesDir, 'index.html'),
-  '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=demo/index.html"><title>DeskPane Demo</title><a href="demo/index.html">DeskPane Demo</a>\n',
+  `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="0; url=demo/index.html">
+  <title>DeskPane Demos — Web Desktop Window Manager</title>
+  <meta name="description" content="Interactive DeskPane demos for a framework-agnostic web desktop window manager with draggable, resizable windows, Dock, virtual desktops, Vue, React, and JavaScript examples.">
+  <link rel="canonical" href="${siteUrl}/demo/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="DeskPane Demos">
+  <meta property="og:description" content="Framework-agnostic web desktop window manager demos for JavaScript, Vue, and React.">
+  <meta property="og:url" content="${siteUrl}/demo/">
+  <meta property="og:site_name" content="DeskPane">
+  <meta name="twitter:card" content="summary">
+</head>
+<body>
+  <h1>DeskPane Demos</h1>
+  <p><a href="demo/index.html">Open DeskPane demos</a></p>
+</body>
+</html>
+`,
+);
+
+writeFileSync(
+  path.join(pagesDir, 'robots.txt'),
+  `User-agent: *
+Allow: /
+
+Sitemap: ${siteUrl}/sitemap.xml
+`,
+);
+
+const sitemapUrls = [
+  `${siteUrl}/demo/`,
+  `${siteUrl}/demo/docs/dist/`,
+  `${siteUrl}/demo/vue/dist/`,
+  `${siteUrl}/demo/react/dist/`,
+  `${siteUrl}/demo/vanilla/`,
+  `${siteUrl}/demo/jquery/`,
+  `${siteUrl}/demo/desktop/`,
+  `${siteUrl}/demo/theme-editor/`,
+  `${siteUrl}/demo/layout/`,
+];
+
+writeFileSync(
+  path.join(pagesDir, 'sitemap.xml'),
+  `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapUrls.map(url => `  <url><loc>${url}</loc></url>`).join('\n')}
+</urlset>
+`,
 );
 
 copyRequired('dist', 'dist');
