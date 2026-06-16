@@ -16,7 +16,7 @@ Modern web applications — especially ERPs, dashboards, and admin tools — oft
 
 DeskPane is:
 
-- 🪶 **Zero dependencies** — pure TypeScript, no third-party runtime libs
+- 🪶 **Zero core dependencies** — pure TypeScript core; framework adapters use optional peer dependencies
 - 🔌 **Framework-agnostic** — works with Vue 3, React 18, jQuery, or plain JS
 - 🎨 **Themeable** — 30 CSS custom properties, light/dark built-in, fully customizable
 - 📦 **Modular** — use only what you need (core / desktop / workspace)
@@ -39,6 +39,8 @@ DeskPane is:
 
 ### Desktop Module (`deskpane/desktop`)
 - ✅ Virtual desktop with draggable icons and localStorage snap positions
+- ✅ **Wijmo-style `itemsSource`** — bind desktop icons to arrays or `DesktopCollectionView`
+- ✅ Desktop icon events — `items:changed`, `icon:moved`, `icon:activated`, and more
 - ✅ Dock with frosted-glass backdrop-filter, drag reorder
 - ✅ **Windows-style group thumbnail preview** — hover Dock item to see live window thumbnails
 - ✅ `syncDockWithWindows()` — zero-config Dock ↔ window sync
@@ -51,7 +53,7 @@ DeskPane is:
 ### Layouts & Theming
 - ✅ **BorderLayout** — N/S/E/W/Center docking layout, collapsible panels, draggable splitters
 - ✅ **Theme system** — `setTheme('light' | 'dark')`, 30 CSS custom properties
-- ✅ Vue 3 adapter — `useWindowManager` composable + `<Teleport>` support
+- ✅ Vue 3 adapter — `useWindowManager`, `DpDesktop`, `DpDesktopIcon`, `DpWindowManager`, `DpWindow`
 - ✅ React 18 adapter — `useWindowManager` hook + `createPortal` support
 
 ---
@@ -109,7 +111,7 @@ wm.open({ id: 'hello', title: 'My Window', content: el })
 </script>
 ```
 
-### Vue 3
+### Vue 3 — Composable
 
 ```vue
 <template>
@@ -124,12 +126,70 @@ wm.open({ id: 'hello', title: 'My Window', content: el })
 </template>
 
 <script setup lang="ts">
-import { useWindowManager } from '@deskpane/adapters/vue/useWindowManager'
+import { useWindowManager } from 'deskpane/vue'
 import MyComp from './MyComp.vue'
 
 const { windows, openVueWindow } = useWindowManager()
 </script>
 ```
+
+### Vue 3 — Declarative Components
+
+```vue
+<template>
+  <DpDesktop
+    v-model:items="icons"
+    :dock="{ position: 'bottom' }"
+    @initialized="desktop = $event"
+    @icon-activated="openApp"
+  >
+    <DpDesktopIcon
+      id="settings"
+      label="Settings"
+      icon="⚙️"
+      @activate="settingsOpen = true"
+    />
+  </DpDesktop>
+
+  <DpWindowManager>
+    <DpWindow
+      id="settings"
+      v-model:open="settingsOpen"
+      title="Settings"
+      icon="⚙️"
+      :width="520"
+      :height="420"
+      @initialized="onWindowInitialized"
+    >
+      <SettingsPanel />
+    </DpWindow>
+  </DpWindowManager>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { DpDesktop, DpDesktopIcon, DpWindow, DpWindowManager } from 'deskpane/vue'
+import type { DesktopIconConfig, DesktopIconEvent } from 'deskpane/desktop'
+import SettingsPanel from './SettingsPanel.vue'
+
+const settingsOpen = ref(false)
+let desktop: unknown = null
+const icons = ref<DesktopIconConfig[]>([
+  { id: 'settings-icon', label: 'Settings', icon: '⚙️', x: 40, y: 40 },
+])
+
+function openApp(event: DesktopIconEvent) {
+  if (event.id === 'settings-icon') settingsOpen.value = true
+}
+
+function onWindowInitialized({ bodyEl }: { bodyEl: HTMLElement }) {
+  // Attach vanilla JS / jQuery / third-party widgets here.
+  console.log(bodyEl)
+}
+</script>
+```
+
+`initialized` follows the Wijmo-style pattern: it fires after the underlying DeskPane instance or window body is created, so advanced users can store the instance or attach vanilla JS / jQuery behavior without leaving the declarative template API.
 
 ### React 18
 
@@ -449,6 +509,7 @@ desktop.getDesktopElement()
 | `storageKey` | `string` | `'dp-desktop'` | localStorage key prefix for icon positions |
 | `dock` | `DockConfig` | `{}` | Dock configuration |
 | `icons` | `DesktopIconConfig[]` | `[]` | Initial desktop icons |
+| `itemsSource` | `DesktopIconConfig[] \| DesktopCollectionView` | `icons ?? []` | Wijmo-style data source for desktop icons |
 
 ### Desktop Methods
 
@@ -456,6 +517,13 @@ desktop.getDesktopElement()
 |--------|-------------|
 | `desktop.addIcon(config)` | Add a desktop icon |
 | `desktop.removeIcon(id)` | Remove a desktop icon |
+| `desktop.getItems()` | Get the current desktop icon snapshot, including live positions |
+| `desktop.getItem(id)` | Get one icon snapshot |
+| `desktop.setItems(items)` | Replace the desktop icon list |
+| `desktop.setItemsSource(source)` | Bind a new array or `DesktopCollectionView` |
+| `desktop.updateItem(id, patch)` | Patch one icon and refresh its rendered element |
+| `desktop.refreshItems()` / `desktop.refresh()` | Re-read the bound source and repaint desktop icons |
+| `desktop.getCollectionView()` | Get the active `DesktopCollectionView` |
 | `desktop.getDock()` | Get the `Dock` instance for advanced manipulation |
 | `desktop.setDockPosition(pos)` | Dynamically move Dock: `'top' \| 'bottom' \| 'left' \| 'right'`. Updates icon and window area insets instantly. |
 | `desktop.getElement()` | Get the window area element (Dock excluded) — use as `WindowManager` container |
@@ -463,6 +531,27 @@ desktop.getDesktopElement()
 | `desktop.syncDockWithWindows(wm, opts?)` | Sync Dock items with running windows |
 | `desktop.unsyncDockWithWindows()` | Stop sync |
 | `desktop.destroy()` | Tear down the desktop |
+
+### `DesktopCollectionView`
+
+```typescript
+import { Desktop, DesktopCollectionView } from 'deskpane/desktop'
+
+const icons = [
+  { id: 'erp', label: 'ERP', icon: '📦', x: 40, y: 40 },
+]
+
+const view = new DesktopCollectionView(icons)
+const desktop = new Desktop({ itemsSource: view })
+
+view.add({ id: 'mail', label: 'Mail', icon: '✉️', x: 40, y: 140 })
+view.update('erp', { label: 'ERP System' })
+view.refresh() // use this after direct sourceCollection mutations
+
+desktop.events.on('items:changed', event => {
+  console.log(event.reason, event.items)
+})
+```
 
 ### `desktop.syncDockWithWindows(manager, options?)`
 

@@ -18,6 +18,10 @@
   pointer-events: none;
   transition: opacity 0.2s;
 }
+.dp-task-view[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
 .dp-task-view--open {
   opacity: 1;
   pointer-events: auto;

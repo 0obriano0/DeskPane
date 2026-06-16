@@ -24,6 +24,7 @@
   /* !important：防止 .dp-isolated { position: relative } 被後注入的 Core CSS 覆蓋 */
   position: absolute !important;
   inset: 0;
+  display: none;
   width: 100%;
   height: 100%;
   /* 非活躍工作區：平移到可見範圍外 */
@@ -35,10 +36,35 @@
   visibility: hidden;
 }
 
+.dp-workspace[hidden] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.dp-workspace.dp-workspace--active,
+.dp-workspace.dp-workspace--enter-right,
+.dp-workspace.dp-workspace--enter-left,
+.dp-workspace.dp-workspace--leave-left,
+.dp-workspace.dp-workspace--leave-right {
+  display: block;
+  visibility: visible;
+}
+
 .dp-workspace.dp-workspace--active {
   transform: translateX(0);
   pointer-events: none;
-  visibility: visible;
+}
+
+/* Only the active workspace may receive window interactions.
+   This matters when frameworks keep offscreen workspace DOM mounted
+   for state preservation (Vue KeepAlive / Teleport, React portals, etc.). */
+.dp-workspace .dp-window {
+  pointer-events: none;
+}
+
+.dp-workspace.dp-workspace--active .dp-window {
+  pointer-events: auto;
 }
 
 /* 從右往左：下一個工作區（切換到更大 index）初始位置在右側 */

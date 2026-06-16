@@ -2,6 +2,8 @@
 // DeskPane-Desktop — Type Definitions
 // ============================================================
 
+import type { DesktopCollectionView } from './DesktopCollectionView.js';
+
 /** 桌面圖示設定 */
 export interface DesktopIconConfig {
   id: string;
@@ -13,13 +15,46 @@ export interface DesktopIconConfig {
   /** 初始 Y 位置（px）。未指定則自動排列 */
   y?: number;
   /** 點擊圖示時觸發的動作 */
-  action: () => void;
+  action?: () => void;
   /**
    * 拖曳感應距離（px）。
    * 滑鼠按下後需移動超過此距離才進入拖曳模式；低於此值的位移視為點擊。
    * 預設 6。
    */
   dragThreshold?: number;
+}
+
+export type DesktopItemsSource =
+  | DesktopIconConfig[]
+  | DesktopCollectionView<DesktopIconConfig>;
+
+export type DesktopEvent =
+  | 'desktop:ready'
+  | 'desktop:destroyed'
+  | 'items:changed'
+  | 'items:refreshed'
+  | 'icon:added'
+  | 'icon:removed'
+  | 'icon:moved'
+  | 'icon:activated'
+  | 'icon:selected'
+  | 'dock:position-changed';
+
+export interface DesktopItemsEvent {
+  source: string;
+  reason: string;
+  items: DesktopIconConfig[];
+}
+
+export interface DesktopIconEvent {
+  id: string;
+  item: DesktopIconConfig;
+  items: DesktopIconConfig[];
+}
+
+export interface DesktopIconMoveEvent extends DesktopIconEvent {
+  x: number;
+  y: number;
 }
 
 /** Dock 工具列項目設定 */
@@ -128,6 +163,11 @@ export interface DesktopConfig {
   container?: HTMLElement;
   dock?: DockConfig;
   icons?: DesktopIconConfig[];
+  /**
+   * Wijmo-style data source for desktop icons.
+   * Plain arrays are wrapped in DesktopCollectionView automatically.
+   */
+  itemsSource?: DesktopItemsSource;
   /** CSS background 值，預設使用 --dp-desktop-bg */
   background?: string;
   /** localStorage key 前綴，用於記憶圖示位置，預設 'dp-desktop' */

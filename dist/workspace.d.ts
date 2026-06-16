@@ -174,6 +174,12 @@ declare class WindowManager {
      */
     focus(id: string): void;
     /**
+     * Re-emit focus for the topmost visible window.
+     * Useful when a preserved workspace becomes active again and its previous
+     * active window needs to resync dock/focus state.
+     */
+    activateTopWindow(): void;
+    /**
      * 最小化（隱藏 DOM，保留狀態）
      */
     minimize(id: string): void;
@@ -402,6 +408,8 @@ declare class WorkspaceManager {
     destroy(): void;
     /** 無動畫直接啟用（初始化或移除當前工作區時使用） */
     private _activateImmediate;
+    private _setWorkspaceInteractive;
+    private _setWorkspaceVisible;
     /** 更新底部指示點 */
     private _updateIndicator;
 }

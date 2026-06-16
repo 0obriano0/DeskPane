@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.2.0 - 2026-06-16
+
+### Added
+
+- Added Wijmo-style desktop data binding with `itemsSource` and `DesktopCollectionView`.
+- Added `Desktop.events` with icon and item synchronization events.
+- Added `desktop.getItems()`, `desktop.getItem()`, `desktop.setItems()`, `desktop.setItemsSource()`, `desktop.updateItem()`, `desktop.refreshItems()`, and `desktop.refresh()`.
+- Added Vue declarative components exported from `deskpane/vue`: `DpDesktop`, `DpDesktopIcon`, `DpWindowManager`, and `DpWindow`.
+- Added Vue `v-model:items` support for desktop icon synchronization.
+- Added Vue `v-model:open` support for declarative DeskPane windows.
+- Added Wijmo-style `initialized` events to Vue declarative components for imperative instance access.
+- Added a Vue declarative demo source at `demo/vue/src/DeclarativeApp.vue`.
+
+### Changed
+
+- `DesktopIconConfig.action` is now optional, allowing icon data to be used as plain data records.
+- The library build now emits `dist/deskpane-vue.es.js` and `dist/vue.d.ts`.
+
+### Fixed
+
+- Fixed the Vue demo KeepAlive behavior so switching virtual workspaces no longer recreates mounted Vue window components.
+- Refactored `demo/vue` into smaller app catalog, workspace orchestration, and Teleport host modules.
+- Fixed duplicate Vue window component identity in `demo/vue` so the same app opened on different workspaces keeps independent KeepAlive state and event targets.
+- Fixed inactive workspaces receiving pointer/focus events while offscreen framework portals remain mounted.
+- Fixed `demo/vue` virtual workspace switching so identical apps opened on different workspaces use unique window ids and resync focus when returning to a workspace.
+- Hid inactive workspace DOM from hit-testing so offscreen window resize borders cannot be grabbed from another virtual desktop.
+- Marked inactive workspace containers as `hidden` after transitions so scoped Vue Teleport content cannot receive clicks from another desktop.
+- Fixed Task View workspace snapshots so cloned inactive workspaces are visible in previews even when the live workspace is hidden.
+- Hid the Task View overlay when closed so its panel cannot intercept clicks after switching desktops.
+
 ## 0.1.4 - 2026-06-16
 
 ### Added

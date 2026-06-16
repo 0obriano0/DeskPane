@@ -334,6 +334,15 @@ export class WindowManager {
   }
 
   /**
+   * Re-emit focus for the topmost visible window.
+   * Useful when a preserved workspace becomes active again and its previous
+   * active window needs to resync dock/focus state.
+   */
+  activateTopWindow(): void {
+    this._focusTopWindow();
+  }
+
+  /**
    * 最小化（隱藏 DOM，保留狀態）
    */
   minimize(id: string): void {

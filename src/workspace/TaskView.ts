@@ -76,6 +76,7 @@ export class TaskView {
     // ── 建立覆蓋層 DOM ──────────────────────────────────────
     this._overlayEl = document.createElement('div');
     this._overlayEl.className = 'dp-task-view';
+    this._overlayEl.hidden = true;
 
     this._panelEl = document.createElement('div');
     this._panelEl.className = 'dp-task-view-panel';
@@ -127,15 +128,21 @@ export class TaskView {
   open(): void {
     if (this._isOpen) return;
     this._isOpen = true;
+    this._overlayEl.hidden = false;
     this._render();
     this._overlayEl.classList.add('dp-task-view--open');
     this.events.emit<void>('taskview:open', undefined);
   }
 
   close(): void {
-    if (!this._isOpen) return;
+    if (!this._isOpen) {
+      this._overlayEl.classList.remove('dp-task-view--open');
+      this._overlayEl.hidden = true;
+      return;
+    }
     this._isOpen = false;
     this._overlayEl.classList.remove('dp-task-view--open');
+    this._overlayEl.hidden = true;
     this.events.emit<void>('taskview:close', undefined);
   }
 
@@ -256,6 +263,11 @@ export class TaskView {
       `pointer-events:none;overflow:hidden;`;
 
     const clone = container.cloneNode(true) as HTMLElement;
+    clone.hidden = false;
+    (clone as any).inert = false;
+    clone.removeAttribute('hidden');
+    clone.removeAttribute('inert');
+    clone.removeAttribute('aria-hidden');
     clone.classList.remove(
       'dp-workspace--enter-right', 'dp-workspace--enter-left',
       'dp-workspace--leave-left',  'dp-workspace--leave-right',

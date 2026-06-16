@@ -7,6 +7,7 @@ import { DesktopIconConfig } from './types.js';
 import { appendIconContent } from './iconUtils.js';
 
 export type IconMoveCallback = (id: string, x: number, y: number) => void;
+export type IconSelectCallback = (id: string) => void;
 /** 傳入建議座標與大小，回傳吸附後座標（guides 更新由 Desktop 閉包處理） */
 export type IconSnapFn = (x: number, y: number, w: number, h: number) => { x: number; y: number };
 
@@ -25,6 +26,7 @@ export class DesktopIcon {
   private readonly _dragThreshold: number;
   private readonly _snapFn: IconSnapFn | null;
   private readonly _onDragEnd: (() => void) | null;
+  private readonly _onSelect: IconSelectCallback | null;
 
   private _isDragging = false;
   private _hasMoved = false;
@@ -42,7 +44,8 @@ export class DesktopIcon {
     onMove: IconMoveCallback,
     dragThreshold = 6,
     snapFn: IconSnapFn | null = null,
-    onDragEnd: (() => void) | null = null
+    onDragEnd: (() => void) | null = null,
+    onSelect: IconSelectCallback | null = null
   ) {
     this._config = config;
     this._containerEl = containerEl;
@@ -50,6 +53,7 @@ export class DesktopIcon {
     this._dragThreshold = config.dragThreshold ?? dragThreshold;
     this._snapFn = snapFn;
     this._onDragEnd = onDragEnd;
+    this._onSelect = onSelect;
     this._onMouseMoveBound = this._onMouseMove.bind(this);
     this._onMouseUpBound = this._onMouseUp.bind(this);
     this._el = this._createElement();
@@ -89,6 +93,7 @@ export class DesktopIcon {
       el.classList.remove('dp-icon-selected');
     });
     this._el.classList.add('dp-icon-selected');
+    this._onSelect?.(this._config.id);
 
     document.addEventListener('mousemove', this._onMouseMoveBound);
     document.addEventListener('mouseup', this._onMouseUpBound);
@@ -130,7 +135,7 @@ export class DesktopIcon {
 
     if (!this._hasMoved) {
       // 純點擊，觸發 action
-      this._config.action();
+      this._config.action?.();
     } else {
       // 拖曳結束，通知 Desktop 儲存位置
       const x = parseInt(this._el.style.left || '0', 10);
@@ -149,6 +154,10 @@ export class DesktopIcon {
 
   getElement(): HTMLElement {
     return this._el;
+  }
+
+  getConfig(): DesktopIconConfig {
+    return { ...this._config };
   }
 
   destroy(): void {

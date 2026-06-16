@@ -18,6 +18,9 @@
 //   dist/deskpane-workspace.umd.min.js UMD bundle (minified)
 //   dist/workspace.d.ts          TypeScript declaration (workspace)
 //
+//   dist/deskpane-vue.es.js      ES Module  (import { DpDesktop } from 'deskpane/vue')
+//   dist/vue.d.ts                TypeScript declaration (Vue adapter)
+//
 // ⚠️  Desktop + Workspace bundles 不包含 core，使用時需先載入 deskpane.*
 
 import resolve from '@rollup/plugin-node-resolve'
@@ -42,6 +45,7 @@ function rawCss() {
 const coreInput      = 'src/index.ts'
 const desktopInput   = 'src/desktop/index.ts'
 const workspaceInput = 'src/workspace/index.ts'
+const vueInput       = 'src/adapters/vue/index.ts'
 const external       = ['vue', 'react', 'react-dom']   // peer deps — not bundled
 
 export default [
@@ -253,6 +257,38 @@ export default [
     plugins: [dts()],
     output: {
       file: 'dist/workspace.d.ts',
+      format: 'es',
+    },
+  },
+
+  // ════════════════════════════════════════════════════════
+  // VUE ADAPTER — ESM + TypeScript declarations
+  // ════════════════════════════════════════════════════════
+  {
+    input: vueInput,
+    external,
+    plugins: [
+      rawCss(),
+      resolve(),
+      typescript({
+        tsconfig: './tsconfig.vue.json',
+        declaration: false,
+        declarationMap: false,
+        sourceMap: true,
+      }),
+    ],
+    output: {
+      file: 'dist/deskpane-vue.es.js',
+      format: 'es',
+      sourcemap: true,
+    },
+  },
+  {
+    input: vueInput,
+    external,
+    plugins: [dts({ tsconfig: './tsconfig.vue.json' })],
+    output: {
+      file: 'dist/vue.d.ts',
       format: 'es',
     },
   },

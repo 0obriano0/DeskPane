@@ -1,6 +1,6 @@
 # DeskPane — 專案狀態（AI 快查版）
 
-> 最後更新：2026-06-10 15:25 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
+> 最後更新：2026-06-16 ｜ 備份：`bak/PROJECT_STATUS.2026-05-26.md`
 > 此文件為 AI 輔助開發設計，優先說明「現在是什麼」，歷史細節見備份。
 
 ---
@@ -9,7 +9,7 @@
 
 **框架無關的網頁虛擬桌面視窗管理引擎。**  
 核心：視窗生命週期 + 拖曳縮放 + Snap 吸附 + 主題系統。  
-擴充：Desktop 桌面模組（圖示 + Dock + 虛擬桌面）、BorderLayout 佈局、Vue3/React Hook 包裝。
+擴充：Desktop 桌面模組（圖示 + Dock + itemsSource 資料繫結）、BorderLayout 佈局、Vue3/React 包裝。
 
 - 授權：Apache-2.0 © 2026 Brian Cheng
 - 路徑：`D:\Dropbox\新ERP框架開發\DeskPane\`（Dropbox 同步，重裝後直接開啟）
@@ -32,7 +32,9 @@
 | BorderLayout（5 區域 + 折疊 Strip） | ✅ | `src/layout/BorderLayout.ts` |
 | Panel（可折疊標題面板） | ✅ | `src/layout/Panel.ts` |
 | Desktop 桌面模組 | ✅ | `src/desktop/` |
+| **DesktopCollectionView / itemsSource** — Wijmo-style icon data binding、`refresh()`、`add/remove/update()`、`desktop.events` | ✅ | `src/desktop/DesktopCollectionView.ts`, `src/desktop/Desktop.ts` |
 | Vue 3 Composable | ✅ | `src/adapters/vue/useWindowManager.ts` |
+| **Vue 3 宣告式元件** — `DpDesktop` / `DpDesktopIcon` / `DpWindowManager` / `DpWindow`，支援 `v-model:items` / `v-model:open` | ✅ | `src/adapters/vue/components.ts`, `demo/vue/src/DeclarativeApp.vue` |
 | React 18 Hook | ✅ | `src/adapters/react/useWindowManager.ts` |
 | Demo（vanilla / jQuery / Vue / React / Desktop / Theme Editor / Layout） | ✅ | `demo/` |
 | Theme Editor — Tab 3 完整桌面預覽 + 雙 CSS 即時注入（core + desktop 同時） | ✅ | `demo/theme-editor/index.html` |
@@ -57,7 +59,7 @@
 | **README 改版** — npm/downloads/license/bundle size 四個 badge；Why DeskPane；Features 依模組分組；CDN/unpkg 安裝說明；Roadmap；Contributing | ✅ | `README.md` |
 | **Demo 全部重建**（vanilla/jquery/vue/react）— 改成全螢幕虛擬桌面風格，對齊 demo/desktop；Vue 用 Teleport+KeepAlive；React 用 createPortal | ✅ | `demo/vanilla/`, `demo/jquery/`, `demo/vue/`, `demo/react/` |
 | **Vue/React Workspace demo 修正** — bundler manual CSS import + `injectStyles:false`；Portal/Teleport state 加入 `workspaceId` key，切換工作區時同步 active workspace 視窗 | ✅ | `demo/vue/`, `demo/react/` |
-| **docs-internal 文件** — `npm-publish-guide.md` + `release-workflow.md` | ✅ | `docs-internal/` |
+| **docs-internal 文件** — 發佈流程 + Workspace/TaskView/Vue Teleport 踩雷紀錄 | ✅ | `docs-internal/` |
 
 **尚未實作：**
 - [ ] CDN 發佈（jsDelivr / unpkg）
@@ -340,6 +342,7 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 > ⚠️ `.github/workflows/release.yml` 的 **`Update npm`** 步驟（`npm install -g npm@latest`）**絕對不能拿掉**。GitHub Actions 內建 npm 版本過舊，不支援 OIDC Trusted Publisher，Publish to npm 步驟會直接失敗。  
 > 📄 發佈詳細教學：`docs-internal/npm-publish-guide.md`  
 > 📄 Release 流程：`docs-internal/release-workflow.md`
+> 📄 Workspace / TaskView / Vue 踩雷紀錄：`docs-internal/workspace-taskview-vue-gotchas.md`
 
 ---
 
@@ -393,6 +396,11 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | 44 | Vite demo rawCss plugin scope | raw CSS plugin 只攔截 DeskPane `src/` 內部 import `src/styles/*.css` 的情況，並加上 `?raw-dp` 轉成 JS string；demo app 自己在 `main.ts` / `main.tsx` import 的 DeskPane CSS 仍走 Vite 正常 CSS pipeline，避免樣式被當成 default export 或消失 |
 | 45 | React/Vue Workspace Portal/Teleport 黑畫面 | 這是 framework integration state 問題，不是 DeskPane core 畫面渲染問題。DeskPane 管 DOM 視窗，React/Vue 內容由 app 用 portal/teleport 掛進 `bodyEl`；使用多工作區時必須在 `workspace:switched` 同步 active workspace 視窗、訂閱 `workspace:added` 的 WindowManager 事件，且 portal/teleport key 要包含 `workspaceId:id`，避免不同桌面同 id 視窗重用錯誤 target |
 | 46 | GitHub Actions `Update npm` 步驟不可移除 | GitHub Actions runner 內建 npm 版本過舊（不支援 OIDC Trusted Publisher），必須在 `Publish to npm` 前執行 `npm install -g npm@latest`（需 npm 11.5.1+）。少了這步驟 `npm publish --provenance` 會直接失敗 |
+| 47 | `demo/vue` 多 workspace 相同 app id 錯位 | 同一個 app 可在不同桌面開啟時，不可重複使用 `app-counter` 這種 window id。實際 window id 要包含 workspace，例如 `ws-2::app-counter`；Dock/app lookup 再用 `getAppIdFromWindowId()` 還原成 `counter`。否則 Dock sync、Teleport target、focus 可能指到第一個同 id 視窗 |
+| 48 | inactive workspace 不能只靠 transform/visibility 隱藏 | 舊桌面看不到但仍可能摸到視窗 resize 邊框或 Vue Teleport 內容。切換動畫結束後 inactive workspace 必須 `hidden=true`，並設 `inert` + `aria-hidden="true"`；CSS 加 `.dp-workspace[hidden] { display:none !important; pointer-events:none !important; }` |
+| 49 | TaskView 快照會 clone live state | `TaskView` 用 `container.cloneNode(true)` 做快照，會連 `hidden` / `inert` / `aria-hidden` 一起複製。clone 後必須清掉這些屬性，再移除 enter/leave class、加回 `dp-workspace--active`，否則 inactive workspace 的預覽會空白 |
+| 50 | TaskView 關閉後 overlay 必須硬 hidden | `opacity:0` 或單靠 `pointer-events:none` 不夠；`dp-task-view-panel` 仍可能在 DevTools / hit-test 中被碰到。`TaskView` constructor 預設 `overlay.hidden=true`，`open()` 解開，`close()` 立刻設回；CSS 加 `.dp-task-view[hidden]` |
+| 51 | Vue `data-v-*` 不是根因 | DevTools 看到 `data-v-cdbe9a07` 只是 Vue scoped CSS。若點到它會切桌面，真正要查的是最近的 `.dp-workspace` 是否 hidden/inert，或 `.dp-task-view` 是否 hidden。詳細排查流程見 `docs-internal/workspace-taskview-vue-gotchas.md` |
 
 ---
 

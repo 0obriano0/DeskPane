@@ -1341,6 +1341,14 @@
             this.events.emit('window:focused', { ...win.state });
         }
         /**
+         * Re-emit focus for the topmost visible window.
+         * Useful when a preserved workspace becomes active again and its previous
+         * active window needs to resync dock/focus state.
+         */
+        activateTopWindow() {
+            this._focusTopWindow();
+        }
+        /**
          * 最小化（隱藏 DOM，保留狀態）
          */
         minimize(id) {
@@ -1718,7 +1726,7 @@
         }
     }
 
-    var WORKSPACE_CSS = "/* ============================================================\r\n   DeskPane — Workspace Styles\r\n   工作區容器佈局 + 左右滑入動畫\r\n   ============================================================ */\r\n\r\n/* ── Root container ──────────────────────────────────────── */\r\n\r\n/**\r\n * WorkspaceManager 掛載的根容器。\r\n * position:relative + overflow:hidden 讓工作區在裡面滑動。\r\n * pointer-events:none 讓空白處事件穿透到下方的 icon-area。\r\n */\r\n.dp-workspace-root {\r\n  position: relative;\r\n  overflow: hidden;\r\n  width: 100%;\r\n  height: 100%;\r\n  pointer-events: none;\r\n}\r\n\r\n/* ── Workspace container ─────────────────────────────────── */\r\n\r\n.dp-workspace {\r\n  /* !important：防止 .dp-isolated { position: relative } 被後注入的 Core CSS 覆蓋 */\r\n  position: absolute !important;\r\n  inset: 0;\r\n  width: 100%;\r\n  height: 100%;\r\n  /* 非活躍工作區：平移到可見範圍外 */\r\n  transform: translateX(100%);\r\n  /* 切換時滑入 */\r\n  transition: transform var(--dp-workspace-animation-ms, 250ms) cubic-bezier(0.4, 0, 0.2, 1);\r\n  /* 非活躍時不接受滑鼠事件，避免誤觸 */\r\n  pointer-events: none;\r\n  visibility: hidden;\r\n}\r\n\r\n.dp-workspace.dp-workspace--active {\r\n  transform: translateX(0);\r\n  pointer-events: none;\r\n  visibility: visible;\r\n}\r\n\r\n/* 從右往左：下一個工作區（切換到更大 index）初始位置在右側 */\r\n.dp-workspace.dp-workspace--enter-right {\r\n  transform: translateX(100%);\r\n}\r\n\r\n/* 從左往右：下一個工作區（切換到更小 index）初始位置在左側 */\r\n.dp-workspace.dp-workspace--enter-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向左滑出 */\r\n.dp-workspace.dp-workspace--leave-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向右滑出 */\r\n.dp-workspace.dp-workspace--leave-right {\r\n  transform: translateX(100%);\r\n}\r\n\r\n/* ── Workspace indicator bar ─────────────────────────────── */\r\n\r\n.dp-workspace-indicator {\r\n  position: absolute;\r\n  bottom: 8px;\r\n  left: 50%;\r\n  transform: translateX(-50%);\r\n  display: flex;\r\n  gap: 6px;\r\n  z-index: 9990;\r\n  pointer-events: none;\r\n}\r\n\r\n.dp-workspace-dot {\r\n  width: 6px;\r\n  height: 6px;\r\n  border-radius: 50%;\r\n  background: var(--dp-workspace-dot-bg, rgba(255, 255, 255, 0.4));\r\n  transition: background 0.2s, transform 0.2s;\r\n}\r\n\r\n.dp-workspace-dot.dp-workspace-dot--active {\r\n  background: var(--dp-workspace-dot-active-bg, rgba(255, 255, 255, 0.9));\r\n  transform: scale(1.3);\r\n}\r\n";
+    var WORKSPACE_CSS = "/* ============================================================\r\n   DeskPane — Workspace Styles\r\n   工作區容器佈局 + 左右滑入動畫\r\n   ============================================================ */\r\n\r\n/* ── Root container ──────────────────────────────────────── */\r\n\r\n/**\r\n * WorkspaceManager 掛載的根容器。\r\n * position:relative + overflow:hidden 讓工作區在裡面滑動。\r\n * pointer-events:none 讓空白處事件穿透到下方的 icon-area。\r\n */\r\n.dp-workspace-root {\r\n  position: relative;\r\n  overflow: hidden;\r\n  width: 100%;\r\n  height: 100%;\r\n  pointer-events: none;\r\n}\r\n\r\n/* ── Workspace container ─────────────────────────────────── */\r\n\r\n.dp-workspace {\n  /* !important：防止 .dp-isolated { position: relative } 被後注入的 Core CSS 覆蓋 */\n  position: absolute !important;\n  inset: 0;\n  display: none;\n  width: 100%;\n  height: 100%;\n  /* 非活躍工作區：平移到可見範圍外 */\r\n  transform: translateX(100%);\r\n  /* 切換時滑入 */\r\n  transition: transform var(--dp-workspace-animation-ms, 250ms) cubic-bezier(0.4, 0, 0.2, 1);\r\n  /* 非活躍時不接受滑鼠事件，避免誤觸 */\r\n  pointer-events: none;\n  visibility: hidden;\n}\n\n.dp-workspace[hidden] {\n  display: none !important;\n  visibility: hidden !important;\n  pointer-events: none !important;\n}\n\n.dp-workspace.dp-workspace--active,\n.dp-workspace.dp-workspace--enter-right,\n.dp-workspace.dp-workspace--enter-left,\n.dp-workspace.dp-workspace--leave-left,\n.dp-workspace.dp-workspace--leave-right {\n  display: block;\n  visibility: visible;\n}\n\n.dp-workspace.dp-workspace--active {\n  transform: translateX(0);\n  pointer-events: none;\n}\n\n/* Only the active workspace may receive window interactions.\n   This matters when frameworks keep offscreen workspace DOM mounted\n   for state preservation (Vue KeepAlive / Teleport, React portals, etc.). */\n.dp-workspace .dp-window {\n  pointer-events: none;\n}\n\n.dp-workspace.dp-workspace--active .dp-window {\n  pointer-events: auto;\n}\n\n/* 從右往左：下一個工作區（切換到更大 index）初始位置在右側 */\n.dp-workspace.dp-workspace--enter-right {\n  transform: translateX(100%);\r\n}\r\n\r\n/* 從左往右：下一個工作區（切換到更小 index）初始位置在左側 */\r\n.dp-workspace.dp-workspace--enter-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向左滑出 */\r\n.dp-workspace.dp-workspace--leave-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向右滑出 */\r\n.dp-workspace.dp-workspace--leave-right {\r\n  transform: translateX(100%);\r\n}\r\n\r\n/* ── Workspace indicator bar ─────────────────────────────── */\r\n\r\n.dp-workspace-indicator {\r\n  position: absolute;\r\n  bottom: 8px;\r\n  left: 50%;\r\n  transform: translateX(-50%);\r\n  display: flex;\r\n  gap: 6px;\r\n  z-index: 9990;\r\n  pointer-events: none;\r\n}\r\n\r\n.dp-workspace-dot {\r\n  width: 6px;\r\n  height: 6px;\r\n  border-radius: 50%;\r\n  background: var(--dp-workspace-dot-bg, rgba(255, 255, 255, 0.4));\r\n  transition: background 0.2s, transform 0.2s;\r\n}\r\n\r\n.dp-workspace-dot.dp-workspace-dot--active {\r\n  background: var(--dp-workspace-dot-active-bg, rgba(255, 255, 255, 0.9));\r\n  transform: scale(1.3);\r\n}\r\n";
 
     // ============================================================
     // DeskPane — WorkspaceManager
@@ -1795,6 +1803,8 @@
             wsEl.dataset.workspaceId = config.id;
             // Initially off-screen to the right
             wsEl.classList.add('dp-workspace--enter-right');
+            this._setWorkspaceVisible(wsEl, false);
+            this._setWorkspaceInteractive(wsEl, false);
             this._root.appendChild(wsEl);
             // Create dedicated WindowManager
             const wm = new WindowManager({
@@ -1870,18 +1880,22 @@
             // Position next workspace off-screen
             nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
             nextEl.classList.add(goingRight ? 'dp-workspace--enter-right' : 'dp-workspace--enter-left');
+            this._setWorkspaceVisible(nextEl, true);
             // Make it visible but off-screen so transition can play
             nextEl.style.visibility = 'visible';
             // Force reflow so the initial transform is applied before transition
             nextEl.getBoundingClientRect();
             // Slide current out
             if (currentEl) {
+                this._setWorkspaceVisible(currentEl, true);
                 currentEl.classList.add(goingRight ? 'dp-workspace--leave-left' : 'dp-workspace--leave-right');
                 currentEl.classList.remove('dp-workspace--active');
+                this._setWorkspaceInteractive(currentEl, false);
             }
             // Slide next in
             nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
             nextEl.classList.add('dp-workspace--active');
+            this._setWorkspaceInteractive(nextEl, true);
             const prevId = this._currentId;
             this._currentId = id;
             this._updateIndicator();
@@ -1890,6 +1904,8 @@
                 if (currentEl) {
                     currentEl.classList.remove('dp-workspace--leave-left', 'dp-workspace--leave-right');
                     currentEl.style.visibility = '';
+                    this._setWorkspaceInteractive(currentEl, false);
+                    this._setWorkspaceVisible(currentEl, false);
                 }
                 this.events.emit('workspace:switched', {
                     from: prevId,
@@ -1960,12 +1976,28 @@
                 if (prev) {
                     prev.container.classList.remove('dp-workspace--active');
                     prev.container.style.visibility = '';
+                    this._setWorkspaceInteractive(prev.container, false);
+                    this._setWorkspaceVisible(prev.container, false);
                 }
             }
             state.container.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
+            this._setWorkspaceVisible(state.container, true);
             state.container.classList.add('dp-workspace--active');
+            this._setWorkspaceInteractive(state.container, true);
             this._currentId = id;
             this._updateIndicator();
+        }
+        _setWorkspaceInteractive(el, interactive) {
+            el.inert = !interactive;
+            if (interactive) {
+                el.removeAttribute('aria-hidden');
+            }
+            else {
+                el.setAttribute('aria-hidden', 'true');
+            }
+        }
+        _setWorkspaceVisible(el, visible) {
+            el.hidden = !visible;
         }
         /** 更新底部指示點 */
         _updateIndicator() {
@@ -1980,7 +2012,7 @@
         }
     }
 
-    var TASKVIEW_CSS = "/* ============================================================\r\n   DeskPane — TaskView Styles\r\n   Task View overlay for virtual desktop switching\r\n   ============================================================ */\r\n\r\n/* ── 覆蓋層 ── */\r\n.dp-task-view {\r\n  position: fixed;\r\n  inset: 0;\r\n  z-index: 99999;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  background: rgba(0, 0, 0, 0.55);\r\n  backdrop-filter: blur(8px);\r\n  -webkit-backdrop-filter: blur(8px);\r\n  opacity: 0;\r\n  pointer-events: none;\r\n  transition: opacity 0.2s;\r\n}\r\n.dp-task-view--open {\r\n  opacity: 1;\r\n  pointer-events: auto;\r\n}\r\n\r\n/* ── 面板 ── */\r\n.dp-task-view-panel {\r\n  display: flex;\r\n  align-items: flex-end;\r\n  gap: 14px;\r\n  padding: 20px 24px;\r\n  background: rgba(22, 28, 42, 0.92);\r\n  border: 1px solid rgba(255, 255, 255, 0.1);\r\n  border-radius: 16px;\r\n  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);\r\n  transform: translateY(16px);\r\n  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);\r\n  max-width: 90vw;\r\n  overflow-x: auto;\r\n}\r\n.dp-task-view--open .dp-task-view-panel {\r\n  transform: translateY(0);\r\n}\r\n\r\n/* ── 工作區卡片 ── */\r\n.dp-tv-card {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n  position: relative;\r\n}\r\n.dp-tv-preview {\r\n  width: 210px;\r\n  height: 132px;\r\n  background: rgba(255, 255, 255, 0.04);\r\n  border: 2px solid rgba(255, 255, 255, 0.14);\r\n  border-radius: 8px;\r\n  overflow: hidden;\r\n  transition: border-color 0.15s, box-shadow 0.15s;\r\n  position: relative;\r\n}\r\n.dp-tv-card:hover .dp-tv-preview {\r\n  border-color: rgba(255, 255, 255, 0.45);\r\n}\r\n.dp-tv-card--active .dp-tv-preview {\r\n  border-color: #0078d4;\r\n  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.35);\r\n}\r\n.dp-tv-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.8);\r\n  white-space: nowrap;\r\n}\r\n.dp-tv-card--active .dp-tv-label {\r\n  color: #59aeff;\r\n  font-weight: 600;\r\n}\r\n\r\n/* ── 刪除按鈕 ── */\r\n.dp-tv-delete {\r\n  position: absolute;\r\n  top: -7px;\r\n  right: -7px;\r\n  width: 20px;\r\n  height: 20px;\r\n  border-radius: 50%;\r\n  background: rgba(50, 50, 55, 0.95);\r\n  border: 1px solid rgba(255, 255, 255, 0.18);\r\n  color: rgba(255, 255, 255, 0.7);\r\n  font-size: 11px;\r\n  cursor: pointer;\r\n  display: none;\r\n  align-items: center;\r\n  justify-content: center;\r\n  z-index: 1;\r\n  transition: background 0.1s;\r\n}\r\n.dp-tv-card:hover .dp-tv-delete { display: flex; }\r\n.dp-tv-delete:hover { background: #c42b1c; color: #fff; }\r\n\r\n/* ── 新增桌面按鈕 ── */\r\n.dp-tv-add-wrap {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n}\r\n.dp-tv-add {\r\n  width: 210px;\r\n  height: 132px;\r\n  border: 2px dashed rgba(255, 255, 255, 0.18);\r\n  border-radius: 8px;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 36px;\r\n  color: rgba(255, 255, 255, 0.35);\r\n  transition: border-color 0.15s, color 0.15s;\r\n}\r\n.dp-tv-add-wrap:hover .dp-tv-add {\r\n  border-color: rgba(255, 255, 255, 0.5);\r\n  color: rgba(255, 255, 255, 0.7);\r\n}\r\n.dp-tv-add-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.45);\r\n}\r\n.dp-tv-add-wrap:hover .dp-tv-add-label { color: rgba(255, 255, 255, 0.7); }\r\n";
+    var TASKVIEW_CSS = "/* ============================================================\r\n   DeskPane — TaskView Styles\r\n   Task View overlay for virtual desktop switching\r\n   ============================================================ */\r\n\r\n/* ── 覆蓋層 ── */\r\n.dp-task-view {\n  position: fixed;\n  inset: 0;\r\n  z-index: 99999;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  background: rgba(0, 0, 0, 0.55);\r\n  backdrop-filter: blur(8px);\r\n  -webkit-backdrop-filter: blur(8px);\r\n  opacity: 0;\r\n  pointer-events: none;\r\n  transition: opacity 0.2s;\n}\n.dp-task-view[hidden] {\n  display: none !important;\n  pointer-events: none !important;\n}\n.dp-task-view--open {\n  opacity: 1;\n  pointer-events: auto;\n}\n\r\n/* ── 面板 ── */\r\n.dp-task-view-panel {\r\n  display: flex;\r\n  align-items: flex-end;\r\n  gap: 14px;\r\n  padding: 20px 24px;\r\n  background: rgba(22, 28, 42, 0.92);\r\n  border: 1px solid rgba(255, 255, 255, 0.1);\r\n  border-radius: 16px;\r\n  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);\r\n  transform: translateY(16px);\r\n  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);\r\n  max-width: 90vw;\r\n  overflow-x: auto;\r\n}\r\n.dp-task-view--open .dp-task-view-panel {\r\n  transform: translateY(0);\r\n}\r\n\r\n/* ── 工作區卡片 ── */\r\n.dp-tv-card {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n  position: relative;\r\n}\r\n.dp-tv-preview {\r\n  width: 210px;\r\n  height: 132px;\r\n  background: rgba(255, 255, 255, 0.04);\r\n  border: 2px solid rgba(255, 255, 255, 0.14);\r\n  border-radius: 8px;\r\n  overflow: hidden;\r\n  transition: border-color 0.15s, box-shadow 0.15s;\r\n  position: relative;\r\n}\r\n.dp-tv-card:hover .dp-tv-preview {\r\n  border-color: rgba(255, 255, 255, 0.45);\r\n}\r\n.dp-tv-card--active .dp-tv-preview {\r\n  border-color: #0078d4;\r\n  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.35);\r\n}\r\n.dp-tv-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.8);\r\n  white-space: nowrap;\r\n}\r\n.dp-tv-card--active .dp-tv-label {\r\n  color: #59aeff;\r\n  font-weight: 600;\r\n}\r\n\r\n/* ── 刪除按鈕 ── */\r\n.dp-tv-delete {\r\n  position: absolute;\r\n  top: -7px;\r\n  right: -7px;\r\n  width: 20px;\r\n  height: 20px;\r\n  border-radius: 50%;\r\n  background: rgba(50, 50, 55, 0.95);\r\n  border: 1px solid rgba(255, 255, 255, 0.18);\r\n  color: rgba(255, 255, 255, 0.7);\r\n  font-size: 11px;\r\n  cursor: pointer;\r\n  display: none;\r\n  align-items: center;\r\n  justify-content: center;\r\n  z-index: 1;\r\n  transition: background 0.1s;\r\n}\r\n.dp-tv-card:hover .dp-tv-delete { display: flex; }\r\n.dp-tv-delete:hover { background: #c42b1c; color: #fff; }\r\n\r\n/* ── 新增桌面按鈕 ── */\r\n.dp-tv-add-wrap {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n}\r\n.dp-tv-add {\r\n  width: 210px;\r\n  height: 132px;\r\n  border: 2px dashed rgba(255, 255, 255, 0.18);\r\n  border-radius: 8px;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 36px;\r\n  color: rgba(255, 255, 255, 0.35);\r\n  transition: border-color 0.15s, color 0.15s;\r\n}\r\n.dp-tv-add-wrap:hover .dp-tv-add {\r\n  border-color: rgba(255, 255, 255, 0.5);\r\n  color: rgba(255, 255, 255, 0.7);\r\n}\r\n.dp-tv-add-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.45);\r\n}\r\n.dp-tv-add-wrap:hover .dp-tv-add-label { color: rgba(255, 255, 255, 0.7); }\r\n";
 
     // ============================================================
     // DeskPane — TaskView
@@ -2031,6 +2063,7 @@
             // ── 建立覆蓋層 DOM ──────────────────────────────────────
             this._overlayEl = document.createElement('div');
             this._overlayEl.className = 'dp-task-view';
+            this._overlayEl.hidden = true;
             this._panelEl = document.createElement('div');
             this._panelEl.className = 'dp-task-view-panel';
             this._overlayEl.appendChild(this._panelEl);
@@ -2075,15 +2108,20 @@
             if (this._isOpen)
                 return;
             this._isOpen = true;
+            this._overlayEl.hidden = false;
             this._render();
             this._overlayEl.classList.add('dp-task-view--open');
             this.events.emit('taskview:open', undefined);
         }
         close() {
-            if (!this._isOpen)
+            if (!this._isOpen) {
+                this._overlayEl.classList.remove('dp-task-view--open');
+                this._overlayEl.hidden = true;
                 return;
+            }
             this._isOpen = false;
             this._overlayEl.classList.remove('dp-task-view--open');
+            this._overlayEl.hidden = true;
             this.events.emit('taskview:close', undefined);
         }
         toggle() {
@@ -2187,6 +2225,11 @@
                     `transform:scale(${scale});transform-origin:top left;` +
                     `pointer-events:none;overflow:hidden;`;
             const clone = container.cloneNode(true);
+            clone.hidden = false;
+            clone.inert = false;
+            clone.removeAttribute('hidden');
+            clone.removeAttribute('inert');
+            clone.removeAttribute('aria-hidden');
             clone.classList.remove('dp-workspace--enter-right', 'dp-workspace--enter-left', 'dp-workspace--leave-left', 'dp-workspace--leave-right');
             clone.classList.add('dp-workspace--active');
             clone.style.cssText =

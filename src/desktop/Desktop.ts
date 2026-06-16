@@ -6,6 +6,10 @@
 import {
   DesktopConfig,
   DesktopIconConfig,
+  DesktopIconEvent,
+  DesktopIconMoveEvent,
+  DesktopItemsEvent,
+  DesktopItemsSource,
   DockPosition,
   DockSyncOptions,
   DockSyncWindowEvent,
@@ -13,8 +17,10 @@ import {
 } from './types.js';
 import { Dock } from './Dock.js';
 import { DesktopIcon, IconSnapFn } from './DesktopIcon.js';
+import { DesktopCollectionChangedEvent, DesktopCollectionView } from './DesktopCollectionView.js';
 import { injectDesktopStyles } from './styles.js';
 import { snapPosition } from '../core/SnapHelper.js';
+import { EventBus } from '../core/EventBus.js';
 
 /** 群組預覽：每張卡片的預設寬高（px） */
 const PREVIEW_CARD_W = 160;
@@ -196,6 +202,8 @@ export class Desktop {
   private readonly _windowAreaEl: HTMLElement;
   private readonly _dock: Dock;
   private readonly _icons = new Map<string, DesktopIcon>();
+  private _itemsView: DesktopCollectionView<DesktopIconConfig> | null = null;
+  private _itemsViewOff: (() => void) | null = null;
   private readonly _storageKey: string;
   private readonly _dragThreshold: number;
   private readonly _iconSnapEnabled: boolean;
@@ -205,6 +213,7 @@ export class Desktop {
   private _iconSentinel: HTMLElement | null = null;
   private _autoIconIndex = 0;
   private _dockSyncCleanup: (() => void) | null = null;
+  readonly events: EventBus;
 
   constructor(config: DesktopConfig = {}) {
     if (config.injectStyles !== false) injectDesktopStyles();
@@ -214,6 +223,7 @@ export class Desktop {
     this._dragThreshold = config.dragThreshold ?? 6;
     this._iconSnapEnabled = config.iconSnap ?? true;
     this._iconSnapThreshold = config.iconSnapThreshold ?? 20;
+    this.events = new EventBus();
 
     // 桌面根元素
     this._desktopEl = document.createElement('div');
@@ -268,8 +278,13 @@ export class Desktop {
 
     this._container.appendChild(this._desktopEl);
 
-    // 掛載初始圖示
-    (config.icons ?? []).forEach(icon => this.addIcon(icon));
+    // 掛載初始圖示。icons 保留相容性；itemsSource 是新的 Wijmo-style API。
+    this.setItemsSource(config.itemsSource ?? config.icons ?? [], { emit: false, source: 'init' });
+    this.events.emit<DesktopItemsEvent>('desktop:ready', {
+      source: 'desktop',
+      reason: 'ready',
+      items: this.getItems(),
+    });
   }
 
   // ── localStorage 位置記憶 ────────────────────────────────
@@ -396,14 +411,37 @@ export class Desktop {
     if (this._guideH) this._guideH.style.display = 'none';
   }
 
-  // ── Public API ────────────────────────────────────────────
+  private _emitItemsChanged(reason: string, source: string): void {
+    this.events.emit<DesktopItemsEvent>('items:changed', {
+      source,
+      reason,
+      items: this.getItems(),
+    });
+  }
 
-  /**
-   * 新增桌面圖示。
-   * 位置優先順序：config.x/y > localStorage 記憶 > 自動排列
-   */
-  addIcon(config: DesktopIconConfig): void {
-    if (this._icons.has(config.id)) return;
+  private _emitItemsRefreshed(reason: string, source: string): void {
+    this.events.emit<DesktopItemsEvent>('items:refreshed', {
+      source,
+      reason,
+      items: this.getItems(),
+    });
+  }
+
+  private _clearIcons(): void {
+    this._icons.forEach(icon => icon.destroy());
+    this._icons.clear();
+    this._autoIconIndex = 0;
+    this._updateSentinel();
+  }
+
+  private _renderItems(items: DesktopIconConfig[]): void {
+    this._clearIcons();
+    items.forEach(item => this._mountIcon(item, false));
+    this._updateSentinel();
+  }
+
+  private _mountIcon(config: DesktopIconConfig, emit: boolean): DesktopIconConfig | null {
+    if (this._icons.has(config.id)) return null;
 
     const savedPositions = this._loadPositions();
     const saved = savedPositions[config.id];
@@ -419,29 +457,186 @@ export class Desktop {
       this._autoIconIndex++;
     }
 
+    const item: DesktopIconConfig = { ...config, x, y };
     const snapFn = this._iconSnapEnabled ? this._makeSnapFn(config.id) : null;
     const icon = new DesktopIcon(
-      config,
+      {
+        ...item,
+        action: () => {
+          const eventItem = this.getItem(config.id) ?? item;
+          this.events.emit<DesktopIconEvent>('icon:activated', {
+            id: config.id,
+            item: eventItem,
+            items: this.getItems(),
+          });
+          config.action?.();
+        },
+      },
       this._iconAreaEl,
-      () => { this._savePositions(); },
+      (id, nextX, nextY) => { this._handleIconMoved(id, nextX, nextY); },
       this._dragThreshold,
       snapFn,
       snapFn ? () => { this._hideSnapGuides(); } : null,
+      (id) => {
+        const eventItem = this.getItem(id) ?? item;
+        this.events.emit<DesktopIconEvent>('icon:selected', {
+          id,
+          item: eventItem,
+          items: this.getItems(),
+        });
+      },
     );
     icon.setPosition(x, y);
     this._iconAreaEl.appendChild(icon.getElement());
     this._icons.set(config.id, icon);
     this._updateSentinel();
+
+    if (emit) {
+      this.events.emit<DesktopIconEvent>('icon:added', {
+        id: config.id,
+        item,
+        items: this.getItems(),
+      });
+    }
+
+    return item;
+  }
+
+  private _removeIconElement(id: string, emit: boolean): DesktopIconConfig | undefined {
+    const icon = this._icons.get(id);
+    if (!icon) return undefined;
+    const item = this.getItem(id) ?? icon.getConfig();
+    icon.destroy();
+    this._icons.delete(id);
+    this._updateSentinel();
+    if (emit) {
+      this.events.emit<DesktopIconEvent>('icon:removed', {
+        id,
+        item,
+        items: this.getItems(),
+      });
+    }
+    return item;
+  }
+
+  private _handleIconMoved(id: string, x: number, y: number): void {
+    this._savePositions();
+    this._itemsView?.update(id, { x, y } as Partial<DesktopIconConfig>, {
+      source: 'desktop',
+      emit: false,
+    });
+    const item = this.getItem(id);
+    if (!item) return;
+    this.events.emit<DesktopIconMoveEvent>('icon:moved', {
+      id,
+      x,
+      y,
+      item,
+      items: this.getItems(),
+    });
+    this._emitItemsChanged('icon:moved', 'desktop');
+  }
+
+  // ── Public API ────────────────────────────────────────────
+
+  setItemsSource(
+    source: DesktopItemsSource,
+    options: { source?: string; emit?: boolean } = {},
+  ): void {
+    this._itemsViewOff?.();
+    this._itemsViewOff = null;
+
+    this._itemsView = source instanceof DesktopCollectionView
+      ? source
+      : new DesktopCollectionView(source);
+
+    this._itemsViewOff = this._itemsView.collectionChanged.on<DesktopCollectionChangedEvent<DesktopIconConfig>>(
+      'change',
+      (change) => {
+        if (change.source === 'desktop') return;
+        this._renderItems(this._itemsView?.items ?? []);
+        this._emitItemsRefreshed(change.action, change.source || 'itemsSource');
+        this._emitItemsChanged(change.action, change.source || 'itemsSource');
+      },
+    );
+
+    this._renderItems(this._itemsView.items);
+    if (options.emit !== false) {
+      this._emitItemsRefreshed('reset', options.source ?? 'api');
+      this._emitItemsChanged('reset', options.source ?? 'api');
+    }
+  }
+
+  getCollectionView(): DesktopCollectionView<DesktopIconConfig> | null {
+    return this._itemsView;
+  }
+
+  getItems(): DesktopIconConfig[] {
+    const sourceItems = this._itemsView?.items ?? [];
+    return sourceItems.map(item => {
+      const icon = this._icons.get(item.id);
+      if (!icon) return { ...item };
+      const el = icon.getElement();
+      return {
+        ...item,
+        x: parseInt(el.style.left || `${item.x ?? 0}`, 10),
+        y: parseInt(el.style.top || `${item.y ?? 0}`, 10),
+      };
+    });
+  }
+
+  getItem(id: string): DesktopIconConfig | undefined {
+    return this.getItems().find(item => item.id === id);
+  }
+
+  setItems(items: DesktopIconConfig[]): void {
+    if (!this._itemsView) {
+      this.setItemsSource(items, { source: 'api' });
+      return;
+    }
+    this._itemsView.setSourceCollection(items, { source: 'desktop', emit: false });
+    this._renderItems(this._itemsView.items);
+    this._emitItemsRefreshed('reset', 'api');
+    this._emitItemsChanged('reset', 'api');
+  }
+
+  refreshItems(): void {
+    this._itemsView?.refresh({ source: 'desktop', emit: false });
+    this._renderItems(this._itemsView?.items ?? []);
+    this._emitItemsRefreshed('refresh', 'api');
+  }
+
+  refresh(): void {
+    this.refreshItems();
+  }
+
+  updateItem(id: string, patch: Partial<DesktopIconConfig>): DesktopIconConfig | undefined {
+    const item = this._itemsView?.update(id, patch, { source: 'desktop', emit: false });
+    if (!item) return undefined;
+    this._renderItems(this._itemsView?.items ?? []);
+    this._emitItemsChanged('icon:update', 'api');
+    return { ...item };
+  }
+
+  /**
+   * 新增桌面圖示。
+   * 位置優先順序：config.x/y > localStorage 記憶 > 自動排列
+   */
+  addIcon(config: DesktopIconConfig): void {
+    if (!this._itemsView) this.setItemsSource([], { emit: false });
+    if (this._itemsView?.getItem(config.id)) return;
+    const item = this._mountIcon(config, true);
+    if (!item) return;
+    this._itemsView?.add(item, { source: 'desktop' });
+    this._emitItemsChanged('icon:add', 'desktop');
   }
 
   /** 移除桌面圖示 */
   removeIcon(id: string): void {
-    const icon = this._icons.get(id);
-    if (icon) {
-      icon.destroy();
-      this._icons.delete(id);
-      this._updateSentinel();
-    }
+    const removed = this._removeIconElement(id, true);
+    if (!removed) return;
+    this._itemsView?.remove(id, { source: 'desktop' });
+    this._emitItemsChanged('icon:remove', 'desktop');
   }
 
   /** 取得 Dock 實例，可動態增減 Dock 項目 */
@@ -456,6 +651,7 @@ export class Desktop {
   setDockPosition(position: DockPosition): void {
     this._dock.setPosition(position);
     this._applyInset(dockInset(position, DOCK_SIZE));
+    this.events.emit<{ position: DockPosition }>('dock:position-changed', { position });
   }
 
   /**
@@ -742,9 +938,18 @@ export class Desktop {
   /** 銷毀桌面，清除所有 DOM */
   destroy(): void {
     this.unsyncDockWithWindows();
+    this._itemsViewOff?.();
+    this._itemsViewOff = null;
     this._icons.forEach(icon => icon.destroy());
     this._icons.clear();
+    this._itemsView = null;
     this._dock.destroy();
     this._desktopEl.remove();
+    this.events.emit<DesktopItemsEvent>('desktop:destroyed', {
+      source: 'desktop',
+      reason: 'destroy',
+      items: [],
+    });
+    this.events.clearAll();
   }
 }

@@ -1,3 +1,80 @@
+/** 事件巴士回呼型別 */
+type EventCallback<T = unknown> = (data: T) => void;
+
+declare class EventBus {
+    private readonly _listeners;
+    /** 訂閱事件 */
+    on<T = unknown>(event: string, cb: EventCallback<T>): () => void;
+    /** 取消訂閱 */
+    off<T = unknown>(event: string, cb: EventCallback<T>): void;
+    /** 發送事件 */
+    emit<T = unknown>(event: string, data?: T): void;
+    /** 清除特定事件的所有訂閱 */
+    clear(event: string): void;
+    /** 清除全部訂閱 */
+    clearAll(): void;
+}
+
+type DesktopCollectionChangeAction = 'reset' | 'refresh' | 'add' | 'remove' | 'update';
+interface DesktopCollectionChangedEvent<TItem extends {
+    id: string;
+}> {
+    action: DesktopCollectionChangeAction;
+    source: string;
+    items: TItem[];
+    item?: TItem;
+    previousItem?: TItem;
+    id?: string;
+    index?: number;
+}
+interface DesktopCollectionViewOptions<TItem extends {
+    id: string;
+}> {
+    /** Custom key getter. Defaults to `item.id`. */
+    getKey?: (item: TItem) => string;
+    /**
+     * Track added / removed / edited items when mutations go through the view.
+     * Direct sourceCollection mutations still require refresh().
+     */
+    trackChanges?: boolean;
+}
+interface DesktopCollectionMutationOptions {
+    /** Describes who initiated the change. */
+    source?: string;
+    /** Set false when the caller wants to batch or emit manually. */
+    emit?: boolean;
+}
+declare class DesktopCollectionView<TItem extends {
+    id: string;
+}> {
+    sourceCollection: TItem[];
+    items: TItem[];
+    readonly collectionChanged: EventBus;
+    readonly currentChanged: EventBus;
+    readonly trackChanges: boolean;
+    readonly addedItems: TItem[];
+    readonly removedItems: TItem[];
+    readonly editedItems: TItem[];
+    private readonly _getKey;
+    private _deferLevel;
+    private _pendingChange;
+    constructor(sourceCollection?: TItem[], options?: DesktopCollectionViewOptions<TItem>);
+    get length(): number;
+    getItem(id: string): TItem | undefined;
+    setSourceCollection(sourceCollection: TItem[], options?: DesktopCollectionMutationOptions): void;
+    refresh(options?: DesktopCollectionMutationOptions): void;
+    beginUpdate(): void;
+    endUpdate(): void;
+    deferUpdate(fn: () => void): void;
+    add(item: TItem, options?: DesktopCollectionMutationOptions): void;
+    remove(idOrItem: string | TItem, options?: DesktopCollectionMutationOptions): TItem | undefined;
+    update(idOrItem: string | TItem, patch: Partial<TItem>, options?: DesktopCollectionMutationOptions): TItem | undefined;
+    clearChanges(): void;
+    snapshot(): TItem[];
+    dispose(): void;
+    private _emit;
+}
+
 /** 桌面圖示設定 */
 interface DesktopIconConfig {
     id: string;
@@ -9,13 +86,29 @@ interface DesktopIconConfig {
     /** 初始 Y 位置（px）。未指定則自動排列 */
     y?: number;
     /** 點擊圖示時觸發的動作 */
-    action: () => void;
+    action?: () => void;
     /**
      * 拖曳感應距離（px）。
      * 滑鼠按下後需移動超過此距離才進入拖曳模式；低於此值的位移視為點擊。
      * 預設 6。
      */
     dragThreshold?: number;
+}
+type DesktopItemsSource = DesktopIconConfig[] | DesktopCollectionView<DesktopIconConfig>;
+type DesktopEvent = 'desktop:ready' | 'desktop:destroyed' | 'items:changed' | 'items:refreshed' | 'icon:added' | 'icon:removed' | 'icon:moved' | 'icon:activated' | 'icon:selected' | 'dock:position-changed';
+interface DesktopItemsEvent {
+    source: string;
+    reason: string;
+    items: DesktopIconConfig[];
+}
+interface DesktopIconEvent {
+    id: string;
+    item: DesktopIconConfig;
+    items: DesktopIconConfig[];
+}
+interface DesktopIconMoveEvent extends DesktopIconEvent {
+    x: number;
+    y: number;
 }
 /** Dock 工具列項目設定 */
 interface DockItemConfig {
@@ -120,6 +213,11 @@ interface DesktopConfig {
     container?: HTMLElement;
     dock?: DockConfig;
     icons?: DesktopIconConfig[];
+    /**
+     * Wijmo-style data source for desktop icons.
+     * Plain arrays are wrapped in DesktopCollectionView automatically.
+     */
+    itemsSource?: DesktopItemsSource;
     /** CSS background 值，預設使用 --dp-desktop-bg */
     background?: string;
     /** localStorage key 前綴，用於記憶圖示位置，預設 'dp-desktop' */
@@ -194,6 +292,8 @@ declare class Desktop {
     private readonly _windowAreaEl;
     private readonly _dock;
     private readonly _icons;
+    private _itemsView;
+    private _itemsViewOff;
     private readonly _storageKey;
     private readonly _dragThreshold;
     private readonly _iconSnapEnabled;
@@ -203,6 +303,7 @@ declare class Desktop {
     private _iconSentinel;
     private _autoIconIndex;
     private _dockSyncCleanup;
+    readonly events: EventBus;
     constructor(config?: DesktopConfig);
     /**
      * 更新 icon 區域的 inset（避免 icon 被 Dock 遮住）。
@@ -216,6 +317,24 @@ declare class Desktop {
     private _updateSentinel;
     private _makeSnapFn;
     private _hideSnapGuides;
+    private _emitItemsChanged;
+    private _emitItemsRefreshed;
+    private _clearIcons;
+    private _renderItems;
+    private _mountIcon;
+    private _removeIconElement;
+    private _handleIconMoved;
+    setItemsSource(source: DesktopItemsSource, options?: {
+        source?: string;
+        emit?: boolean;
+    }): void;
+    getCollectionView(): DesktopCollectionView<DesktopIconConfig> | null;
+    getItems(): DesktopIconConfig[];
+    getItem(id: string): DesktopIconConfig | undefined;
+    setItems(items: DesktopIconConfig[]): void;
+    refreshItems(): void;
+    refresh(): void;
+    updateItem(id: string, patch: Partial<DesktopIconConfig>): DesktopIconConfig | undefined;
     /**
      * 新增桌面圖示。
      * 位置優先順序：config.x/y > localStorage 記憶 > 自動排列
@@ -250,6 +369,7 @@ declare class Desktop {
 }
 
 type IconMoveCallback = (id: string, x: number, y: number) => void;
+type IconSelectCallback = (id: string) => void;
 /** 傳入建議座標與大小，回傳吸附後座標（guides 更新由 Desktop 閉包處理） */
 type IconSnapFn = (x: number, y: number, w: number, h: number) => {
     x: number;
@@ -263,6 +383,7 @@ declare class DesktopIcon {
     private readonly _dragThreshold;
     private readonly _snapFn;
     private readonly _onDragEnd;
+    private readonly _onSelect;
     private _isDragging;
     private _hasMoved;
     private _dragOffX;
@@ -271,18 +392,19 @@ declare class DesktopIcon {
     private _startY;
     private readonly _onMouseMoveBound;
     private readonly _onMouseUpBound;
-    constructor(config: DesktopIconConfig, containerEl: HTMLElement, onMove: IconMoveCallback, dragThreshold?: number, snapFn?: IconSnapFn | null, onDragEnd?: (() => void) | null);
+    constructor(config: DesktopIconConfig, containerEl: HTMLElement, onMove: IconMoveCallback, dragThreshold?: number, snapFn?: IconSnapFn | null, onDragEnd?: (() => void) | null, onSelect?: IconSelectCallback | null);
     private _createElement;
     private _onMouseDown;
     private _onMouseMove;
     private _onMouseUp;
     setPosition(x: number, y: number): void;
     getElement(): HTMLElement;
+    getConfig(): DesktopIconConfig;
     destroy(): void;
 }
 
 /** 回傳 Desktop CSS 字串，供 injectStyles:false 的使用者自行管理樣式注入 */
 declare function getDesktopCSS(): string;
 
-export { Desktop, DesktopIcon, Dock, getDesktopCSS };
-export type { DesktopConfig, DesktopIconConfig, DockConfig, DockItemConfig, DockPosition, DockSyncOptions, DockSyncWindowEvent, WindowManagerLike };
+export { Desktop, DesktopCollectionView, DesktopIcon, Dock, getDesktopCSS };
+export type { DesktopCollectionChangeAction, DesktopCollectionChangedEvent, DesktopCollectionMutationOptions, DesktopCollectionViewOptions, DesktopConfig, DesktopEvent, DesktopIconConfig, DesktopIconEvent, DesktopIconMoveEvent, DesktopItemsEvent, DesktopItemsSource, DockConfig, DockItemConfig, DockPosition, DockSyncOptions, DockSyncWindowEvent, WindowManagerLike };

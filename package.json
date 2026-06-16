@@ -1,6 +1,6 @@
 {
   "name": "deskpane",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Framework-agnostic web desktop window management engine",
   "repository": {
     "type": "git",
@@ -28,8 +28,20 @@
       "require": "./dist/deskpane-workspace.umd.js",
       "types": "./dist/workspace.d.ts"
     },
+    "./vue": {
+      "import": "./dist/deskpane-vue.es.js",
+      "types": "./dist/vue.d.ts"
+    },
     "./styles/*": "./dist/styles/*",
     "./themes/*": "./dist/themes/*"
+  },
+  "peerDependencies": {
+    "vue": ">=3.4.0"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    }
   },
   "scripts": {
     "build": "tsc --noEmit",
@@ -47,7 +59,8 @@
     "rollup": "^4.60.4",
     "rollup-plugin-dts": "^6.4.1",
     "tslib": "^2.8.1",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vue": "^3.5.38"
   },
   "keywords": [
     "webos",

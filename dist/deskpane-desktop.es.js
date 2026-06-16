@@ -202,7 +202,7 @@ function resolveIconEl(icon) {
     return el;
 }
 class DesktopIcon {
-    constructor(config, containerEl, onMove, dragThreshold = 6, snapFn = null, onDragEnd = null) {
+    constructor(config, containerEl, onMove, dragThreshold = 6, snapFn = null, onDragEnd = null, onSelect = null) {
         this._isDragging = false;
         this._hasMoved = false;
         this._dragOffX = 0;
@@ -215,6 +215,7 @@ class DesktopIcon {
         this._dragThreshold = config.dragThreshold ?? dragThreshold;
         this._snapFn = snapFn;
         this._onDragEnd = onDragEnd;
+        this._onSelect = onSelect;
         this._onMouseMoveBound = this._onMouseMove.bind(this);
         this._onMouseUpBound = this._onMouseUp.bind(this);
         this._el = this._createElement();
@@ -248,6 +249,7 @@ class DesktopIcon {
             el.classList.remove('dp-icon-selected');
         });
         this._el.classList.add('dp-icon-selected');
+        this._onSelect?.(this._config.id);
         document.addEventListener('mousemove', this._onMouseMoveBound);
         document.addEventListener('mouseup', this._onMouseUpBound);
     }
@@ -281,7 +283,7 @@ class DesktopIcon {
         this._onDragEnd?.();
         if (!this._hasMoved) {
             // 純點擊，觸發 action
-            this._config.action();
+            this._config.action?.();
         }
         else {
             // 拖曳結束，通知 Desktop 儲存位置
@@ -299,10 +301,200 @@ class DesktopIcon {
     getElement() {
         return this._el;
     }
+    getConfig() {
+        return { ...this._config };
+    }
     destroy() {
         document.removeEventListener('mousemove', this._onMouseMoveBound);
         document.removeEventListener('mouseup', this._onMouseUpBound);
         this._el.remove();
+    }
+}
+
+// ============================================================
+// DeskPane — Global Event Bus
+// 跨視窗事件系統，允許不同視窗間即時資料聯動
+// ============================================================
+class EventBus {
+    constructor() {
+        this._listeners = new Map();
+    }
+    /** 訂閱事件 */
+    on(event, cb) {
+        if (!this._listeners.has(event)) {
+            this._listeners.set(event, new Set());
+        }
+        this._listeners.get(event).add(cb);
+        // 回傳取消訂閱函式
+        return () => this.off(event, cb);
+    }
+    /** 取消訂閱 */
+    off(event, cb) {
+        this._listeners.get(event)?.delete(cb);
+    }
+    /** 發送事件 */
+    emit(event, data) {
+        this._listeners.get(event)?.forEach(cb => {
+            try {
+                cb(data);
+            }
+            catch (e) {
+                console.error(`[EventBus] Error in handler for "${event}":`, e);
+            }
+        });
+    }
+    /** 清除特定事件的所有訂閱 */
+    clear(event) {
+        this._listeners.delete(event);
+    }
+    /** 清除全部訂閱 */
+    clearAll() {
+        this._listeners.clear();
+    }
+}
+
+// ============================================================
+// DeskPane-Desktop — DesktopCollectionView
+// Wijmo-style collection view for desktop icon data binding.
+// ============================================================
+class DesktopCollectionView {
+    constructor(sourceCollection = [], options = {}) {
+        this.collectionChanged = new EventBus();
+        this.currentChanged = new EventBus();
+        this.addedItems = [];
+        this.removedItems = [];
+        this.editedItems = [];
+        this._deferLevel = 0;
+        this._pendingChange = null;
+        this.sourceCollection = sourceCollection;
+        this.items = [...sourceCollection];
+        this.trackChanges = options.trackChanges ?? false;
+        this._getKey = options.getKey ?? ((item) => item.id);
+    }
+    get length() {
+        return this.items.length;
+    }
+    getItem(id) {
+        return this.items.find(item => this._getKey(item) === id);
+    }
+    setSourceCollection(sourceCollection, options = {}) {
+        this.sourceCollection = sourceCollection;
+        this.refresh({
+            source: options.source ?? 'external',
+            emit: options.emit,
+        });
+    }
+    refresh(options = {}) {
+        this.items = [...this.sourceCollection];
+        this._emit({
+            action: 'refresh',
+            source: options.source ?? 'external',
+            items: this.snapshot(),
+        }, options);
+    }
+    beginUpdate() {
+        this._deferLevel++;
+    }
+    endUpdate() {
+        if (this._deferLevel === 0)
+            return;
+        this._deferLevel--;
+        if (this._deferLevel === 0 && this._pendingChange) {
+            const pending = this._pendingChange;
+            this._pendingChange = null;
+            this.collectionChanged.emit('change', pending);
+        }
+    }
+    deferUpdate(fn) {
+        this.beginUpdate();
+        try {
+            fn();
+        }
+        finally {
+            this.endUpdate();
+        }
+    }
+    add(item, options = {}) {
+        this.sourceCollection.push(item);
+        this.items = [...this.sourceCollection];
+        if (this.trackChanges)
+            this.addedItems.push(item);
+        this._emit({
+            action: 'add',
+            source: options.source ?? 'view',
+            items: this.snapshot(),
+            item: { ...item },
+            id: this._getKey(item),
+            index: this.sourceCollection.length - 1,
+        }, options);
+    }
+    remove(idOrItem, options = {}) {
+        const id = typeof idOrItem === 'string' ? idOrItem : this._getKey(idOrItem);
+        const index = this.sourceCollection.findIndex(item => this._getKey(item) === id);
+        if (index < 0)
+            return undefined;
+        const [removed] = this.sourceCollection.splice(index, 1);
+        this.items = [...this.sourceCollection];
+        if (this.trackChanges)
+            this.removedItems.push(removed);
+        this._emit({
+            action: 'remove',
+            source: options.source ?? 'view',
+            items: this.snapshot(),
+            item: { ...removed },
+            id,
+            index,
+        }, options);
+        return removed;
+    }
+    update(idOrItem, patch, options = {}) {
+        const id = typeof idOrItem === 'string' ? idOrItem : this._getKey(idOrItem);
+        const index = this.sourceCollection.findIndex(item => this._getKey(item) === id);
+        if (index < 0)
+            return undefined;
+        const previous = { ...this.sourceCollection[index] };
+        Object.assign(this.sourceCollection[index], patch);
+        const item = this.sourceCollection[index];
+        this.items = [...this.sourceCollection];
+        if (this.trackChanges && !this.editedItems.includes(item))
+            this.editedItems.push(item);
+        this._emit({
+            action: 'update',
+            source: options.source ?? 'view',
+            items: this.snapshot(),
+            item: { ...item },
+            previousItem: previous,
+            id,
+            index,
+        }, options);
+        return item;
+    }
+    clearChanges() {
+        this.addedItems.length = 0;
+        this.removedItems.length = 0;
+        this.editedItems.length = 0;
+    }
+    snapshot() {
+        return this.items.map(item => ({ ...item }));
+    }
+    dispose() {
+        this.collectionChanged.clearAll();
+        this.currentChanged.clearAll();
+        this._pendingChange = null;
+        this._deferLevel = 0;
+    }
+    _emit(change, options) {
+        if (options.emit === false)
+            return;
+        if (this._deferLevel > 0) {
+            this._pendingChange = {
+                action: 'reset',
+                source: change.source,
+                items: this.snapshot(),
+            };
+            return;
+        }
+        this.collectionChanged.emit('change', change);
     }
 }
 
@@ -582,6 +774,8 @@ function dockInset(position, dockSize) {
 class Desktop {
     constructor(config = {}) {
         this._icons = new Map();
+        this._itemsView = null;
+        this._itemsViewOff = null;
         this._guideV = null;
         this._guideH = null;
         this._iconSentinel = null;
@@ -594,6 +788,7 @@ class Desktop {
         this._dragThreshold = config.dragThreshold ?? 6;
         this._iconSnapEnabled = config.iconSnap ?? true;
         this._iconSnapThreshold = config.iconSnapThreshold ?? 20;
+        this.events = new EventBus();
         // 桌面根元素
         this._desktopEl = document.createElement('div');
         this._desktopEl.className = 'dp-desktop';
@@ -638,8 +833,13 @@ class Desktop {
             }
         });
         this._container.appendChild(this._desktopEl);
-        // 掛載初始圖示
-        (config.icons ?? []).forEach(icon => this.addIcon(icon));
+        // 掛載初始圖示。icons 保留相容性；itemsSource 是新的 Wijmo-style API。
+        this.setItemsSource(config.itemsSource ?? config.icons ?? [], { emit: false, source: 'init' });
+        this.events.emit('desktop:ready', {
+            source: 'desktop',
+            reason: 'ready',
+            items: this.getItems(),
+        });
     }
     // ── localStorage 位置記憶 ────────────────────────────────
     /**
@@ -751,14 +951,34 @@ class Desktop {
         if (this._guideH)
             this._guideH.style.display = 'none';
     }
-    // ── Public API ────────────────────────────────────────────
-    /**
-     * 新增桌面圖示。
-     * 位置優先順序：config.x/y > localStorage 記憶 > 自動排列
-     */
-    addIcon(config) {
+    _emitItemsChanged(reason, source) {
+        this.events.emit('items:changed', {
+            source,
+            reason,
+            items: this.getItems(),
+        });
+    }
+    _emitItemsRefreshed(reason, source) {
+        this.events.emit('items:refreshed', {
+            source,
+            reason,
+            items: this.getItems(),
+        });
+    }
+    _clearIcons() {
+        this._icons.forEach(icon => icon.destroy());
+        this._icons.clear();
+        this._autoIconIndex = 0;
+        this._updateSentinel();
+    }
+    _renderItems(items) {
+        this._clearIcons();
+        items.forEach(item => this._mountIcon(item, false));
+        this._updateSentinel();
+    }
+    _mountIcon(config, emit) {
         if (this._icons.has(config.id))
-            return;
+            return null;
         const savedPositions = this._loadPositions();
         const saved = savedPositions[config.id];
         let x = config.x ?? saved?.x;
@@ -771,21 +991,163 @@ class Desktop {
         else {
             this._autoIconIndex++;
         }
+        const item = { ...config, x, y };
         const snapFn = this._iconSnapEnabled ? this._makeSnapFn(config.id) : null;
-        const icon = new DesktopIcon(config, this._iconAreaEl, () => { this._savePositions(); }, this._dragThreshold, snapFn, snapFn ? () => { this._hideSnapGuides(); } : null);
+        const icon = new DesktopIcon({
+            ...item,
+            action: () => {
+                const eventItem = this.getItem(config.id) ?? item;
+                this.events.emit('icon:activated', {
+                    id: config.id,
+                    item: eventItem,
+                    items: this.getItems(),
+                });
+                config.action?.();
+            },
+        }, this._iconAreaEl, (id, nextX, nextY) => { this._handleIconMoved(id, nextX, nextY); }, this._dragThreshold, snapFn, snapFn ? () => { this._hideSnapGuides(); } : null, (id) => {
+            const eventItem = this.getItem(id) ?? item;
+            this.events.emit('icon:selected', {
+                id,
+                item: eventItem,
+                items: this.getItems(),
+            });
+        });
         icon.setPosition(x, y);
         this._iconAreaEl.appendChild(icon.getElement());
         this._icons.set(config.id, icon);
         this._updateSentinel();
+        if (emit) {
+            this.events.emit('icon:added', {
+                id: config.id,
+                item,
+                items: this.getItems(),
+            });
+        }
+        return item;
+    }
+    _removeIconElement(id, emit) {
+        const icon = this._icons.get(id);
+        if (!icon)
+            return undefined;
+        const item = this.getItem(id) ?? icon.getConfig();
+        icon.destroy();
+        this._icons.delete(id);
+        this._updateSentinel();
+        if (emit) {
+            this.events.emit('icon:removed', {
+                id,
+                item,
+                items: this.getItems(),
+            });
+        }
+        return item;
+    }
+    _handleIconMoved(id, x, y) {
+        this._savePositions();
+        this._itemsView?.update(id, { x, y }, {
+            source: 'desktop',
+            emit: false,
+        });
+        const item = this.getItem(id);
+        if (!item)
+            return;
+        this.events.emit('icon:moved', {
+            id,
+            x,
+            y,
+            item,
+            items: this.getItems(),
+        });
+        this._emitItemsChanged('icon:moved', 'desktop');
+    }
+    // ── Public API ────────────────────────────────────────────
+    setItemsSource(source, options = {}) {
+        this._itemsViewOff?.();
+        this._itemsViewOff = null;
+        this._itemsView = source instanceof DesktopCollectionView
+            ? source
+            : new DesktopCollectionView(source);
+        this._itemsViewOff = this._itemsView.collectionChanged.on('change', (change) => {
+            if (change.source === 'desktop')
+                return;
+            this._renderItems(this._itemsView?.items ?? []);
+            this._emitItemsRefreshed(change.action, change.source || 'itemsSource');
+            this._emitItemsChanged(change.action, change.source || 'itemsSource');
+        });
+        this._renderItems(this._itemsView.items);
+        if (options.emit !== false) {
+            this._emitItemsRefreshed('reset', options.source ?? 'api');
+            this._emitItemsChanged('reset', options.source ?? 'api');
+        }
+    }
+    getCollectionView() {
+        return this._itemsView;
+    }
+    getItems() {
+        const sourceItems = this._itemsView?.items ?? [];
+        return sourceItems.map(item => {
+            const icon = this._icons.get(item.id);
+            if (!icon)
+                return { ...item };
+            const el = icon.getElement();
+            return {
+                ...item,
+                x: parseInt(el.style.left || `${item.x ?? 0}`, 10),
+                y: parseInt(el.style.top || `${item.y ?? 0}`, 10),
+            };
+        });
+    }
+    getItem(id) {
+        return this.getItems().find(item => item.id === id);
+    }
+    setItems(items) {
+        if (!this._itemsView) {
+            this.setItemsSource(items, { source: 'api' });
+            return;
+        }
+        this._itemsView.setSourceCollection(items, { source: 'desktop', emit: false });
+        this._renderItems(this._itemsView.items);
+        this._emitItemsRefreshed('reset', 'api');
+        this._emitItemsChanged('reset', 'api');
+    }
+    refreshItems() {
+        this._itemsView?.refresh({ source: 'desktop', emit: false });
+        this._renderItems(this._itemsView?.items ?? []);
+        this._emitItemsRefreshed('refresh', 'api');
+    }
+    refresh() {
+        this.refreshItems();
+    }
+    updateItem(id, patch) {
+        const item = this._itemsView?.update(id, patch, { source: 'desktop', emit: false });
+        if (!item)
+            return undefined;
+        this._renderItems(this._itemsView?.items ?? []);
+        this._emitItemsChanged('icon:update', 'api');
+        return { ...item };
+    }
+    /**
+     * 新增桌面圖示。
+     * 位置優先順序：config.x/y > localStorage 記憶 > 自動排列
+     */
+    addIcon(config) {
+        if (!this._itemsView)
+            this.setItemsSource([], { emit: false });
+        if (this._itemsView?.getItem(config.id))
+            return;
+        const item = this._mountIcon(config, true);
+        if (!item)
+            return;
+        this._itemsView?.add(item, { source: 'desktop' });
+        this._emitItemsChanged('icon:add', 'desktop');
     }
     /** 移除桌面圖示 */
     removeIcon(id) {
-        const icon = this._icons.get(id);
-        if (icon) {
-            icon.destroy();
-            this._icons.delete(id);
-            this._updateSentinel();
-        }
+        const removed = this._removeIconElement(id, true);
+        if (!removed)
+            return;
+        this._itemsView?.remove(id, { source: 'desktop' });
+        this._emitItemsChanged('icon:remove', 'desktop');
     }
     /** 取得 Dock 實例，可動態增減 Dock 項目 */
     getDock() {
@@ -798,6 +1160,7 @@ class Desktop {
     setDockPosition(position) {
         this._dock.setPosition(position);
         this._applyInset(dockInset(position, DOCK_SIZE));
+        this.events.emit('dock:position-changed', { position });
     }
     /**
      * 將 Dock 與 WindowManager 視窗生命週期同步。
@@ -1064,12 +1427,21 @@ class Desktop {
     /** 銷毀桌面，清除所有 DOM */
     destroy() {
         this.unsyncDockWithWindows();
+        this._itemsViewOff?.();
+        this._itemsViewOff = null;
         this._icons.forEach(icon => icon.destroy());
         this._icons.clear();
+        this._itemsView = null;
         this._dock.destroy();
         this._desktopEl.remove();
+        this.events.emit('desktop:destroyed', {
+            source: 'desktop',
+            reason: 'destroy',
+            items: [],
+        });
+        this.events.clearAll();
     }
 }
 
-export { Desktop, DesktopIcon, Dock, getDesktopCSS };
+export { Desktop, DesktopCollectionView, DesktopIcon, Dock, getDesktopCSS };
 //# sourceMappingURL=deskpane-desktop.es.js.map

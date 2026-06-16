@@ -1,3 +1,5 @@
+import { shallowRef, onUnmounted, markRaw, defineComponent, ref, provide, onMounted, watch, onBeforeUnmount, h, inject, Teleport } from 'vue';
+
 // ============================================================
 // DeskPane — Global Event Bus
 // 跨視窗事件系統，允許不同視窗間即時資料聯動
@@ -401,10 +403,10 @@ function injectRuntimeCSS(options) {
 // DeskPane — DOM Window Renderer
 // 負責建立視窗外殼 DOM 節點、注入樣式
 // ============================================================
-const STYLE_ID$1 = 'dp-core-styles';
+const STYLE_ID$2 = 'dp-core-styles';
 function injectStyles() {
     injectRuntimeCSS({
-        id: STYLE_ID$1,
+        id: STYLE_ID$2,
         css: BASE_CSS,
         hrefPart: 'deskpane.css',
         fingerprint: 'DeskPane — Default Styles',
@@ -632,12 +634,12 @@ var LAYOUT_CSS = "/* ===========================================================
 // ============================================================
 // DeskPane — Layout CSS Injection
 // ============================================================
-const STYLE_ID = 'dp-layout-styles';
+const STYLE_ID$1 = 'dp-layout-styles';
 function injectLayoutStyles() {
-    if (document.getElementById(STYLE_ID))
+    if (document.getElementById(STYLE_ID$1))
         return;
     const style = document.createElement('style');
-    style.id = STYLE_ID;
+    style.id = STYLE_ID$1;
     style.textContent = LAYOUT_CSS;
     document.head.appendChild(style);
 }
@@ -1720,673 +1722,1704 @@ class WindowManager {
     }
 }
 
-var WORKSPACE_CSS = "/* ============================================================\r\n   DeskPane — Workspace Styles\r\n   工作區容器佈局 + 左右滑入動畫\r\n   ============================================================ */\r\n\r\n/* ── Root container ──────────────────────────────────────── */\r\n\r\n/**\r\n * WorkspaceManager 掛載的根容器。\r\n * position:relative + overflow:hidden 讓工作區在裡面滑動。\r\n * pointer-events:none 讓空白處事件穿透到下方的 icon-area。\r\n */\r\n.dp-workspace-root {\r\n  position: relative;\r\n  overflow: hidden;\r\n  width: 100%;\r\n  height: 100%;\r\n  pointer-events: none;\r\n}\r\n\r\n/* ── Workspace container ─────────────────────────────────── */\r\n\r\n.dp-workspace {\n  /* !important：防止 .dp-isolated { position: relative } 被後注入的 Core CSS 覆蓋 */\n  position: absolute !important;\n  inset: 0;\n  display: none;\n  width: 100%;\n  height: 100%;\n  /* 非活躍工作區：平移到可見範圍外 */\r\n  transform: translateX(100%);\r\n  /* 切換時滑入 */\r\n  transition: transform var(--dp-workspace-animation-ms, 250ms) cubic-bezier(0.4, 0, 0.2, 1);\r\n  /* 非活躍時不接受滑鼠事件，避免誤觸 */\r\n  pointer-events: none;\n  visibility: hidden;\n}\n\n.dp-workspace[hidden] {\n  display: none !important;\n  visibility: hidden !important;\n  pointer-events: none !important;\n}\n\n.dp-workspace.dp-workspace--active,\n.dp-workspace.dp-workspace--enter-right,\n.dp-workspace.dp-workspace--enter-left,\n.dp-workspace.dp-workspace--leave-left,\n.dp-workspace.dp-workspace--leave-right {\n  display: block;\n  visibility: visible;\n}\n\n.dp-workspace.dp-workspace--active {\n  transform: translateX(0);\n  pointer-events: none;\n}\n\n/* Only the active workspace may receive window interactions.\n   This matters when frameworks keep offscreen workspace DOM mounted\n   for state preservation (Vue KeepAlive / Teleport, React portals, etc.). */\n.dp-workspace .dp-window {\n  pointer-events: none;\n}\n\n.dp-workspace.dp-workspace--active .dp-window {\n  pointer-events: auto;\n}\n\n/* 從右往左：下一個工作區（切換到更大 index）初始位置在右側 */\n.dp-workspace.dp-workspace--enter-right {\n  transform: translateX(100%);\r\n}\r\n\r\n/* 從左往右：下一個工作區（切換到更小 index）初始位置在左側 */\r\n.dp-workspace.dp-workspace--enter-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向左滑出 */\r\n.dp-workspace.dp-workspace--leave-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向右滑出 */\r\n.dp-workspace.dp-workspace--leave-right {\r\n  transform: translateX(100%);\r\n}\r\n\r\n/* ── Workspace indicator bar ─────────────────────────────── */\r\n\r\n.dp-workspace-indicator {\r\n  position: absolute;\r\n  bottom: 8px;\r\n  left: 50%;\r\n  transform: translateX(-50%);\r\n  display: flex;\r\n  gap: 6px;\r\n  z-index: 9990;\r\n  pointer-events: none;\r\n}\r\n\r\n.dp-workspace-dot {\r\n  width: 6px;\r\n  height: 6px;\r\n  border-radius: 50%;\r\n  background: var(--dp-workspace-dot-bg, rgba(255, 255, 255, 0.4));\r\n  transition: background 0.2s, transform 0.2s;\r\n}\r\n\r\n.dp-workspace-dot.dp-workspace-dot--active {\r\n  background: var(--dp-workspace-dot-active-bg, rgba(255, 255, 255, 0.9));\r\n  transform: scale(1.3);\r\n}\r\n";
-
 // ============================================================
-// DeskPane — WorkspaceManager
-// 管理多個虛擬工作區（每個工作區有獨立的 WindowManager + 容器）
-// 支援：
-//   • addWorkspace / removeWorkspace / switchTo
-//   • 左右滑入動畫（CSS transform）
-//   • 工作區指示點（可選）
-//   • EventBus：workspace:added / workspace:removed / workspace:switched
+// DeskPane — Vue 3 Adapter
+// useWindowManager composable：將 WindowManager 橋接為 Vue 響應式狀態
 // ============================================================
-const WORKSPACE_STYLE_ID = 'dp-workspace-styles';
-function injectWorkspaceStyles() {
-    injectRuntimeCSS({
-        id: WORKSPACE_STYLE_ID,
-        css: WORKSPACE_CSS,
-        hrefPart: 'deskpane-workspace.css',
-        fingerprint: 'DeskPane — Workspace CSS',
-    });
-}
-/** 取得 WorkspaceManager CSS（供 SSR 或自訂注入使用） */
-function getWorkspaceCSS() {
-    return WORKSPACE_CSS;
-}
-class WorkspaceManager {
-    constructor(container, options = {}) {
-        this._workspaces = new Map();
-        this._windowManagers = new Map();
-        this._currentId = null;
-        this._isAnimating = false;
-        this._indicatorEl = null;
-        const el = typeof container === 'string'
-            ? (() => {
-                const found = document.querySelector(container);
-                if (!found)
-                    throw new Error(`[WorkspaceManager] Container not found: ${container}`);
-                return found;
-            })()
-            : container;
-        this._animationMs = options.animationMs ?? 250;
-        this._wmOptions = {
-            ...(options.windowManagerOptions ?? {}),
-            injectStyles: options.windowManagerOptions?.injectStyles ?? options.injectStyles,
-        };
-        this.events = new EventBus();
-        if (options.injectStyles !== false)
-            injectWorkspaceStyles();
-        // Wrap the container
-        this._root = document.createElement('div');
-        this._root.className = 'dp-workspace-root';
-        // Pass animation duration as CSS variable
-        this._root.style.setProperty('--dp-workspace-animation-ms', `${this._animationMs}ms`);
-        el.appendChild(this._root);
-    }
-    // ── Public API ─────────────────────────────────────────────
-    /** 所有工作區的唯讀清單 */
-    get workspaces() {
-        return [...this._workspaces.values()];
-    }
-    /** 目前活躍的工作區，若尚無工作區則為 null */
-    get current() {
-        return this._currentId ? (this._workspaces.get(this._currentId) ?? null) : null;
-    }
-    /**
-     * 新增工作區。
-     * 若目前沒有活躍工作區，自動切換到新建的工作區。
-     */
-    addWorkspace(config) {
-        if (this._workspaces.has(config.id)) {
-            throw new Error(`[WorkspaceManager] Workspace already exists: ${config.id}`);
-        }
-        // Create workspace container div
-        const wsEl = document.createElement('div');
-        wsEl.className = 'dp-workspace';
-        wsEl.dataset.workspaceId = config.id;
-        // Initially off-screen to the right
-        wsEl.classList.add('dp-workspace--enter-right');
-        this._setWorkspaceVisible(wsEl, false);
-        this._setWorkspaceInteractive(wsEl, false);
-        this._root.appendChild(wsEl);
-        // Create dedicated WindowManager
-        const wm = new WindowManager({
-            ...this._wmOptions,
-            container: wsEl,
-            isolated: true,
-        });
-        const state = {
-            id: config.id,
-            label: config.label ?? config.id,
-            icon: config.icon,
-            container: wsEl,
-        };
-        this._workspaces.set(config.id, state);
-        this._windowManagers.set(config.id, wm);
-        this._updateIndicator();
-        this.events.emit('workspace:added', state);
-        // Auto-activate if this is the first workspace
-        if (this._currentId === null) {
-            this._activateImmediate(config.id);
-        }
-        return state;
-    }
-    /**
-     * 移除工作區（同時銷毀其 WindowManager）。
-     * 若移除的是目前工作區，自動切換到前一個（或後一個）。
-     */
-    removeWorkspace(id) {
-        const state = this._workspaces.get(id);
-        if (!state)
-            return;
-        const wm = this._windowManagers.get(id);
-        wm?.destroy();
-        state.container.remove();
-        this._workspaces.delete(id);
-        this._windowManagers.delete(id);
-        this._updateIndicator();
-        this.events.emit('workspace:removed', { id });
-        // If current was removed, switch to nearest remaining workspace
-        if (this._currentId === id) {
-            this._currentId = null;
-            const remaining = [...this._workspaces.keys()];
-            if (remaining.length > 0) {
-                this._activateImmediate(remaining[0]);
-                this.events.emit('workspace:switched', {
-                    from: id,
-                    to: remaining[0],
-                });
-            }
-        }
-    }
-    /**
-     * 切換到指定工作區，附帶左右滑入動畫。
-     * 若目前正在切換動畫中，忽略此次呼叫。
-     */
-    switchTo(id) {
-        if (id === this._currentId)
-            return;
-        if (this._isAnimating)
-            return;
-        const next = this._workspaces.get(id);
-        if (!next)
-            throw new Error(`[WorkspaceManager] Workspace not found: ${id}`);
-        const ids = [...this._workspaces.keys()];
-        const currentIndex = this._currentId ? ids.indexOf(this._currentId) : -1;
-        const nextIndex = ids.indexOf(id);
-        const goingRight = nextIndex > currentIndex;
-        const currentEl = this._currentId
-            ? this._workspaces.get(this._currentId)?.container ?? null
-            : null;
-        const nextEl = next.container;
-        this._isAnimating = true;
-        // Position next workspace off-screen
-        nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
-        nextEl.classList.add(goingRight ? 'dp-workspace--enter-right' : 'dp-workspace--enter-left');
-        this._setWorkspaceVisible(nextEl, true);
-        // Make it visible but off-screen so transition can play
-        nextEl.style.visibility = 'visible';
-        // Force reflow so the initial transform is applied before transition
-        nextEl.getBoundingClientRect();
-        // Slide current out
-        if (currentEl) {
-            this._setWorkspaceVisible(currentEl, true);
-            currentEl.classList.add(goingRight ? 'dp-workspace--leave-left' : 'dp-workspace--leave-right');
-            currentEl.classList.remove('dp-workspace--active');
-            this._setWorkspaceInteractive(currentEl, false);
-        }
-        // Slide next in
-        nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
-        nextEl.classList.add('dp-workspace--active');
-        this._setWorkspaceInteractive(nextEl, true);
-        const prevId = this._currentId;
-        this._currentId = id;
-        this._updateIndicator();
-        const cleanup = () => {
-            this._isAnimating = false;
-            if (currentEl) {
-                currentEl.classList.remove('dp-workspace--leave-left', 'dp-workspace--leave-right');
-                currentEl.style.visibility = '';
-                this._setWorkspaceInteractive(currentEl, false);
-                this._setWorkspaceVisible(currentEl, false);
-            }
-            this.events.emit('workspace:switched', {
-                from: prevId,
-                to: id,
-            });
-        };
-        if (this._animationMs > 0) {
-            let cleanupCalled = false;
-            const safeCleanup = () => {
-                if (cleanupCalled)
-                    return;
-                cleanupCalled = true;
-                nextEl.removeEventListener('transitionend', safeCleanup);
-                cleanup();
+/**
+ * Vue 3 Composable：封裝 WindowManager，提供響應式視窗清單與 Vue 元件開窗。
+ *
+ * @example
+ * ```ts
+ * const { windows, openVueWindow, close, minimize } = useWindowManager();
+ * openVueWindow({ id: 'my-win', title: '我的視窗', component: MyComp });
+ * ```
+ */
+function useWindowManager(opts) {
+    const wm = new WindowManager(opts);
+    /** 響應式視窗清單，觸發 Vue 重新渲染 */
+    const windows = shallowRef([]);
+    /** id → { component, props } 的映射表（不放入響應式以避免深層追蹤） */
+    const _vueInfo = new Map();
+    /** 從 WindowManager 同步最新狀態到 windows */
+    function _sync() {
+        windows.value = wm.getWindowIds()
+            .map(id => {
+            const state = wm.getState(id);
+            const bodyEl = wm.getBodyElement(id);
+            if (!state || !bodyEl)
+                return null;
+            const info = _vueInfo.get(id);
+            return {
+                id,
+                state: { ...state }, // 淺複製觸發響應
+                component: info?.component ?? null,
+                props: info?.props,
+                bodyEl,
             };
-            nextEl.addEventListener('transitionend', safeCleanup, { once: true });
-            // Fallback: ensure cleanup fires even if transitionend doesn't fire
-            setTimeout(safeCleanup, this._animationMs + 50);
-        }
-        else {
-            cleanup();
-        }
+        })
+            .filter((w) => w !== null);
     }
+    // 訂閱所有視窗事件，保持 windows 與 WM 狀態同步
+    const SYNC_EVENTS = [
+        'window:opened', 'window:closed', 'window:focused',
+        'window:minimized', 'window:maximized', 'window:restored',
+    ];
+    SYNC_EVENTS.forEach(ev => wm.events.on(ev, _sync));
     /**
-     * 取得指定工作區的 WindowManager。
-     * 用於直接呼叫 wm.open() / wm.close() 等操作。
+     * 開啟一個以 Vue 元件為內容的視窗。
+     * 若 ID 已存在，則 restore + focus（不重複建立）。
      */
-    getWindowManager(workspaceId) {
-        const wm = this._windowManagers.get(workspaceId);
-        if (!wm)
-            throw new Error(`[WorkspaceManager] Workspace not found: ${workspaceId}`);
-        return wm;
-    }
-    /**
-     * 啟用工作區指示點（小圓點）。
-     * 會在根容器底部顯示，指示當前所在工作區。
-     */
-    enableIndicator() {
-        if (this._indicatorEl)
-            return;
-        const bar = document.createElement('div');
-        bar.className = 'dp-workspace-indicator';
-        this._root.appendChild(bar);
-        this._indicatorEl = bar;
-        this._updateIndicator();
-    }
-    disableIndicator() {
-        this._indicatorEl?.remove();
-        this._indicatorEl = null;
-    }
-    /** 銷毀所有工作區並清理資源 */
-    destroy() {
-        this._windowManagers.forEach(wm => wm.destroy());
-        this._windowManagers.clear();
-        this._workspaces.clear();
-        this._root.remove();
-        this._currentId = null;
-    }
-    // ── Private helpers ────────────────────────────────────────
-    /** 無動畫直接啟用（初始化或移除當前工作區時使用） */
-    _activateImmediate(id) {
-        const state = this._workspaces.get(id);
-        if (!state)
-            return;
-        // Deactivate previous
-        if (this._currentId && this._currentId !== id) {
-            const prev = this._workspaces.get(this._currentId);
-            if (prev) {
-                prev.container.classList.remove('dp-workspace--active');
-                prev.container.style.visibility = '';
-                this._setWorkspaceInteractive(prev.container, false);
-                this._setWorkspaceVisible(prev.container, false);
-            }
-        }
-        state.container.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
-        this._setWorkspaceVisible(state.container, true);
-        state.container.classList.add('dp-workspace--active');
-        this._setWorkspaceInteractive(state.container, true);
-        this._currentId = id;
-        this._updateIndicator();
-    }
-    _setWorkspaceInteractive(el, interactive) {
-        el.inert = !interactive;
-        if (interactive) {
-            el.removeAttribute('aria-hidden');
-        }
-        else {
-            el.setAttribute('aria-hidden', 'true');
-        }
-    }
-    _setWorkspaceVisible(el, visible) {
-        el.hidden = !visible;
-    }
-    /** 更新底部指示點 */
-    _updateIndicator() {
-        if (!this._indicatorEl)
-            return;
-        this._indicatorEl.innerHTML = '';
-        this._workspaces.forEach((_, id) => {
-            const dot = document.createElement('div');
-            dot.className = 'dp-workspace-dot' + (id === this._currentId ? ' dp-workspace-dot--active' : '');
-            this._indicatorEl.appendChild(dot);
+    function openVueWindow(config) {
+        // 儲存 Vue 元件資訊（使用 markRaw 避免 Vue 追蹤元件內部）
+        _vueInfo.set(config.id, {
+            component: markRaw(config.component),
+            props: config.props,
         });
+        // 以 slotType:'vue' 開窗，renderer 會留空 body 讓 Vue Teleport 填入
+        return wm.open({
+            id: config.id,
+            title: config.title,
+            slotType: 'vue',
+            content: null,
+            x: config.x,
+            y: config.y,
+            width: config.width,
+            height: config.height,
+        });
+    }
+    /** 元件卸載時自動銷毀所有視窗 */
+    onUnmounted(() => wm.destroy());
+    return {
+        /** 底層 WindowManager 實例（進階使用） */
+        wm,
+        /** 響應式視窗清單，供 v-for 迭代 */
+        windows,
+        openVueWindow,
+        close: (id) => wm.close(id),
+        minimize: (id) => wm.minimize(id),
+        maximize: (id) => wm.maximize(id),
+        restore: (id) => wm.restore(id),
+        focus: (id) => wm.focus(id),
+        setTitle: (id, title) => wm.setTitle(id, title),
+        destroy: () => wm.destroy(),
+    };
+}
+
+// ============================================================
+// DeskPane-Desktop — Icon utilities (shared between Dock & DesktopIcon)
+// ============================================================
+/**
+ * 依 icon 字串類型，將對應子節點（img / svg innerHTML / emoji text）
+ * 附加至目標容器元素。
+ * 支援：http/https URL、絕對路徑 /...、data: URI、SVG 字串、emoji / 文字。
+ */
+function appendIconContent(container, icon) {
+    if (icon.startsWith('http') || icon.startsWith('/') || icon.startsWith('data:')) {
+        const img = document.createElement('img');
+        img.src = icon;
+        img.alt = '';
+        container.appendChild(img);
+    }
+    else if (icon.trim().startsWith('<svg')) {
+        container.innerHTML = icon;
+    }
+    else {
+        container.textContent = icon;
     }
 }
 
-var TASKVIEW_CSS = "/* ============================================================\r\n   DeskPane — TaskView Styles\r\n   Task View overlay for virtual desktop switching\r\n   ============================================================ */\r\n\r\n/* ── 覆蓋層 ── */\r\n.dp-task-view {\n  position: fixed;\n  inset: 0;\r\n  z-index: 99999;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  background: rgba(0, 0, 0, 0.55);\r\n  backdrop-filter: blur(8px);\r\n  -webkit-backdrop-filter: blur(8px);\r\n  opacity: 0;\r\n  pointer-events: none;\r\n  transition: opacity 0.2s;\n}\n.dp-task-view[hidden] {\n  display: none !important;\n  pointer-events: none !important;\n}\n.dp-task-view--open {\n  opacity: 1;\n  pointer-events: auto;\n}\n\r\n/* ── 面板 ── */\r\n.dp-task-view-panel {\r\n  display: flex;\r\n  align-items: flex-end;\r\n  gap: 14px;\r\n  padding: 20px 24px;\r\n  background: rgba(22, 28, 42, 0.92);\r\n  border: 1px solid rgba(255, 255, 255, 0.1);\r\n  border-radius: 16px;\r\n  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);\r\n  transform: translateY(16px);\r\n  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);\r\n  max-width: 90vw;\r\n  overflow-x: auto;\r\n}\r\n.dp-task-view--open .dp-task-view-panel {\r\n  transform: translateY(0);\r\n}\r\n\r\n/* ── 工作區卡片 ── */\r\n.dp-tv-card {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n  position: relative;\r\n}\r\n.dp-tv-preview {\r\n  width: 210px;\r\n  height: 132px;\r\n  background: rgba(255, 255, 255, 0.04);\r\n  border: 2px solid rgba(255, 255, 255, 0.14);\r\n  border-radius: 8px;\r\n  overflow: hidden;\r\n  transition: border-color 0.15s, box-shadow 0.15s;\r\n  position: relative;\r\n}\r\n.dp-tv-card:hover .dp-tv-preview {\r\n  border-color: rgba(255, 255, 255, 0.45);\r\n}\r\n.dp-tv-card--active .dp-tv-preview {\r\n  border-color: #0078d4;\r\n  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.35);\r\n}\r\n.dp-tv-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.8);\r\n  white-space: nowrap;\r\n}\r\n.dp-tv-card--active .dp-tv-label {\r\n  color: #59aeff;\r\n  font-weight: 600;\r\n}\r\n\r\n/* ── 刪除按鈕 ── */\r\n.dp-tv-delete {\r\n  position: absolute;\r\n  top: -7px;\r\n  right: -7px;\r\n  width: 20px;\r\n  height: 20px;\r\n  border-radius: 50%;\r\n  background: rgba(50, 50, 55, 0.95);\r\n  border: 1px solid rgba(255, 255, 255, 0.18);\r\n  color: rgba(255, 255, 255, 0.7);\r\n  font-size: 11px;\r\n  cursor: pointer;\r\n  display: none;\r\n  align-items: center;\r\n  justify-content: center;\r\n  z-index: 1;\r\n  transition: background 0.1s;\r\n}\r\n.dp-tv-card:hover .dp-tv-delete { display: flex; }\r\n.dp-tv-delete:hover { background: #c42b1c; color: #fff; }\r\n\r\n/* ── 新增桌面按鈕 ── */\r\n.dp-tv-add-wrap {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n}\r\n.dp-tv-add {\r\n  width: 210px;\r\n  height: 132px;\r\n  border: 2px dashed rgba(255, 255, 255, 0.18);\r\n  border-radius: 8px;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 36px;\r\n  color: rgba(255, 255, 255, 0.35);\r\n  transition: border-color 0.15s, color 0.15s;\r\n}\r\n.dp-tv-add-wrap:hover .dp-tv-add {\r\n  border-color: rgba(255, 255, 255, 0.5);\r\n  color: rgba(255, 255, 255, 0.7);\r\n}\r\n.dp-tv-add-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.45);\r\n}\r\n.dp-tv-add-wrap:hover .dp-tv-add-label { color: rgba(255, 255, 255, 0.7); }\r\n";
+// ============================================================
+// DeskPane-Desktop — Dock
+// 工具列：支援圖示新增/移除 + 拖曳排序
+// ============================================================
+function resolveIconEl$1(icon, size) {
+    const el = document.createElement('div');
+    el.className = 'dp-dock-icon';
+    el.style.width = `${size}px`;
+    el.style.height = `${size}px`;
+    el.style.fontSize = `${Math.floor(size * 0.72)}px`;
+    el.style.lineHeight = '1';
+    appendIconContent(el, icon);
+    return el;
+}
+class Dock {
+    constructor(config = {}) {
+        this._dragSrcIndex = -1;
+        this._activeId = null;
+        this._renderCallbacks = new Set();
+        this._items = [...(config.items ?? [])];
+        this._position = config.position ?? 'bottom';
+        this._iconSize = config.iconSize ?? 44;
+        this._showLabels = config.showLabels ?? true;
+        this._el = document.createElement('div');
+        this._el.className = `dp-dock dp-dock-${this._position}`;
+        this._render();
+    }
+    // ── Private ───────────────────────────────────────────────
+    _render() {
+        this._el.innerHTML = '';
+        this._items.forEach((item, index) => {
+            this._el.appendChild(this._createItemEl(item, index));
+        });
+        this._renderCallbacks.forEach(cb => cb());
+    }
+    _createItemEl(item, index) {
+        const el = document.createElement('div');
+        el.className = 'dp-dock-item';
+        el.draggable = true;
+        el.dataset.index = String(index);
+        el.dataset.id = item.id;
+        el.title = ''; // 使用自訂 tooltip，避免瀏覽器原生 title
+        el.appendChild(resolveIconEl$1(item.icon, this._iconSize));
+        if (this._showLabels) {
+            const label = document.createElement('div');
+            label.className = 'dp-dock-label';
+            label.textContent = item.label;
+            el.appendChild(label);
+        }
+        else {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'dp-dock-tooltip';
+            tooltip.textContent = item.label;
+            el.appendChild(tooltip);
+        }
+        // Click
+        el.addEventListener('click', () => item.action());
+        // ── HTML5 Drag-to-reorder ─────────────────────────────
+        el.addEventListener('dragstart', (e) => {
+            this._dragSrcIndex = index;
+            el.classList.add('dp-dock-dragging');
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', String(index));
+            }
+        });
+        el.addEventListener('dragend', () => {
+            el.classList.remove('dp-dock-dragging');
+            this._clearDragover();
+        });
+        el.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer)
+                e.dataTransfer.dropEffect = 'move';
+            const targetIndex = parseInt(el.dataset.index ?? '0', 10);
+            if (targetIndex !== this._dragSrcIndex) {
+                this._clearDragover();
+                el.classList.add('dp-dock-dragover');
+            }
+        });
+        el.addEventListener('dragleave', () => {
+            el.classList.remove('dp-dock-dragover');
+        });
+        el.addEventListener('drop', (e) => {
+            e.preventDefault();
+            el.classList.remove('dp-dock-dragover');
+            const targetIndex = parseInt(el.dataset.index ?? '0', 10);
+            if (this._dragSrcIndex >= 0 && this._dragSrcIndex !== targetIndex) {
+                const [moved] = this._items.splice(this._dragSrcIndex, 1);
+                this._items.splice(targetIndex, 0, moved);
+                this._render();
+            }
+            this._dragSrcIndex = -1;
+        });
+        return el;
+    }
+    _clearDragover() {
+        this._el.querySelectorAll('.dp-dock-dragover').forEach(el => {
+            el.classList.remove('dp-dock-dragover');
+        });
+    }
+    // ── Public API ────────────────────────────────────────────
+    addItem(item) {
+        this._items.push(item);
+        this._render();
+        if (this._activeId)
+            this._applyActive(this._activeId);
+    }
+    /** 在指定索引位置插入 item（0 = 最左/最上）。超出範圍時自動夾緊。 */
+    addItemAt(item, index) {
+        const i = Math.max(0, Math.min(index, this._items.length));
+        this._items.splice(i, 0, item);
+        this._render();
+        if (this._activeId)
+            this._applyActive(this._activeId);
+    }
+    /**
+     * 設定目前 active（focused）的 item。
+     * 傳 null 清除所有高亮。
+     */
+    setActiveItem(id) {
+        this._activeId = id;
+        this._applyActive(id);
+    }
+    _applyActive(id) {
+        this._el.querySelectorAll('.dp-dock-item').forEach(el => {
+            el.classList.toggle('dp-dock-active', !!id && el.dataset.id === id);
+        });
+    }
+    removeItem(id) {
+        const idx = this._items.findIndex(i => i.id === id);
+        if (idx !== -1) {
+            this._items.splice(idx, 1);
+            this._render();
+        }
+    }
+    /** 取得目前排列順序的 items（含拖曳後的結果） */
+    getItems() {
+        return [...this._items];
+    }
+    /** 動態變更 Dock 停靠位置 */
+    setPosition(position) {
+        this._el.classList.remove(`dp-dock-${this._position}`);
+        this._position = position;
+        this._el.classList.add(`dp-dock-${this._position}`);
+    }
+    /** 取得特定 item 的 DOM 元素 */
+    getItemElement(id) {
+        return this._el.querySelector(`.dp-dock-item[data-id="${CSS.escape(id)}"]`);
+    }
+    /** 取得目前 Dock 停靠位置 */
+    getPosition() {
+        return this._position;
+    }
+    getElement() {
+        return this._el;
+    }
+    /**
+     * 每次 Dock 重新渲染（addItem / addItemAt / removeItem / 拖曳排序）後觸發 cb。
+     * 回傳取消訂閱函式。
+     */
+    onRender(cb) {
+        this._renderCallbacks.add(cb);
+        return () => this._renderCallbacks.delete(cb);
+    }
+    destroy() {
+        this._el.remove();
+    }
+}
 
 // ============================================================
-// DeskPane — TaskView
-// 虛擬桌面切換 Task View 覆蓋層
-// 功能：
-//   • 顯示所有工作區的 DOM clone 縮略圖
-//   • 點擊卡片切換工作區
-//   • 新增 / 刪除工作區按鈕（可透過 options 控制）
-//   • Escape 鍵關閉（預設開）
-//   • EventBus：taskview:open / taskview:close
+// DeskPane-Desktop — DesktopIcon
+// 桌面圖示：可拖曳自由定位，點擊觸發 action
 // ============================================================
-const TASKVIEW_STYLE_ID = 'dp-taskview-styles';
-function injectTaskViewStyles() {
+function resolveIconEl(icon) {
+    const el = document.createElement('div');
+    el.className = 'dp-desktop-icon-img';
+    appendIconContent(el, icon);
+    return el;
+}
+class DesktopIcon {
+    constructor(config, containerEl, onMove, dragThreshold = 6, snapFn = null, onDragEnd = null, onSelect = null) {
+        this._isDragging = false;
+        this._hasMoved = false;
+        this._dragOffX = 0;
+        this._dragOffY = 0;
+        this._startX = 0;
+        this._startY = 0;
+        this._config = config;
+        this._containerEl = containerEl;
+        this._onMove = onMove;
+        this._dragThreshold = config.dragThreshold ?? dragThreshold;
+        this._snapFn = snapFn;
+        this._onDragEnd = onDragEnd;
+        this._onSelect = onSelect;
+        this._onMouseMoveBound = this._onMouseMove.bind(this);
+        this._onMouseUpBound = this._onMouseUp.bind(this);
+        this._el = this._createElement();
+    }
+    _createElement() {
+        const el = document.createElement('div');
+        el.className = 'dp-desktop-icon';
+        el.dataset.id = this._config.id;
+        el.appendChild(resolveIconEl(this._config.icon));
+        const label = document.createElement('div');
+        label.className = 'dp-desktop-icon-label';
+        label.textContent = this._config.label;
+        el.appendChild(label);
+        el.addEventListener('mousedown', this._onMouseDown.bind(this));
+        return el;
+    }
+    _onMouseDown(e) {
+        if (e.button !== 0)
+            return;
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = this._el.getBoundingClientRect();
+        this._dragOffX = e.clientX - rect.left;
+        this._dragOffY = e.clientY - rect.top;
+        this._startX = e.clientX;
+        this._startY = e.clientY;
+        this._isDragging = true;
+        this._hasMoved = false;
+        // 取消其他圖示的選取狀態
+        this._containerEl.querySelectorAll('.dp-icon-selected').forEach(el => {
+            el.classList.remove('dp-icon-selected');
+        });
+        this._el.classList.add('dp-icon-selected');
+        this._onSelect?.(this._config.id);
+        document.addEventListener('mousemove', this._onMouseMoveBound);
+        document.addEventListener('mouseup', this._onMouseUpBound);
+    }
+    _onMouseMove(e) {
+        if (!this._isDragging)
+            return;
+        if (!this._hasMoved) {
+            const dx = e.clientX - this._startX;
+            const dy = e.clientY - this._startY;
+            if (Math.sqrt(dx * dx + dy * dy) < this._dragThreshold)
+                return;
+            this._el.classList.add('dp-icon-dragging');
+            this._hasMoved = true;
+        }
+        const containerRect = this._containerEl.getBoundingClientRect();
+        const maxX = containerRect.width - this._el.offsetWidth;
+        const maxY = containerRect.height - this._el.offsetHeight;
+        let x = Math.max(0, Math.min(e.clientX - containerRect.left - this._dragOffX, maxX));
+        let y = Math.max(0, Math.min(e.clientY - containerRect.top - this._dragOffY, maxY));
+        if (this._snapFn) {
+            const result = this._snapFn(x, y, this._el.offsetWidth, this._el.offsetHeight);
+            x = Math.max(0, Math.min(result.x, maxX));
+            y = Math.max(0, Math.min(result.y, maxY));
+        }
+        this.setPosition(x, y);
+    }
+    _onMouseUp(_e) {
+        document.removeEventListener('mousemove', this._onMouseMoveBound);
+        document.removeEventListener('mouseup', this._onMouseUpBound);
+        this._el.classList.remove('dp-icon-dragging');
+        this._onDragEnd?.();
+        if (!this._hasMoved) {
+            // 純點擊，觸發 action
+            this._config.action?.();
+        }
+        else {
+            // 拖曳結束，通知 Desktop 儲存位置
+            const x = parseInt(this._el.style.left || '0', 10);
+            const y = parseInt(this._el.style.top || '0', 10);
+            this._onMove(this._config.id, x, y);
+        }
+        this._isDragging = false;
+        this._hasMoved = false;
+    }
+    setPosition(x, y) {
+        this._el.style.left = `${x}px`;
+        this._el.style.top = `${y}px`;
+    }
+    getElement() {
+        return this._el;
+    }
+    getConfig() {
+        return { ...this._config };
+    }
+    destroy() {
+        document.removeEventListener('mousemove', this._onMouseMoveBound);
+        document.removeEventListener('mouseup', this._onMouseUpBound);
+        this._el.remove();
+    }
+}
+
+// ============================================================
+// DeskPane-Desktop — DesktopCollectionView
+// Wijmo-style collection view for desktop icon data binding.
+// ============================================================
+class DesktopCollectionView {
+    constructor(sourceCollection = [], options = {}) {
+        this.collectionChanged = new EventBus();
+        this.currentChanged = new EventBus();
+        this.addedItems = [];
+        this.removedItems = [];
+        this.editedItems = [];
+        this._deferLevel = 0;
+        this._pendingChange = null;
+        this.sourceCollection = sourceCollection;
+        this.items = [...sourceCollection];
+        this.trackChanges = options.trackChanges ?? false;
+        this._getKey = options.getKey ?? ((item) => item.id);
+    }
+    get length() {
+        return this.items.length;
+    }
+    getItem(id) {
+        return this.items.find(item => this._getKey(item) === id);
+    }
+    setSourceCollection(sourceCollection, options = {}) {
+        this.sourceCollection = sourceCollection;
+        this.refresh({
+            source: options.source ?? 'external',
+            emit: options.emit,
+        });
+    }
+    refresh(options = {}) {
+        this.items = [...this.sourceCollection];
+        this._emit({
+            action: 'refresh',
+            source: options.source ?? 'external',
+            items: this.snapshot(),
+        }, options);
+    }
+    beginUpdate() {
+        this._deferLevel++;
+    }
+    endUpdate() {
+        if (this._deferLevel === 0)
+            return;
+        this._deferLevel--;
+        if (this._deferLevel === 0 && this._pendingChange) {
+            const pending = this._pendingChange;
+            this._pendingChange = null;
+            this.collectionChanged.emit('change', pending);
+        }
+    }
+    deferUpdate(fn) {
+        this.beginUpdate();
+        try {
+            fn();
+        }
+        finally {
+            this.endUpdate();
+        }
+    }
+    add(item, options = {}) {
+        this.sourceCollection.push(item);
+        this.items = [...this.sourceCollection];
+        if (this.trackChanges)
+            this.addedItems.push(item);
+        this._emit({
+            action: 'add',
+            source: options.source ?? 'view',
+            items: this.snapshot(),
+            item: { ...item },
+            id: this._getKey(item),
+            index: this.sourceCollection.length - 1,
+        }, options);
+    }
+    remove(idOrItem, options = {}) {
+        const id = typeof idOrItem === 'string' ? idOrItem : this._getKey(idOrItem);
+        const index = this.sourceCollection.findIndex(item => this._getKey(item) === id);
+        if (index < 0)
+            return undefined;
+        const [removed] = this.sourceCollection.splice(index, 1);
+        this.items = [...this.sourceCollection];
+        if (this.trackChanges)
+            this.removedItems.push(removed);
+        this._emit({
+            action: 'remove',
+            source: options.source ?? 'view',
+            items: this.snapshot(),
+            item: { ...removed },
+            id,
+            index,
+        }, options);
+        return removed;
+    }
+    update(idOrItem, patch, options = {}) {
+        const id = typeof idOrItem === 'string' ? idOrItem : this._getKey(idOrItem);
+        const index = this.sourceCollection.findIndex(item => this._getKey(item) === id);
+        if (index < 0)
+            return undefined;
+        const previous = { ...this.sourceCollection[index] };
+        Object.assign(this.sourceCollection[index], patch);
+        const item = this.sourceCollection[index];
+        this.items = [...this.sourceCollection];
+        if (this.trackChanges && !this.editedItems.includes(item))
+            this.editedItems.push(item);
+        this._emit({
+            action: 'update',
+            source: options.source ?? 'view',
+            items: this.snapshot(),
+            item: { ...item },
+            previousItem: previous,
+            id,
+            index,
+        }, options);
+        return item;
+    }
+    clearChanges() {
+        this.addedItems.length = 0;
+        this.removedItems.length = 0;
+        this.editedItems.length = 0;
+    }
+    snapshot() {
+        return this.items.map(item => ({ ...item }));
+    }
+    dispose() {
+        this.collectionChanged.clearAll();
+        this.currentChanged.clearAll();
+        this._pendingChange = null;
+        this._deferLevel = 0;
+    }
+    _emit(change, options) {
+        if (options.emit === false)
+            return;
+        if (this._deferLevel > 0) {
+            this._pendingChange = {
+                action: 'reset',
+                source: change.source,
+                items: this.snapshot(),
+            };
+            return;
+        }
+        this.collectionChanged.emit('change', change);
+    }
+}
+
+var DESKTOP_CSS = "/* ============================================================\r\n * DeskPane-Desktop — Default Styles\r\n * Version: 0.1.0\r\n *\r\n * Copy this file to your project and link it with:\r\n *   <link rel=\"stylesheet\" href=\"deskpane-desktop.css\">\r\n *\r\n * When using injectStyles: false option in Desktop config,\r\n * these styles will NOT be injected automatically — this file\r\n * is your starting point for customization.\r\n *\r\n * All values use CSS custom properties (--dp-*) so you can\r\n * override them in :root without touching this file.\r\n * ============================================================ */\r\n\r\n/* ── Desktop container ───────────────────────────────── */\r\n.dp-desktop {\r\n  position: relative;\r\n  width: 100%;\r\n  height: 100%;\r\n  overflow: clip;\r\n  background: var(--dp-desktop-bg, linear-gradient(135deg, #1a2a4a 0%, #0d1b2a 100%));\r\n  user-select: none;\r\n  font-family: var(--dp-font, system-ui, -apple-system, sans-serif);\r\n}\r\n\r\n/* ── Icon area ───────────────────────────────────────── */\r\n.dp-desktop-icon-area {\r\n  position: absolute;\r\n  top: 0; left: 0; right: 0; bottom: 0;\r\n  overflow: auto;\r\n  scrollbar-width: thin;\r\n  scrollbar-color: rgba(255,255,255,0.2) transparent;\r\n}\r\n\r\n/* ── Window area ─────────────────────────────────────── */\r\n.dp-desktop-window-area {\r\n  position: absolute !important;\r\n  top: 0; left: 0; right: 0; bottom: 0;\r\n  overflow: clip;\r\n  pointer-events: none;\r\n}\r\n.dp-desktop-window-area > * {\r\n  pointer-events: auto;\r\n}\r\n\r\n/* ── Icon snap guides ────────────────────────────────── */\r\n.dp-icon-snap-guide {\r\n  position: absolute;\r\n  pointer-events: none;\r\n  z-index: 9999;\r\n  display: none;\r\n  background: var(--dp-snap-guide-color, rgba(0, 120, 255, 0.55));\r\n}\r\n.dp-icon-snap-guide.dp-snap-guide--v {\r\n  width: 1px;\r\n  top: 0;\r\n  bottom: 0;\r\n}\r\n.dp-icon-snap-guide.dp-snap-guide--h {\r\n  height: 1px;\r\n  left: 0;\r\n  right: 0;\r\n}\r\n\r\n/* ── Desktop icon ────────────────────────────────────── */\r\n.dp-desktop-icon {\r\n  position: absolute;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  width: 80px;\r\n  padding: 8px 4px 6px;\r\n  cursor: pointer;\r\n  border-radius: 8px;\r\n  transition: background 0.12s;\r\n}\r\n.dp-desktop-icon:hover {\r\n  background: var(--dp-desktop-icon-hover-bg, rgba(255,255,255,0.15));\r\n}\r\n.dp-desktop-icon.dp-icon-selected {\r\n  background: rgba(74,158,255,0.35);\r\n  outline: 1px solid rgba(74,158,255,0.6);\r\n}\r\n.dp-desktop-icon.dp-icon-dragging {\r\n  opacity: 0.45;\r\n  z-index: 9999;\r\n}\r\n.dp-desktop-icon-img {\r\n  width: 48px;\r\n  height: 48px;\r\n  font-size: 38px;\r\n  line-height: 1;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  border-radius: 10px;\r\n  overflow: hidden;\r\n  pointer-events: none;\r\n}\r\n.dp-desktop-icon-img img {\r\n  width: 100%;\r\n  height: 100%;\r\n  object-fit: contain;\r\n}\r\n.dp-desktop-icon-label {\r\n  margin-top: 4px;\r\n  font-size: 11px;\r\n  color: var(--dp-desktop-icon-text, #fff);\r\n  text-align: center;\r\n  line-height: 1.3;\r\n  max-width: 76px;\r\n  word-break: break-word;\r\n  text-shadow: 0 1px 3px rgba(0,0,0,0.7);\r\n  pointer-events: none;\r\n}\r\n\r\n/* ── Dock ────────────────────────────────────────────── */\r\n.dp-dock {\r\n  position: absolute;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: flex-start;\r\n  gap: 4px;\r\n  background: var(--dp-dock-bg, rgba(20,30,50,0.75));\r\n  backdrop-filter: var(--dp-dock-backdrop-filter, blur(14px));\r\n  -webkit-backdrop-filter: var(--dp-dock-backdrop-filter, blur(14px));\r\n  border: 1px solid var(--dp-dock-border, rgba(255,255,255,0.1));\r\n  padding: 6px 10px;\r\n  z-index: 9999;\r\n  box-sizing: border-box;\r\n  scrollbar-width: none;\r\n  -ms-overflow-style: none;\r\n}\r\n.dp-dock::-webkit-scrollbar { display: none; }\r\n.dp-dock.dp-dock-bottom {\r\n  bottom: 0; left: 0; right: 0;\r\n  flex-direction: row;\r\n  height: 68px;\r\n  border-top: 1px solid var(--dp-dock-border, rgba(255,255,255,0.1));\r\n  overflow-x: auto;\r\n  overflow-y: hidden;\r\n}\r\n.dp-dock.dp-dock-top {\r\n  top: 0; left: 0; right: 0;\r\n  flex-direction: row;\r\n  height: 68px;\r\n  border-bottom: 1px solid var(--dp-dock-border, rgba(255,255,255,0.1));\r\n  overflow-x: auto;\r\n  overflow-y: hidden;\r\n}\r\n.dp-dock.dp-dock-left {\r\n  top: 0; left: 0; bottom: 0;\r\n  flex-direction: column;\r\n  width: 68px;\r\n  align-items: center;\r\n  justify-content: flex-start;\r\n  padding: 10px 6px;\r\n  border-right: 1px solid var(--dp-dock-border, rgba(255,255,255,0.1));\r\n  overflow-y: auto;\r\n  overflow-x: hidden;\r\n}\r\n.dp-dock.dp-dock-right {\r\n  top: 0; right: 0; bottom: 0;\r\n  flex-direction: column;\r\n  width: 68px;\r\n  align-items: center;\r\n  justify-content: flex-start;\r\n  padding: 10px 6px;\r\n  border-left: 1px solid var(--dp-dock-border, rgba(255,255,255,0.1));\r\n  overflow-y: auto;\r\n  overflow-x: hidden;\r\n}\r\n\r\n/* ── Dock item ───────────────────────────────────────── */\r\n.dp-dock-item {\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  justify-content: center;\r\n  cursor: pointer;\r\n  border-radius: 10px;\r\n  padding: 4px 6px;\r\n  position: relative;\r\n  transition: transform 0.15s, background 0.12s;\r\n  flex-shrink: 0;\r\n}\r\n.dp-dock-item:hover {\r\n  background: var(--dp-dock-item-hover-bg, rgba(255,255,255,0.12));\r\n  transform: scale(1.15) translateY(-3px);\r\n}\r\n.dp-dock-item.dp-dock-dragging {\r\n  opacity: 0.4;\r\n}\r\n.dp-dock-item.dp-dock-dragover {\r\n  background: rgba(74,158,255,0.25);\r\n  outline: 2px dashed rgba(74,158,255,0.7);\r\n  transform: scale(1.1);\r\n}\r\n.dp-dock-item.dp-dock-active {\r\n  background: rgba(74,158,255,0.2);\r\n}\r\n.dp-dock-item.dp-dock-active::after {\r\n  content: '';\r\n  position: absolute;\r\n  bottom: -5px;\r\n  left: 50%;\r\n  transform: translateX(-50%);\r\n  width: 5px;\r\n  height: 5px;\r\n  border-radius: 50%;\r\n  background: rgba(74,158,255,0.9);\r\n}\r\n.dp-dock.dp-dock-top .dp-dock-item.dp-dock-active::after {\r\n  bottom: unset;\r\n  top: -5px;\r\n}\r\n.dp-dock.dp-dock-left .dp-dock-item.dp-dock-active::after {\r\n  bottom: unset;\r\n  top: 50%;\r\n  left: -5px;\r\n  transform: translateY(-50%);\r\n}\r\n.dp-dock.dp-dock-right .dp-dock-item.dp-dock-active::after {\r\n  bottom: unset;\r\n  top: 50%;\r\n  left: unset;\r\n  right: -5px;\r\n  transform: translateY(-50%);\r\n}\r\n\r\n/* ── Dock icon & label ───────────────────────────────── */\r\n.dp-dock-icon {\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  border-radius: 8px;\r\n  overflow: hidden;\r\n  pointer-events: none;\r\n}\r\n.dp-dock-icon img {\r\n  width: 100%;\r\n  height: 100%;\r\n  object-fit: contain;\r\n}\r\n.dp-dock-label {\r\n  font-size: 10px;\r\n  color: var(--dp-desktop-icon-text, rgba(255,255,255,0.85));\r\n  margin-top: 2px;\r\n  white-space: nowrap;\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\r\n  max-width: 60px;\r\n  pointer-events: none;\r\n}\r\n\r\n/* ── Dock tooltip ────────────────────────────────────── */\r\n.dp-dock-tooltip {\r\n  position: absolute;\r\n  bottom: calc(100% + 6px);\r\n  left: 50%;\r\n  transform: translateX(-50%);\r\n  background: rgba(0,0,0,0.8);\r\n  color: #fff;\r\n  font-size: 11px;\r\n  padding: 3px 8px;\r\n  border-radius: 4px;\r\n  white-space: nowrap;\r\n  pointer-events: none;\r\n  opacity: 0;\r\n  transition: opacity 0.15s;\r\n}\r\n.dp-dock-item:hover .dp-dock-tooltip {\r\n  opacity: 1;\r\n}\r\n.dp-dock.dp-dock-left .dp-dock-tooltip,\r\n.dp-dock.dp-dock-right .dp-dock-tooltip {\r\n  bottom: unset;\r\n  top: 50%;\r\n  transform: translateY(-50%);\r\n}\r\n.dp-dock.dp-dock-left .dp-dock-tooltip {\r\n  left: calc(100% + 6px);\r\n}\r\n.dp-dock.dp-dock-right .dp-dock-tooltip {\r\n  left: unset;\r\n  right: calc(100% + 6px);\r\n}\r\n\r\n/* ── Dock group preview (Windows-style thumbnails) ───── */\r\n.dp-dock-group-preview {\r\n  position: fixed;\r\n  z-index: 99998;\r\n  display: flex;\r\n  flex-direction: row;\r\n  gap: 6px;\r\n  padding: 8px;\r\n  border-radius: 10px;\r\n  background: rgba(18, 20, 26, 0.92);\r\n  border: 1px solid rgba(255, 255, 255, 0.12);\r\n  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);\r\n  backdrop-filter: blur(14px);\r\n  pointer-events: auto;\r\n  opacity: 0;\r\n  transform: translateY(8px);\r\n  transition: opacity 0.15s ease, transform 0.15s ease;\r\n}\r\n.dp-dock-group-preview--visible {\r\n  opacity: 1;\r\n  transform: translateY(0);\r\n}\r\n.dp-dock-group-preview--top {\r\n  transform: translateY(-8px);\r\n}\r\n.dp-dock-group-preview--top.dp-dock-group-preview--visible {\r\n  transform: translateY(0);\r\n}\r\n.dp-dock-group-preview--left,\r\n.dp-dock-group-preview--right {\r\n  flex-direction: column;\r\n  transform: translateX(0);\r\n}\r\n\r\n/* ── Group card ──────────────────────────────────────── */\r\n.dp-dock-group-card {\r\n  display: flex;\r\n  flex-direction: column;\r\n  cursor: pointer;\r\n  border-radius: 6px;\r\n  border: 1px solid transparent;\r\n  overflow: hidden;\r\n  transition: border-color 0.12s, background 0.12s;\r\n}\r\n.dp-dock-group-card:hover {\r\n  border-color: rgba(255, 255, 255, 0.25);\r\n  background: rgba(255, 255, 255, 0.07);\r\n}\r\n\r\n/* ── Card header ─────────────────────────────────────── */\r\n.dp-dock-group-card-header {\r\n  display: flex;\r\n  align-items: center;\r\n  gap: 4px;\r\n  padding: 4px 4px 4px 7px;\r\n  height: 26px;\r\n  flex-shrink: 0;\r\n}\r\n.dp-dock-group-card-title {\r\n  flex: 1;\r\n  font-size: 11px;\r\n  color: rgba(255, 255, 255, 0.82);\r\n  white-space: nowrap;\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\r\n}\r\n.dp-dock-group-card-close {\r\n  flex-shrink: 0;\r\n  width: 18px;\r\n  height: 18px;\r\n  border: none;\r\n  border-radius: 50%;\r\n  background: transparent;\r\n  color: rgba(255, 255, 255, 0.45);\r\n  font-size: 9px;\r\n  cursor: pointer;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  opacity: 0;\r\n  transition: background 0.1s, opacity 0.1s, color 0.1s;\r\n  padding: 0;\r\n  line-height: 1;\r\n}\r\n.dp-dock-group-card:hover .dp-dock-group-card-close {\r\n  opacity: 1;\r\n}\r\n.dp-dock-group-card-close:hover {\r\n  background: rgba(210, 40, 40, 0.85);\r\n  color: #fff;\r\n}\r\n\r\n/* ── Card thumbnail ──────────────────────────────────── */\r\n.dp-dock-group-card-thumb {\r\n  position: relative;\r\n  overflow: hidden;\r\n  flex-shrink: 0;\r\n  background: rgba(0, 0, 0, 0.35);\r\n}\r\n\r\n/* ── Modal-blocked card shake ────────────────────────── */\r\n@keyframes dp-group-card-shake {\r\n  0%, 100% { transform: translateX(0); }\r\n  20%       { transform: translateX(-5px); }\r\n  40%       { transform: translateX(5px); }\r\n  60%       { transform: translateX(-4px); }\r\n  80%       { transform: translateX(3px); }\r\n}\r\n.dp-group-card--shake {\r\n  animation: dp-group-card-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;\r\n}\r\n\r\n";
+
+// ============================================================
+// DeskPane-Desktop — CSS 注入（僅注入一次）
+// ============================================================
+const STYLE_ID = 'dp-desktop-styles';
+function injectDesktopStyles() {
     injectRuntimeCSS({
-        id: TASKVIEW_STYLE_ID,
-        css: TASKVIEW_CSS,
-        hrefPart: 'deskpane-taskview.css',
-        fingerprint: 'DeskPane — TaskView CSS',
+        id: STYLE_ID,
+        css: DESKTOP_CSS,
+        hrefPart: 'deskpane-desktop.css',
+        fingerprint: 'DeskPane-Desktop — Default Styles',
     });
 }
-/** 取得 TaskView CSS（供 SSR 或自訂注入使用） */
-function getTaskViewCSS() {
-    return TASKVIEW_CSS;
+
+// ============================================================
+// DeskPane-Desktop — Desktop
+// 桌面主容器：管理圖示區域 + Dock 工具列
+// ============================================================
+/** 群組預覽：每張卡片的預設寬高（px） */
+const PREVIEW_CARD_W = 160;
+const PREVIEW_CARD_H = 100;
+/**
+ * 建立 Windows 風格群組縮略圖 popup。
+ * 每個視窗（父 + 子）對應一張卡片，卡片含標題列與縮略圖。
+ */
+function buildGroupPreview(opts) {
+    const { anchorEl, dockPos, windowIds, getWindowEl, getWinState, cardW, cardH, onCardClick, onCardClose, mountEl } = opts;
+    const HEADER_H = 26;
+    const CARD_GAP = 6;
+    const PADDING = 8;
+    const popup = document.createElement('div');
+    popup.className = `dp-dock-group-preview dp-dock-group-preview--${dockPos}`;
+    for (const winId of windowIds) {
+        const state = getWinState(winId);
+        const winEl = getWindowEl(winId);
+        const card = document.createElement('div');
+        card.className = 'dp-dock-group-card';
+        card.dataset.windowId = winId;
+        // ── Header（標題 + 關閉鈕）──
+        const header = document.createElement('div');
+        header.className = 'dp-dock-group-card-header';
+        const titleEl = document.createElement('span');
+        titleEl.className = 'dp-dock-group-card-title';
+        titleEl.textContent = state?.title ?? winId;
+        titleEl.title = state?.title ?? winId;
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'dp-dock-group-card-close';
+        closeBtn.setAttribute('aria-label', '關閉');
+        closeBtn.textContent = '✕';
+        closeBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            onCardClose(winId);
+        });
+        header.append(titleEl, closeBtn);
+        // ── Thumbnail ──
+        const thumb = document.createElement('div');
+        thumb.className = 'dp-dock-group-card-thumb';
+        thumb.style.width = `${cardW}px`;
+        thumb.style.height = `${cardH}px`;
+        if (winEl) {
+            const winW = state?.width || winEl.offsetWidth || 640;
+            const winH = state?.height || winEl.offsetHeight || 480;
+            const scale = Math.min(cardW / winW, cardH / winH, 1);
+            const scaleWrap = document.createElement('div');
+            scaleWrap.style.cssText =
+                `position:absolute;top:0;left:0;width:${winW}px;height:${winH}px;` +
+                    `transform:scale(${scale});transform-origin:top left;pointer-events:none;overflow:hidden;`;
+            const clone = winEl.cloneNode(true);
+            clone.classList.remove('dp-minimized', 'dp-maximized');
+            clone.style.cssText =
+                'position:absolute;left:0;top:0;width:100%;height:100%;' +
+                    'transform:none;transition:none;pointer-events:none;';
+            scaleWrap.appendChild(clone);
+            thumb.appendChild(scaleWrap);
+        }
+        card.append(header, thumb);
+        card.addEventListener('click', () => onCardClick(winId));
+        popup.appendChild(card);
+    }
+    // ── 定位 popup ──
+    const cols = dockPos === 'left' || dockPos === 'right' ? 1 : windowIds.length;
+    const rows = dockPos === 'left' || dockPos === 'right' ? windowIds.length : 1;
+    const totalW = cols * cardW + (cols - 1) * CARD_GAP + PADDING * 2;
+    const totalH = rows * (cardH + HEADER_H) + (rows - 1) * CARD_GAP + PADDING * 2;
+    const rect = anchorEl.getBoundingClientRect();
+    const MARGIN = 8;
+    let x, y;
+    if (dockPos === 'bottom') {
+        x = rect.left + rect.width / 2 - totalW / 2;
+        y = rect.top - totalH - MARGIN;
+    }
+    else if (dockPos === 'top') {
+        x = rect.left + rect.width / 2 - totalW / 2;
+        y = rect.bottom + MARGIN;
+    }
+    else if (dockPos === 'left') {
+        x = rect.right + MARGIN;
+        y = rect.top + rect.height / 2 - totalH / 2;
+    }
+    else {
+        x = rect.left - totalW - MARGIN;
+        y = rect.top + rect.height / 2 - totalH / 2;
+    }
+    x = Math.max(8, Math.min(window.innerWidth - totalW - 8, x));
+    y = Math.max(8, Math.min(window.innerHeight - totalH - 8, y));
+    // position:fixed inline — 防止外層 transform/will-change 建立新的 containing block
+    // 座標系與 getBoundingClientRect() 一致（viewport 座標），與掛載點無關
+    popup.style.cssText += `position:fixed;left:${x}px;top:${y}px;`;
+    // 儲存最終採用的掛載元素（mountEl → 第一個 winEl 最近的 .v-application → body）
+    // 掛在 CSS scope root 內確保 cloneNode 縮略圖繼承 Vuetify/Scoped CSS/CSS 變數
+    const firstWinEl = windowIds.length > 0 ? getWindowEl(windowIds[0]) : undefined;
+    const resolvedMount = mountEl ??
+        (firstWinEl?.closest('.v-application') ?? null) ??
+        document.body;
+    popup._mountEl = resolvedMount;
+    return popup;
 }
-class TaskView {
-    constructor(wsMgr, options = {}) {
-        this._isOpen = false;
-        this._wsCounter = 0;
-        this._wsMgr = wsMgr;
-        this._opts = {
-            target: options.target ?? document.body,
-            allowAdd: options.allowAdd ?? true,
-            allowDelete: options.allowDelete ?? true,
-            keyboard: options.keyboard ?? true,
-            closeOnBackdrop: options.closeOnBackdrop ?? true,
-            injectStyles: options.injectStyles ?? true,
-            showButton: options.showButton ?? true,
-            buttonLabel: options.buttonLabel ?? '虛擬桌面',
-            buttonIcon: options.buttonIcon ?? '⧉',
-            buttonId: options.buttonId ?? 'dp-tv-button',
-            onCreateWorkspace: options.onCreateWorkspace,
-            dock: options.dock,
-        };
-        this._buttonId = this._opts.buttonId;
-        if (this._opts.injectStyles)
-            injectTaskViewStyles();
+/** 圖示自動排列：每欄最多幾個 icon */
+const AUTO_ROWS = 6;
+/** 圖示格子寬度（px） */
+const ICON_COL_W = 92;
+/** 圖示格子高度（px） */
+const ICON_ROW_H = 100;
+/** 起始邊距（px） */
+const ICON_MARGIN = 12;
+/** Dock 停靠列高度 / 寬度（px）；對齊 CSS .dp-dock-* */
+const DOCK_SIZE = 68;
+/** 計算第 index 個自動排列 icon 的位置 */
+function autoPosition(index) {
+    const col = Math.floor(index / AUTO_ROWS);
+    const row = index % AUTO_ROWS;
+    return {
+        x: ICON_MARGIN + col * ICON_COL_W,
+        y: ICON_MARGIN + row * ICON_ROW_H,
+    };
+}
+/** Dock 停靠位置對應的 icon 區域 inset（px） */
+function dockInset(position, dockSize) {
+    return {
+        top: position === 'top' ? dockSize : 0,
+        bottom: position === 'bottom' ? dockSize : 0,
+        left: position === 'left' ? dockSize : 0,
+        right: position === 'right' ? dockSize : 0,
+    };
+}
+class Desktop {
+    constructor(config = {}) {
+        this._icons = new Map();
+        this._itemsView = null;
+        this._itemsViewOff = null;
+        this._guideV = null;
+        this._guideH = null;
+        this._iconSentinel = null;
+        this._autoIconIndex = 0;
+        this._dockSyncCleanup = null;
+        if (config.injectStyles !== false)
+            injectDesktopStyles();
+        this._container = config.container ?? document.body;
+        this._storageKey = config.storageKey ?? 'dp-desktop';
+        this._dragThreshold = config.dragThreshold ?? 6;
+        this._iconSnapEnabled = config.iconSnap ?? true;
+        this._iconSnapThreshold = config.iconSnapThreshold ?? 20;
         this.events = new EventBus();
-        // ── 建立覆蓋層 DOM ──────────────────────────────────────
-        this._overlayEl = document.createElement('div');
-        this._overlayEl.className = 'dp-task-view';
-        this._overlayEl.hidden = true;
-        this._panelEl = document.createElement('div');
-        this._panelEl.className = 'dp-task-view-panel';
-        this._overlayEl.appendChild(this._panelEl);
-        this._opts.target.appendChild(this._overlayEl);
-        // ── Dock 按鈕（可選）─────────────────────────────────────
-        if (this._opts.dock && this._opts.showButton) {
-            this._opts.dock.addItemAt({
-                id: this._buttonId,
-                label: this._opts.buttonLabel,
-                icon: this._opts.buttonIcon,
-                action: () => this.toggle(),
-            }, 0);
+        // 桌面根元素
+        this._desktopEl = document.createElement('div');
+        this._desktopEl.className = 'dp-desktop';
+        if (config.background) {
+            this._desktopEl.style.background = config.background;
         }
-        // ── 綁定事件 ───────────────────────────────────────────
-        if (this._opts.closeOnBackdrop) {
-            this._overlayEl.addEventListener('click', (e) => {
-                if (e.target === this._overlayEl)
-                    this.close();
-            });
+        // 圖示區域
+        this._iconAreaEl = document.createElement('div');
+        this._iconAreaEl.className = 'dp-desktop-icon-area';
+        this._desktopEl.appendChild(this._iconAreaEl);
+        // 視窗區域：大小與 iconArea 相同（排除 Dock 佔用空間），
+        // 作為 WindowManager 的 container，確保最大化時不超過 Dock
+        this._windowAreaEl = document.createElement('div');
+        this._windowAreaEl.className = 'dp-desktop-window-area';
+        this._desktopEl.appendChild(this._windowAreaEl);
+        // Snap guide 線（icon 拖曳吸附指示）
+        if (this._iconSnapEnabled) {
+            this._guideV = document.createElement('div');
+            this._guideV.className = 'dp-snap-guide dp-snap-guide--v dp-icon-snap-guide';
+            this._guideH = document.createElement('div');
+            this._guideH.className = 'dp-snap-guide dp-snap-guide--h dp-icon-snap-guide';
+            this._iconAreaEl.appendChild(this._guideV);
+            this._iconAreaEl.appendChild(this._guideH);
         }
-        this._onKeyDown = (e) => {
-            if (this._isOpen && e.key === 'Escape') {
-                e.preventDefault();
-                this.close();
-            }
-        };
-        if (this._opts.keyboard) {
-            document.addEventListener('keydown', this._onKeyDown);
-        }
-        // 工作區切換時若 Task View 已開啟則重新渲染
-        this._onSwitched = () => {
-            if (this._isOpen)
-                this._render();
-        };
-        this._wsMgr.events.on('workspace:switched', this._onSwitched);
-        // 計算初始 wsCounter（讓新增的桌面編號不重複）
-        this._syncCounter();
-    }
-    // ── Public API ─────────────────────────────────────────────
-    get isOpen() { return this._isOpen; }
-    open() {
-        if (this._isOpen)
-            return;
-        this._isOpen = true;
-        this._overlayEl.hidden = false;
-        this._render();
-        this._overlayEl.classList.add('dp-task-view--open');
-        this.events.emit('taskview:open', undefined);
-    }
-    close() {
-        if (!this._isOpen) {
-            this._overlayEl.classList.remove('dp-task-view--open');
-            this._overlayEl.hidden = true;
-            return;
-        }
-        this._isOpen = false;
-        this._overlayEl.classList.remove('dp-task-view--open');
-        this._overlayEl.hidden = true;
-        this.events.emit('taskview:close', undefined);
-    }
-    toggle() {
-        this._isOpen ? this.close() : this.open();
-    }
-    /** 銷毀 Task View，移除 DOM 與事件監聽 */
-    destroy() {
-        this.close();
-        document.removeEventListener('keydown', this._onKeyDown);
-        this._wsMgr.events.off('workspace:switched', this._onSwitched);
-        if (this._opts.dock && this._opts.showButton) {
-            this._opts.dock.removeItem(this._buttonId);
-        }
-        this._overlayEl.remove();
-    }
-    // ── Private ────────────────────────────────────────────────
-    _syncCounter() {
-        this._wsMgr.workspaces.forEach(ws => {
-            const m = ws.id.match(/^ws-(\d+)$/);
-            if (m) {
-                const n = parseInt(m[1], 10);
-                if (n > this._wsCounter)
-                    this._wsCounter = n;
-            }
-        });
-    }
-    _render() {
-        this._panelEl.innerHTML = '';
-        const workspaces = this._wsMgr.workspaces;
-        const currentId = this._wsMgr.current?.id;
-        workspaces.forEach(ws => {
-            const card = document.createElement('div');
-            card.className = 'dp-tv-card' + (ws.id === currentId ? ' dp-tv-card--active' : '');
-            // 縮略圖（DOM clone）
-            const preview = document.createElement('div');
-            preview.className = 'dp-tv-preview';
-            this._buildPreview(preview, ws.container);
-            card.appendChild(preview);
-            // 工作區名稱
-            const lbl = document.createElement('div');
-            lbl.className = 'dp-tv-label';
-            lbl.textContent = ws.label;
-            card.appendChild(lbl);
-            // 刪除按鈕（需 allowDelete，且 > 1 個工作區才顯示）
-            if (this._opts.allowDelete && workspaces.length > 1) {
-                const del = document.createElement('button');
-                del.className = 'dp-tv-delete';
-                del.textContent = '✕';
-                del.title = '刪除此桌面';
-                del.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this._wsMgr.removeWorkspace(ws.id);
-                    this._render();
+        // Sentinel：撐開 scrollHeight 讓 overflow:auto 能捲動到最遠的 icon
+        this._iconSentinel = document.createElement('div');
+        this._iconSentinel.style.cssText = 'position:absolute;width:1px;height:1px;pointer-events:none;';
+        this._iconAreaEl.appendChild(this._iconSentinel);
+        // Dock
+        this._dock = new Dock(config.dock ?? {});
+        this._desktopEl.appendChild(this._dock.getElement());
+        // 根據 Dock 位置調整 icon 區域邊距；視窗區域故意全尺寸，讓視窗可滑入 Dock 下方
+        const dockPos = config.dock?.position ?? 'bottom';
+        const inset = dockInset(dockPos, DOCK_SIZE);
+        this._applyInset(inset);
+        // 點擊桌面空白處取消圖示選取
+        this._desktopEl.addEventListener('mousedown', (e) => {
+            if (e.target === this._desktopEl || e.target === this._iconAreaEl) {
+                this._iconAreaEl.querySelectorAll('.dp-icon-selected').forEach(el => {
+                    el.classList.remove('dp-icon-selected');
                 });
-                card.appendChild(del);
             }
-            card.addEventListener('click', () => {
-                this._wsMgr.switchTo(ws.id);
-                this.close();
-            });
-            this._panelEl.appendChild(card);
         });
-        // 新增桌面按鈕
-        if (this._opts.allowAdd) {
-            const addWrap = document.createElement('div');
-            addWrap.className = 'dp-tv-add-wrap';
-            addWrap.title = '新增虛擬桌面';
-            const addBox = document.createElement('div');
-            addBox.className = 'dp-tv-add';
-            addBox.textContent = '+';
-            const addLbl = document.createElement('div');
-            addLbl.className = 'dp-tv-add-label';
-            addLbl.textContent = '新增桌面';
-            addWrap.append(addBox, addLbl);
-            addWrap.addEventListener('click', () => {
-                const config = this._opts.onCreateWorkspace
-                    ? this._opts.onCreateWorkspace()
-                    : this._defaultWorkspaceConfig();
-                this._wsMgr.addWorkspace(config);
-                this._wsMgr.switchTo(config.id);
-                this.close();
-            });
-            this._panelEl.appendChild(addWrap);
-        }
+        this._container.appendChild(this._desktopEl);
+        // 掛載初始圖示。icons 保留相容性；itemsSource 是新的 Wijmo-style API。
+        this.setItemsSource(config.itemsSource ?? config.icons ?? [], { emit: false, source: 'init' });
+        this.events.emit('desktop:ready', {
+            source: 'desktop',
+            reason: 'ready',
+            items: this.getItems(),
+        });
     }
-    /** 預設新增桌面設定：ws-N / 桌面 N */
-    _defaultWorkspaceConfig() {
-        this._wsCounter++;
-        return { id: `ws-${this._wsCounter}`, label: `桌面 ${this._wsCounter}` };
-    }
-    /** DOM clone + CSS scale 縮略圖 */
-    _buildPreview(preview, container) {
-        const vw = container.offsetWidth || window.innerWidth;
-        const vh = container.offsetHeight || window.innerHeight;
-        const pw = 210;
-        const ph = 132;
-        const scale = Math.min(pw / vw, ph / vh);
-        const wrapper = document.createElement('div');
-        wrapper.style.cssText =
-            `position:absolute;top:0;left:0;width:${vw}px;height:${vh}px;` +
-                `transform:scale(${scale});transform-origin:top left;` +
-                `pointer-events:none;overflow:hidden;`;
-        const clone = container.cloneNode(true);
-        clone.hidden = false;
-        clone.inert = false;
-        clone.removeAttribute('hidden');
-        clone.removeAttribute('inert');
-        clone.removeAttribute('aria-hidden');
-        clone.classList.remove('dp-workspace--enter-right', 'dp-workspace--enter-left', 'dp-workspace--leave-left', 'dp-workspace--leave-right');
-        clone.classList.add('dp-workspace--active');
-        clone.style.cssText =
-            'position:absolute;inset:0;width:100%;height:100%;' +
-                'transform:translateX(0);visibility:visible;transition:none;pointer-events:none;';
-        wrapper.appendChild(clone);
-        preview.appendChild(wrapper);
-    }
-}
-
-// ============================================================
-// DeskPane — SessionManager
-// 視窗狀態序列化 / 還原工具
-// 支援：
-//   • 單一 WindowManager 模式
-//   • 多工作區 WorkspaceManager 模式
-// ============================================================
-class SessionManager {
-    // ── Serialize ──────────────────────────────────────────────
+    // ── localStorage 位置記憶 ────────────────────────────────
     /**
-     * 序列化單一 WindowManager 的視窗狀態，回傳 JSON 字串。
-     * 僅保留可序列化的幾何與元資料；content 不保存。
-     * 若視窗的 props.appId 不存在，該視窗會被略過（無法還原）。
+     * 更新 icon 區域的 inset（避免 icon 被 Dock 遮住）。
+     * 視窗區域維持全尺寸（0,0,0,0），讓視窗可自由滑入 Dock 下方，
+     * 透過 CSS 變數 --dp-dock-inset-* 控制最大化時的邊界。
      */
-    static serializeWindows(wm) {
-        const snapshot = {
-            version: 1,
-            currentWorkspaceId: null,
-            windows: SessionManager._snapshotWindows(wm),
-        };
-        return JSON.stringify(snapshot);
+    _applyInset(inset) {
+        // icon 區域：跟著 dock 縮排
+        this._iconAreaEl.style.top = `${inset.top}px`;
+        this._iconAreaEl.style.bottom = `${inset.bottom}px`;
+        this._iconAreaEl.style.left = `${inset.left}px`;
+        this._iconAreaEl.style.right = `${inset.right}px`;
+        // 視窗區域：永遠全尺寸，讓 backdrop-filter 能穿透看到視窗
+        this._windowAreaEl.style.top = '0';
+        this._windowAreaEl.style.bottom = '0';
+        this._windowAreaEl.style.left = '0';
+        this._windowAreaEl.style.right = '0';
+        // 告知 CSS 目前 Dock 的 inset，供最大化視窗使用
+        const s = this._desktopEl.style;
+        s.setProperty('--dp-dock-inset-top', `${inset.top}px`);
+        s.setProperty('--dp-dock-inset-bottom', `${inset.bottom}px`);
+        s.setProperty('--dp-dock-inset-left', `${inset.left}px`);
+        s.setProperty('--dp-dock-inset-right', `${inset.right}px`);
     }
-    /**
-     * 序列化 WorkspaceManager（含所有工作區與各自的視窗），回傳 JSON 字串。
-     */
-    static serializeWorkspaces(wsm) {
-        const workspaces = wsm.workspaces.map(ws => ({
-            id: ws.id,
-            label: ws.label,
-            icon: ws.icon,
-            windows: SessionManager._snapshotWindows(wsm.getWindowManager(ws.id)),
-        }));
-        const snapshot = {
-            version: 1,
-            currentWorkspaceId: wsm.current?.id ?? null,
-            workspaces,
-        };
-        return JSON.stringify(snapshot);
-    }
-    // ── Restore ────────────────────────────────────────────────
-    /**
-     * 從 JSON 字串還原視窗到指定 WindowManager。
-     * content 透過 registry[appId](props) 重建。
-     * 無法在 registry 找到對應 appId 的視窗會被略過（跳過並 console.warn）。
-     */
-    static restoreWindows(json, registry, wm) {
-        const snapshot = SessionManager._parse(json);
-        if (!snapshot.windows) {
-            console.warn('[SessionManager] restoreWindows: snapshot has no windows array');
-            return;
-        }
-        SessionManager._restoreWindowList(snapshot.windows, registry, wm);
-    }
-    /**
-     * 從 JSON 字串還原多工作區狀態到 WorkspaceManager。
-     * 每個工作區若已存在則直接使用，若不存在則新建。
-     * 所有工作區還原完畢後，切換到快照記錄的活躍工作區。
-     */
-    static restoreWorkspaces(json, registry, wsm) {
-        const snapshot = SessionManager._parse(json);
-        if (!snapshot.workspaces) {
-            console.warn('[SessionManager] restoreWorkspaces: snapshot has no workspaces array');
-            return;
-        }
-        for (const wsSnap of snapshot.workspaces) {
-            // Create workspace if not already present
-            const existing = wsm.workspaces.find(w => w.id === wsSnap.id);
-            if (!existing) {
-                wsm.addWorkspace({ id: wsSnap.id, label: wsSnap.label, icon: wsSnap.icon });
-            }
-            const wm = wsm.getWindowManager(wsSnap.id);
-            SessionManager._restoreWindowList(wsSnap.windows, registry, wm);
-        }
-        // Switch to the previously active workspace
-        if (snapshot.currentWorkspaceId) {
-            try {
-                wsm.switchTo(snapshot.currentWorkspaceId);
-            }
-            catch {
-                // workspace might not exist; ignore
-            }
-        }
-    }
-    // ── Private helpers ────────────────────────────────────────
-    static _snapshotWindows(wm) {
-        const states = wm.getAllStates();
-        const snapshots = [];
-        for (const state of states) {
-            const appId = state.props?.appId;
-            if (!appId) {
-                // Can't restore without appId; skip silently
-                continue;
-            }
-            snapshots.push({
-                id: state.id,
-                title: state.title,
-                icon: state.icon,
-                label: state.label,
-                appId,
-                x: state.x,
-                y: state.y,
-                width: state.width,
-                height: state.height,
-                zIndex: state.zIndex,
-                isMinimized: state.isMinimized,
-                isMaximized: state.isMaximized,
-                resizable: state.resizable,
-                props: state.props,
-            });
-        }
-        // Sort by zIndex so open() calls restore correct stacking order
-        return snapshots.sort((a, b) => a.zIndex - b.zIndex);
-    }
-    static _restoreWindowList(windows, registry, wm) {
-        for (const snap of windows) {
-            const factory = registry[snap.appId];
-            if (!factory) {
-                console.warn(`[SessionManager] No factory found for appId: "${snap.appId}" — skipping window "${snap.id}"`);
-                continue;
-            }
-            const content = factory(snap.props);
-            wm.open({
-                id: snap.id,
-                title: snap.title,
-                icon: snap.icon,
-                label: snap.label,
-                content,
-                x: snap.x,
-                y: snap.y,
-                width: snap.width,
-                height: snap.height,
-                resizable: snap.resizable,
-                props: snap.props,
-            });
-            if (snap.isMinimized)
-                wm.minimize(snap.id);
-            if (snap.isMaximized)
-                wm.maximize(snap.id);
-        }
-    }
-    static _parse(json) {
+    _loadPositions() {
         try {
-            const data = JSON.parse(json);
-            if (data.version !== 1) {
-                console.warn(`[SessionManager] Unknown snapshot version: ${data.version}`);
+            const raw = localStorage.getItem(`${this._storageKey}-icon-positions`);
+            return raw ? JSON.parse(raw) : {};
+        }
+        catch {
+            return {};
+        }
+    }
+    _savePositions() {
+        const positions = {};
+        this._icons.forEach((icon, id) => {
+            const el = icon.getElement();
+            positions[id] = {
+                x: parseInt(el.style.left || '0', 10),
+                y: parseInt(el.style.top || '0', 10),
+            };
+        });
+        try {
+            localStorage.setItem(`${this._storageKey}-icon-positions`, JSON.stringify(positions));
+        }
+        catch {
+            // 忽略 localStorage 寫入錯誤
+        }
+        this._updateSentinel();
+    }
+    /** 移動 sentinel 到最遠 icon 的右下角，撐開 scrollHeight/scrollWidth */
+    _updateSentinel() {
+        if (!this._iconSentinel)
+            return;
+        let maxX = 0;
+        let maxY = 0;
+        this._icons.forEach(icon => {
+            const el = icon.getElement();
+            const x = parseInt(el.style.left || '0', 10) + el.offsetWidth;
+            const y = parseInt(el.style.top || '0', 10) + el.offsetHeight;
+            if (x > maxX)
+                maxX = x;
+            if (y > maxY)
+                maxY = y;
+        });
+        this._iconSentinel.style.left = `${maxX}px`;
+        this._iconSentinel.style.top = `${maxY}px`;
+    }
+    // ── Snap helpers ─────────────────────────────────────────
+    _makeSnapFn(draggingId) {
+        return (x, y, w, h) => {
+            // 收集所有其他 icon 的 rect
+            const others = Array.from(this._icons.entries())
+                .filter(([id]) => id !== draggingId)
+                .map(([, icon]) => {
+                const el = icon.getElement();
+                return {
+                    x: parseInt(el.style.left || '0', 10),
+                    y: parseInt(el.style.top || '0', 10),
+                    width: el.offsetWidth,
+                    height: el.offsetHeight,
+                };
+            });
+            const containerW = this._iconAreaEl.offsetWidth;
+            const containerH = this._iconAreaEl.offsetHeight;
+            const result = snapPosition({ x, y, width: w, height: h }, { width: containerW, height: containerH }, others, this._iconSnapThreshold);
+            // 更新 guide 線
+            const guideV = this._guideV;
+            const guideH = this._guideH;
+            const vGuide = result.guides.find(g => g.axis === 'v');
+            const hGuide = result.guides.find(g => g.axis === 'h');
+            if (guideV) {
+                guideV.style.display = vGuide ? 'block' : 'none';
+                if (vGuide)
+                    guideV.style.left = `${vGuide.pos}px`;
             }
-            return data;
+            if (guideH) {
+                guideH.style.display = hGuide ? 'block' : 'none';
+                if (hGuide)
+                    guideH.style.top = `${hGuide.pos}px`;
+            }
+            return { x: result.x, y: result.y };
+        };
+    }
+    _hideSnapGuides() {
+        if (this._guideV)
+            this._guideV.style.display = 'none';
+        if (this._guideH)
+            this._guideH.style.display = 'none';
+    }
+    _emitItemsChanged(reason, source) {
+        this.events.emit('items:changed', {
+            source,
+            reason,
+            items: this.getItems(),
+        });
+    }
+    _emitItemsRefreshed(reason, source) {
+        this.events.emit('items:refreshed', {
+            source,
+            reason,
+            items: this.getItems(),
+        });
+    }
+    _clearIcons() {
+        this._icons.forEach(icon => icon.destroy());
+        this._icons.clear();
+        this._autoIconIndex = 0;
+        this._updateSentinel();
+    }
+    _renderItems(items) {
+        this._clearIcons();
+        items.forEach(item => this._mountIcon(item, false));
+        this._updateSentinel();
+    }
+    _mountIcon(config, emit) {
+        if (this._icons.has(config.id))
+            return null;
+        const savedPositions = this._loadPositions();
+        const saved = savedPositions[config.id];
+        let x = config.x ?? saved?.x;
+        let y = config.y ?? saved?.y;
+        if (x === undefined || y === undefined) {
+            const auto = autoPosition(this._autoIconIndex++);
+            x = x ?? auto.x;
+            y = y ?? auto.y;
         }
-        catch (e) {
-            throw new Error(`[SessionManager] Failed to parse session snapshot: ${e}`);
+        else {
+            this._autoIconIndex++;
         }
+        const item = { ...config, x, y };
+        const snapFn = this._iconSnapEnabled ? this._makeSnapFn(config.id) : null;
+        const icon = new DesktopIcon({
+            ...item,
+            action: () => {
+                const eventItem = this.getItem(config.id) ?? item;
+                this.events.emit('icon:activated', {
+                    id: config.id,
+                    item: eventItem,
+                    items: this.getItems(),
+                });
+                config.action?.();
+            },
+        }, this._iconAreaEl, (id, nextX, nextY) => { this._handleIconMoved(id, nextX, nextY); }, this._dragThreshold, snapFn, snapFn ? () => { this._hideSnapGuides(); } : null, (id) => {
+            const eventItem = this.getItem(id) ?? item;
+            this.events.emit('icon:selected', {
+                id,
+                item: eventItem,
+                items: this.getItems(),
+            });
+        });
+        icon.setPosition(x, y);
+        this._iconAreaEl.appendChild(icon.getElement());
+        this._icons.set(config.id, icon);
+        this._updateSentinel();
+        if (emit) {
+            this.events.emit('icon:added', {
+                id: config.id,
+                item,
+                items: this.getItems(),
+            });
+        }
+        return item;
+    }
+    _removeIconElement(id, emit) {
+        const icon = this._icons.get(id);
+        if (!icon)
+            return undefined;
+        const item = this.getItem(id) ?? icon.getConfig();
+        icon.destroy();
+        this._icons.delete(id);
+        this._updateSentinel();
+        if (emit) {
+            this.events.emit('icon:removed', {
+                id,
+                item,
+                items: this.getItems(),
+            });
+        }
+        return item;
+    }
+    _handleIconMoved(id, x, y) {
+        this._savePositions();
+        this._itemsView?.update(id, { x, y }, {
+            source: 'desktop',
+            emit: false,
+        });
+        const item = this.getItem(id);
+        if (!item)
+            return;
+        this.events.emit('icon:moved', {
+            id,
+            x,
+            y,
+            item,
+            items: this.getItems(),
+        });
+        this._emitItemsChanged('icon:moved', 'desktop');
+    }
+    // ── Public API ────────────────────────────────────────────
+    setItemsSource(source, options = {}) {
+        this._itemsViewOff?.();
+        this._itemsViewOff = null;
+        this._itemsView = source instanceof DesktopCollectionView
+            ? source
+            : new DesktopCollectionView(source);
+        this._itemsViewOff = this._itemsView.collectionChanged.on('change', (change) => {
+            if (change.source === 'desktop')
+                return;
+            this._renderItems(this._itemsView?.items ?? []);
+            this._emitItemsRefreshed(change.action, change.source || 'itemsSource');
+            this._emitItemsChanged(change.action, change.source || 'itemsSource');
+        });
+        this._renderItems(this._itemsView.items);
+        if (options.emit !== false) {
+            this._emitItemsRefreshed('reset', options.source ?? 'api');
+            this._emitItemsChanged('reset', options.source ?? 'api');
+        }
+    }
+    getCollectionView() {
+        return this._itemsView;
+    }
+    getItems() {
+        const sourceItems = this._itemsView?.items ?? [];
+        return sourceItems.map(item => {
+            const icon = this._icons.get(item.id);
+            if (!icon)
+                return { ...item };
+            const el = icon.getElement();
+            return {
+                ...item,
+                x: parseInt(el.style.left || `${item.x ?? 0}`, 10),
+                y: parseInt(el.style.top || `${item.y ?? 0}`, 10),
+            };
+        });
+    }
+    getItem(id) {
+        return this.getItems().find(item => item.id === id);
+    }
+    setItems(items) {
+        if (!this._itemsView) {
+            this.setItemsSource(items, { source: 'api' });
+            return;
+        }
+        this._itemsView.setSourceCollection(items, { source: 'desktop', emit: false });
+        this._renderItems(this._itemsView.items);
+        this._emitItemsRefreshed('reset', 'api');
+        this._emitItemsChanged('reset', 'api');
+    }
+    refreshItems() {
+        this._itemsView?.refresh({ source: 'desktop', emit: false });
+        this._renderItems(this._itemsView?.items ?? []);
+        this._emitItemsRefreshed('refresh', 'api');
+    }
+    refresh() {
+        this.refreshItems();
+    }
+    updateItem(id, patch) {
+        const item = this._itemsView?.update(id, patch, { source: 'desktop', emit: false });
+        if (!item)
+            return undefined;
+        this._renderItems(this._itemsView?.items ?? []);
+        this._emitItemsChanged('icon:update', 'api');
+        return { ...item };
+    }
+    /**
+     * 新增桌面圖示。
+     * 位置優先順序：config.x/y > localStorage 記憶 > 自動排列
+     */
+    addIcon(config) {
+        if (!this._itemsView)
+            this.setItemsSource([], { emit: false });
+        if (this._itemsView?.getItem(config.id))
+            return;
+        const item = this._mountIcon(config, true);
+        if (!item)
+            return;
+        this._itemsView?.add(item, { source: 'desktop' });
+        this._emitItemsChanged('icon:add', 'desktop');
+    }
+    /** 移除桌面圖示 */
+    removeIcon(id) {
+        const removed = this._removeIconElement(id, true);
+        if (!removed)
+            return;
+        this._itemsView?.remove(id, { source: 'desktop' });
+        this._emitItemsChanged('icon:remove', 'desktop');
+    }
+    /** 取得 Dock 實例，可動態增減 Dock 項目 */
+    getDock() {
+        return this._dock;
+    }
+    /**
+     * 動態變更 Dock 停靠位置（top | bottom | left | right）。
+     * 同時更新 icon 區域 inset，使 icon 不被 Dock 遮住。
+     */
+    setDockPosition(position) {
+        this._dock.setPosition(position);
+        this._applyInset(dockInset(position, DOCK_SIZE));
+        this.events.emit('dock:position-changed', { position });
+    }
+    /**
+     * 將 Dock 與 WindowManager 視窗生命週期同步。
+     * - 開窗：新增 Dock item
+     * - 關窗：移除 Dock item
+     * - 點擊 Dock item：預設 focus 視窗（可覆寫）
+     */
+    syncDockWithWindows(manager, options = {}) {
+        this.unsyncDockWithWindows();
+        const getAppIdFromWindowId = options.getAppIdFromWindowId ?? ((windowId) => {
+            if (windowId.startsWith('app-'))
+                return windowId.slice(4);
+            return windowId;
+        });
+        const getDockItem = options.getDockItem ?? ((appId, event) => ({
+            label: event.label ?? event.title ?? appId,
+            icon: event.icon ?? '🪟',
+        }));
+        const onDockItemClick = options.onDockItemClick;
+        const dockItemIdPrefix = options.dockItemIdPrefix ?? 'running-';
+        const dedupeByAppId = options.dedupeByAppId ?? true;
+        const syncExisting = options.syncExisting ?? true;
+        const runningDockIds = new Set();
+        const dockIdToWindowId = new Map();
+        let activeDockId = null;
+        const enablePreview = options.showWindowPreview !== false;
+        const previewCardW = options.previewSize?.width ?? PREVIEW_CARD_W;
+        const previewCardH = options.previewSize?.height ?? PREVIEW_CARD_H;
+        const previewMountEl = options.previewMountEl; // undefined = 自動偵測 .v-application
+        let previewEl = null;
+        let previewShowTimer;
+        let previewHideTimer;
+        const hoverCleanups = [];
+        const hideGroupPreview = () => {
+            clearTimeout(previewShowTimer);
+            clearTimeout(previewHideTimer);
+            previewEl?.remove();
+            previewEl = null;
+        };
+        const scheduleHide = () => {
+            clearTimeout(previewHideTimer);
+            previewHideTimer = setTimeout(hideGroupPreview, 120);
+        };
+        const showGroupPreview = (anchorEl, parentWindowId) => {
+            clearTimeout(previewShowTimer);
+            clearTimeout(previewHideTimer);
+            previewShowTimer = setTimeout(() => {
+                hideGroupPreview();
+                // 收集父視窗 + 所有子視窗
+                const childIds = manager.getChildIds?.(parentWindowId) ?? [];
+                const windowIds = [parentWindowId, ...childIds];
+                const onCardClick = (winId) => {
+                    manager.focus?.(winId);
+                    hideGroupPreview();
+                };
+                const onCardClose = (winId) => {
+                    // 若要關閉的視窗有 modal 子視窗，阻止並提示
+                    if (manager.getChildIds) {
+                        const children = manager.getChildIds(winId);
+                        const modalChildId = children.find(cid => {
+                            const cs = manager.getState?.(cid);
+                            return cs?.modal === true;
+                        });
+                        if (modalChildId) {
+                            // 搖晃 modal 子視窗本體
+                            manager.shake?.(modalChildId);
+                            // 搖晃群組預覽中對應的卡片
+                            const card = previewEl?.querySelector(`[data-window-id="${modalChildId}"]`);
+                            if (card) {
+                                card.classList.add('dp-group-card--shake');
+                                setTimeout(() => card.classList.remove('dp-group-card--shake'), 400);
+                            }
+                            return;
+                        }
+                    }
+                    manager.close?.(winId);
+                    // 移除已關閉的卡片
+                    const card = previewEl?.querySelector(`[data-window-id="${winId}"]`);
+                    card?.remove();
+                    // 無卡片則關閉 popup
+                    if (previewEl && previewEl.querySelectorAll('.dp-dock-group-card').length === 0) {
+                        hideGroupPreview();
+                    }
+                };
+                previewEl = buildGroupPreview({
+                    anchorEl,
+                    dockPos: this._dock.getPosition(),
+                    windowIds,
+                    getWindowEl: (id) => manager.getWindowElement?.(id),
+                    getWinState: (id) => manager.getState?.(id),
+                    cardW: previewCardW,
+                    cardH: previewCardH,
+                    onCardClick,
+                    onCardClose,
+                    mountEl: previewMountEl,
+                });
+                // Sticky hover：滑鼠移入 popup 時取消隱藏計時器
+                previewEl.addEventListener('mouseenter', () => clearTimeout(previewHideTimer));
+                previewEl.addEventListener('mouseleave', scheduleHide);
+                // 掛載到 _mountEl（.v-application 或 document.body），確保 CSS scope 繼承
+                const mount = previewEl._mountEl ?? document.body;
+                mount.appendChild(previewEl);
+                requestAnimationFrame(() => previewEl?.classList.add('dp-dock-group-preview--visible'));
+            }, 280);
+        };
+        const attachGroupHover = (dockId, windowId) => {
+            if (!enablePreview)
+                return;
+            const itemEl = this._dock.getItemElement(dockId);
+            if (!itemEl)
+                return;
+            const enter = () => showGroupPreview(itemEl, windowId);
+            const leave = () => scheduleHide();
+            itemEl.addEventListener('mouseenter', enter);
+            itemEl.addEventListener('mouseleave', leave);
+            hoverCleanups.push(() => {
+                itemEl.removeEventListener('mouseenter', enter);
+                itemEl.removeEventListener('mouseleave', leave);
+            });
+        };
+        /** Dock._render() 每次都重建 DOM，必須重綁所有 hover 事件 */
+        const refreshAllPreviewHovers = () => {
+            hoverCleanups.forEach(fn => fn());
+            hoverCleanups.length = 0;
+            runningDockIds.forEach(id => {
+                const wid = dockIdToWindowId.get(id);
+                if (wid)
+                    attachGroupHover(id, wid);
+            });
+        };
+        const toDockId = (appId, windowId) => {
+            const key = dedupeByAppId ? appId : windowId;
+            return `${dockItemIdPrefix}${key}`;
+        };
+        const addDockItemForWindow = (event) => {
+            if (!event?.id)
+                return;
+            // 子視窗（有 parentId）不在 Dock 獨立顯示
+            if (event.parentId)
+                return;
+            const appId = getAppIdFromWindowId(event.id);
+            if (!appId)
+                return;
+            const dockId = toDockId(appId, event.id);
+            dockIdToWindowId.set(dockId, event.id);
+            if (runningDockIds.has(dockId))
+                return;
+            const item = getDockItem(appId, event);
+            if (!item)
+                return;
+            runningDockIds.add(dockId);
+            this._dock.addItem({
+                id: dockId,
+                label: item.label,
+                icon: item.icon,
+                action: () => {
+                    const liveWindowId = dockIdToWindowId.get(dockId) ?? event.id;
+                    if (onDockItemClick) {
+                        onDockItemClick(appId, liveWindowId);
+                        return;
+                    }
+                    // 首先 focus 父視窗
+                    manager.focus?.(liveWindowId);
+                    // 同時确保所有子視窗也 restore + 置頂
+                    if (manager.getChildIds) {
+                        const childIds = manager.getChildIds(liveWindowId);
+                        childIds.forEach(childId => {
+                            manager.focus?.(childId);
+                        });
+                        // 最後再肁焦父視窗（讓子視窗繼續高於父）
+                        if (childIds.length > 0) {
+                            manager.focus?.(liveWindowId);
+                        }
+                    }
+                },
+            });
+            // 新視窗開啟後即為 active（WindowManager 不另外 emit window:focused）
+            activeDockId = dockId;
+            this._dock.setActiveItem(dockId);
+            // hover 重綁由 onRender 統一處理（addItem 會觸發 _render → onRender）
+        };
+        const removeDockItemForWindow = (event) => {
+            if (!event?.id)
+                return;
+            const appId = getAppIdFromWindowId(event.id);
+            if (!appId)
+                return;
+            const dockId = toDockId(appId, event.id);
+            dockIdToWindowId.delete(dockId);
+            if (!runningDockIds.has(dockId))
+                return;
+            runningDockIds.delete(dockId);
+            this._dock.removeItem(dockId);
+            // 若關閉的視窗正好是 active，清除高亮
+            if (activeDockId === dockId) {
+                activeDockId = null;
+                this._dock.setActiveItem(null);
+            }
+        };
+        const setFocused = (event) => {
+            if (!event?.id)
+                return;
+            const appId = getAppIdFromWindowId(event.id);
+            if (!appId)
+                return;
+            const dockId = toDockId(appId, event.id);
+            activeDockId = runningDockIds.has(dockId) ? dockId : null;
+            this._dock.setActiveItem(activeDockId);
+        };
+        const offOpened = manager.events.on('window:opened', addDockItemForWindow);
+        const offClosed = manager.events.on('window:closed', removeDockItemForWindow);
+        const offFocused = manager.events.on('window:focused', setFocused);
+        // 拖曳排序後 Dock 重建 DOM，需重綁所有 hover
+        const offRender = enablePreview ? this._dock.onRender(refreshAllPreviewHovers) : () => { };
+        if (syncExisting && manager.getWindowIds) {
+            manager.getWindowIds().forEach((id) => {
+                const state = manager.getState?.(id);
+                addDockItemForWindow({
+                    id,
+                    title: state?.title,
+                    label: state?.label,
+                    icon: state?.icon,
+                    parentId: state?.parentId, // 正確過濾已存在的子視窗
+                });
+            });
+        }
+        const cleanup = () => {
+            offOpened();
+            offClosed();
+            offFocused();
+            offRender();
+            hideGroupPreview();
+            hoverCleanups.forEach(fn => fn());
+            hoverCleanups.length = 0;
+            runningDockIds.forEach((dockId) => this._dock.removeItem(dockId));
+            runningDockIds.clear();
+            dockIdToWindowId.clear();
+            activeDockId = null;
+            this._dock.setActiveItem(null);
+            if (this._dockSyncCleanup === cleanup) {
+                this._dockSyncCleanup = null;
+            }
+        };
+        this._dockSyncCleanup = cleanup;
+        return cleanup;
+    }
+    /** 停止 Dock 與 WindowManager 同步，並移除同步產生的 Dock items。 */
+    unsyncDockWithWindows() {
+        this._dockSyncCleanup?.();
+        this._dockSyncCleanup = null;
+    }
+    /** 取得視窗區域元素（排除 Dock，供 WindowManager 使用） */
+    getElement() {
+        return this._windowAreaEl;
+    }
+    /** 取得桌面根元素（含 Dock） */
+    getDesktopElement() {
+        return this._desktopEl;
+    }
+    /** 取得圖示區域元素 */
+    getIconArea() {
+        return this._iconAreaEl;
+    }
+    /** 銷毀桌面，清除所有 DOM */
+    destroy() {
+        this.unsyncDockWithWindows();
+        this._itemsViewOff?.();
+        this._itemsViewOff = null;
+        this._icons.forEach(icon => icon.destroy());
+        this._icons.clear();
+        this._itemsView = null;
+        this._dock.destroy();
+        this._desktopEl.remove();
+        this.events.emit('desktop:destroyed', {
+            source: 'desktop',
+            reason: 'destroy',
+            items: [],
+        });
+        this.events.clearAll();
     }
 }
 
-export { SessionManager, TaskView, WorkspaceManager, getTaskViewCSS, getWorkspaceCSS };
-//# sourceMappingURL=deskpane-workspace.es.js.map
+// ============================================================
+// DeskPane — Vue 3 Declarative Components
+// ============================================================
+const DesktopContextKey = Symbol('DeskPaneVueDesktop');
+const WindowManagerContextKey = Symbol('DeskPaneVueWindowManager');
+function makeDesktopIconConfig(props, action) {
+    return {
+        id: props.id,
+        label: props.label,
+        icon: props.icon,
+        x: props.x,
+        y: props.y,
+        dragThreshold: props.dragThreshold,
+        action,
+    };
+}
+const DpDesktop = defineComponent({
+    name: 'DpDesktop',
+    props: {
+        items: { type: Array, default: undefined },
+        itemsSource: { type: [Array, Object], default: undefined },
+        dock: { type: Object, default: undefined },
+        background: { type: String, default: undefined },
+        storageKey: { type: String, default: undefined },
+        dragThreshold: { type: Number, default: undefined },
+        iconSnap: { type: Boolean, default: undefined },
+        iconSnapThreshold: { type: Number, default: undefined },
+        injectStyles: { type: Boolean, default: undefined },
+        autoRefresh: { type: Boolean, default: true },
+    },
+    emits: [
+        'initialized',
+        'ready',
+        'update:items',
+        'itemsChanged',
+        'itemsRefreshed',
+        'iconAdded',
+        'iconRemoved',
+        'iconMoved',
+        'iconActivated',
+        'iconSelected',
+    ],
+    setup(props, { emit, slots, attrs }) {
+        const hostEl = ref(null);
+        const pendingIcons = new Map();
+        const eventCleanups = [];
+        let desktop = null;
+        const resolveSource = () => {
+            return props.itemsSource ?? props.items ?? [];
+        };
+        const bindEvents = (instance) => {
+            eventCleanups.push(instance.events.on('items:changed', (event) => {
+                emit('update:items', event.items);
+                emit('itemsChanged', event);
+            }), instance.events.on('items:refreshed', (event) => {
+                emit('itemsRefreshed', event);
+            }), instance.events.on('icon:added', event => emit('iconAdded', event)), instance.events.on('icon:removed', event => emit('iconRemoved', event)), instance.events.on('icon:moved', event => emit('iconMoved', event)), instance.events.on('icon:activated', event => emit('iconActivated', event)), instance.events.on('icon:selected', event => emit('iconSelected', event)));
+        };
+        const ctx = {
+            registerIcon(config) {
+                pendingIcons.set(config.id, config);
+                desktop?.addIcon(config);
+            },
+            updateIcon(id, config) {
+                pendingIcons.set(id, config);
+                desktop?.updateItem(id, config);
+            },
+            unregisterIcon(id) {
+                pendingIcons.delete(id);
+                desktop?.removeIcon(id);
+            },
+            getDesktop() {
+                return desktop;
+            },
+        };
+        provide(DesktopContextKey, ctx);
+        onMounted(() => {
+            if (!hostEl.value)
+                return;
+            desktop = new Desktop({
+                container: hostEl.value,
+                itemsSource: resolveSource(),
+                dock: props.dock,
+                background: props.background,
+                storageKey: props.storageKey,
+                dragThreshold: props.dragThreshold,
+                iconSnap: props.iconSnap,
+                iconSnapThreshold: props.iconSnapThreshold,
+                injectStyles: props.injectStyles,
+            });
+            bindEvents(desktop);
+            pendingIcons.forEach(icon => desktop?.addIcon(icon));
+            emit('initialized', desktop);
+            emit('ready', desktop);
+        });
+        watch(() => props.items, (items) => {
+            if (!desktop || !props.autoRefresh || props.itemsSource || !items)
+                return;
+            desktop.setItems(items);
+        }, { deep: true });
+        watch(() => props.itemsSource, (source) => {
+            if (!desktop || !props.autoRefresh || !source)
+                return;
+            desktop.setItemsSource(source);
+        }, { deep: true });
+        onBeforeUnmount(() => {
+            eventCleanups.splice(0).forEach(fn => fn());
+            desktop?.destroy();
+            desktop = null;
+            pendingIcons.clear();
+        });
+        return () => h('div', {
+            ...attrs,
+            ref: hostEl,
+            class: ['dp-vue-desktop-host', attrs.class],
+        }, slots.default?.());
+    },
+});
+const DpDesktopIcon = defineComponent({
+    name: 'DpDesktopIcon',
+    props: {
+        id: { type: String, required: true },
+        label: { type: String, required: true },
+        icon: { type: String, required: true },
+        x: { type: Number, default: undefined },
+        y: { type: Number, default: undefined },
+        dragThreshold: { type: Number, default: undefined },
+    },
+    emits: ['activate'],
+    setup(props, { emit }) {
+        const desktop = inject(DesktopContextKey, null);
+        const config = () => makeDesktopIconConfig(props, () => {
+            emit('activate', {
+                id: props.id,
+                label: props.label,
+                icon: props.icon,
+                x: props.x,
+                y: props.y,
+            });
+        });
+        onMounted(() => desktop?.registerIcon(config()));
+        watch(() => ({ ...props }), () => desktop?.updateIcon(props.id, config()), { deep: true });
+        onBeforeUnmount(() => desktop?.unregisterIcon(props.id));
+        return () => null;
+    },
+});
+const DpWindowManager = defineComponent({
+    name: 'DpWindowManager',
+    props: {
+        isolated: { type: Boolean, default: true },
+        throttleMs: { type: Number, default: undefined },
+        snap: { type: Boolean, default: undefined },
+        snapThreshold: { type: Number, default: undefined },
+        snapGap: { type: Number, default: undefined },
+        injectStyles: { type: Boolean, default: undefined },
+    },
+    emits: ['initialized', 'ready'],
+    setup(props, { emit, slots, attrs }) {
+        const hostEl = ref(null);
+        const renderEntries = shallowRef([]);
+        const registrations = new Map();
+        const eventCleanups = [];
+        let wm = null;
+        const removeEntry = (id) => {
+            renderEntries.value = renderEntries.value.filter(entry => entry.id !== id);
+        };
+        const openRegistration = (reg) => {
+            if (!wm || !reg.isOpen())
+                return;
+            const existing = wm.getState(reg.id);
+            if (existing) {
+                wm.setTitle(reg.id, reg.getConfig().title);
+                return;
+            }
+            const state = wm.open(reg.getConfig());
+            const bodyEl = wm.getBodyElement(reg.id);
+            if (bodyEl) {
+                removeEntry(reg.id);
+                renderEntries.value = [
+                    ...renderEntries.value,
+                    { id: reg.id, bodyEl, slots: reg.slots },
+                ];
+                reg.onInitialized(state, bodyEl, wm);
+            }
+            reg.onOpened(state);
+        };
+        const ctx = {
+            registerWindow(reg) {
+                registrations.set(reg.id, reg);
+                openRegistration(reg);
+            },
+            updateWindow(reg) {
+                registrations.set(reg.id, reg);
+                if (!wm)
+                    return;
+                const state = wm.getState(reg.id);
+                if (state) {
+                    wm.setTitle(reg.id, reg.getConfig().title);
+                }
+                else {
+                    openRegistration(reg);
+                }
+            },
+            unregisterWindow(id) {
+                registrations.delete(id);
+                removeEntry(id);
+                wm?.close(id);
+            },
+            closeWindow(id) {
+                wm?.close(id);
+            },
+            getWindowManager() {
+                return wm;
+            },
+        };
+        provide(WindowManagerContextKey, ctx);
+        onMounted(() => {
+            if (!hostEl.value)
+                return;
+            const options = {
+                container: hostEl.value,
+                isolated: props.isolated,
+                throttleMs: props.throttleMs,
+                snap: props.snap,
+                snapThreshold: props.snapThreshold,
+                snapGap: props.snapGap,
+                injectStyles: props.injectStyles,
+            };
+            wm = new WindowManager(options);
+            eventCleanups.push(wm.events.on('window:closed', (payload) => {
+                removeEntry(payload.id);
+                registrations.get(payload.id)?.onClosed(payload);
+            }), wm.events.on('window:focused', state => registrations.get(state.id)?.onFocused(state)), wm.events.on('window:minimized', state => registrations.get(state.id)?.onMinimized(state)), wm.events.on('window:maximized', state => registrations.get(state.id)?.onMaximized(state)), wm.events.on('window:restored', state => registrations.get(state.id)?.onRestored(state)));
+            registrations.forEach(openRegistration);
+            emit('initialized', wm);
+            emit('ready', wm);
+        });
+        onBeforeUnmount(() => {
+            eventCleanups.splice(0).forEach(fn => fn());
+            wm?.destroy();
+            wm = null;
+            registrations.clear();
+            renderEntries.value = [];
+        });
+        return () => h('div', {
+            ...attrs,
+            ref: hostEl,
+            class: ['dp-vue-window-manager-host', attrs.class],
+        }, [
+            slots.default?.(),
+            ...renderEntries.value.map(entry => h(Teleport, { to: entry.bodyEl }, entry.slots.default?.())),
+        ]);
+    },
+});
+const DpWindow = defineComponent({
+    name: 'DpWindow',
+    props: {
+        id: { type: String, required: true },
+        title: { type: String, required: true },
+        icon: { type: String, default: undefined },
+        label: { type: String, default: undefined },
+        x: { type: Number, default: undefined },
+        y: { type: Number, default: undefined },
+        width: { type: Number, default: undefined },
+        height: { type: Number, default: undefined },
+        resizable: { type: Boolean, default: undefined },
+        open: { type: Boolean, default: true },
+    },
+    emits: [
+        'update:open',
+        'initialized',
+        'opened',
+        'closed',
+        'focused',
+        'minimized',
+        'maximized',
+        'restored',
+    ],
+    setup(props, { emit, slots }) {
+        const manager = inject(WindowManagerContextKey, null);
+        const registration = {
+            id: props.id,
+            slots,
+            isOpen: () => props.open,
+            getConfig: () => ({
+                id: props.id,
+                title: props.title,
+                icon: props.icon,
+                label: props.label,
+                x: props.x,
+                y: props.y,
+                width: props.width,
+                height: props.height,
+                resizable: props.resizable,
+                slotType: 'vue',
+                content: null,
+            }),
+            onInitialized: (state, bodyEl, windowManager) => emit('initialized', {
+                state,
+                bodyEl,
+                windowManager,
+            }),
+            onOpened: state => emit('opened', state),
+            onClosed: payload => {
+                emit('update:open', false);
+                emit('closed', payload);
+            },
+            onFocused: state => emit('focused', state),
+            onMinimized: state => emit('minimized', state),
+            onMaximized: state => emit('maximized', state),
+            onRestored: state => emit('restored', state),
+        };
+        onMounted(() => {
+            if (props.open)
+                manager?.registerWindow(registration);
+        });
+        watch(() => props.open, (open) => {
+            if (open)
+                manager?.registerWindow(registration);
+            else
+                manager?.closeWindow(props.id);
+        });
+        watch(() => ({
+            id: props.id,
+            title: props.title,
+            icon: props.icon,
+            label: props.label,
+            x: props.x,
+            y: props.y,
+            width: props.width,
+            height: props.height,
+            resizable: props.resizable,
+        }), () => manager?.updateWindow(registration), { deep: true });
+        onBeforeUnmount(() => manager?.unregisterWindow(props.id));
+        return () => null;
+    },
+});
+
+export { DpDesktop, DpDesktopIcon, DpWindow, DpWindowManager, useWindowManager };
+//# sourceMappingURL=deskpane-vue.es.js.map

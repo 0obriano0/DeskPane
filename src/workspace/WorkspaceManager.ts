@@ -100,6 +100,8 @@ export class WorkspaceManager {
     wsEl.dataset.workspaceId = config.id;
     // Initially off-screen to the right
     wsEl.classList.add('dp-workspace--enter-right');
+    this._setWorkspaceVisible(wsEl, false);
+    this._setWorkspaceInteractive(wsEl, false);
     this._root.appendChild(wsEl);
 
     // Create dedicated WindowManager
@@ -186,6 +188,7 @@ export class WorkspaceManager {
     // Position next workspace off-screen
     nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
     nextEl.classList.add(goingRight ? 'dp-workspace--enter-right' : 'dp-workspace--enter-left');
+    this._setWorkspaceVisible(nextEl, true);
     // Make it visible but off-screen so transition can play
     nextEl.style.visibility = 'visible';
 
@@ -194,13 +197,16 @@ export class WorkspaceManager {
 
     // Slide current out
     if (currentEl) {
+      this._setWorkspaceVisible(currentEl, true);
       currentEl.classList.add(goingRight ? 'dp-workspace--leave-left' : 'dp-workspace--leave-right');
       currentEl.classList.remove('dp-workspace--active');
+      this._setWorkspaceInteractive(currentEl, false);
     }
 
     // Slide next in
     nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
     nextEl.classList.add('dp-workspace--active');
+    this._setWorkspaceInteractive(nextEl, true);
 
     const prevId = this._currentId;
     this._currentId = id;
@@ -211,6 +217,8 @@ export class WorkspaceManager {
       if (currentEl) {
         currentEl.classList.remove('dp-workspace--leave-left', 'dp-workspace--leave-right');
         currentEl.style.visibility = '';
+        this._setWorkspaceInteractive(currentEl, false);
+        this._setWorkspaceVisible(currentEl, false);
       }
       this.events.emit<{ from: string | null; to: string }>('workspace:switched', {
         from: prevId,
@@ -284,13 +292,30 @@ export class WorkspaceManager {
       if (prev) {
         prev.container.classList.remove('dp-workspace--active');
         prev.container.style.visibility = '';
+        this._setWorkspaceInteractive(prev.container, false);
+        this._setWorkspaceVisible(prev.container, false);
       }
     }
 
     state.container.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
+    this._setWorkspaceVisible(state.container, true);
     state.container.classList.add('dp-workspace--active');
+    this._setWorkspaceInteractive(state.container, true);
     this._currentId = id;
     this._updateIndicator();
+  }
+
+  private _setWorkspaceInteractive(el: HTMLElement, interactive: boolean): void {
+    (el as any).inert = !interactive;
+    if (interactive) {
+      el.removeAttribute('aria-hidden');
+    } else {
+      el.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  private _setWorkspaceVisible(el: HTMLElement, visible: boolean): void {
+    el.hidden = !visible;
   }
 
   /** 更新底部指示點 */
