@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pagesDir = path.join(root, '.pages');
 const siteUrl = 'https://0obriano0.github.io/DeskPane';
+const googleVerificationFile = 'google1691be481f713efe.html';
 
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -95,6 +96,11 @@ writeFileSync(
 ${sitemapUrls.map(url => `  <url><loc>${url}</loc></url>`).join('\n')}
 </urlset>
 `,
+);
+
+writeFileSync(
+  path.join(pagesDir, googleVerificationFile),
+  `google-site-verification: ${googleVerificationFile}\n`,
 );
 
 copyRequired('dist', 'dist');
