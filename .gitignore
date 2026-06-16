@@ -6,6 +6,8 @@ package-lock.json
 # 根目錄 dist/ 保留（Library 交付物），子目錄 dist/ 全部忽略
 demo/**/dist/
 release/
+.pages/
+.pages-stale-*/
 bak/
 docs-internal/
 

@@ -10,7 +10,7 @@ const btn: React.CSSProperties = {
 
 export default function TodoApp() {
   const [todos, setTodos] = useState<Todo[]>([
-    { id: 1, text: '體驗 WebOS React 整合', done: false },
+    { id: 1, text: '體驗 DeskPane React 整合', done: false },
     { id: 2, text: '閱讀 Hook 指南', done: false },
   ])
   const [input, setInput] = useState('')

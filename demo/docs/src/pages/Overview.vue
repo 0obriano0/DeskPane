@@ -103,7 +103,7 @@ npm run build:lib
   {
     name: 'main.ts',
     lang: 'typescript',
-    code: `import { WindowManager } from '@webos/core/WindowManager'
+    code: `import { WindowManager } from '@deskpane/core/WindowManager'
 
 const wm = new WindowManager()
 

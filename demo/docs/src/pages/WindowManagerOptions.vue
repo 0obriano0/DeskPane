@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { WindowManager } from '@webos/core/WindowManager'
+import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -97,7 +97,7 @@ onMounted(() => {
     {
       name: 'basic.ts',
       lang: 'typescript',
-      code: `import { WindowManager } from 'webos-core'
+      code: `import { WindowManager } from 'deskpane'
 
 // ── Minimal (all defaults) ─────────────────────────────
 const wm = new WindowManager()
@@ -138,7 +138,7 @@ wm.restore(id)
 wm.focus(id)
 wm.setTitle(id, title)
 wm.getState(id)        // → WindowState snapshot
-wm.getBodyElement(id)  // → .wos-body HTMLElement
+wm.getBodyElement(id)  // → .dp-body HTMLElement
 wm.getWindowIds()      // → string[]
 wm.destroy()           // remove all windows + cleanup`,
     },

@@ -1,4 +1,4 @@
-﻿# DeskPane
+# DeskPane
 
 **A framework-agnostic web desktop window management framework.**  
 Build floating windows, draggable panels, virtual desktops, and ERP-style layouts directly in the browser — no dependencies, works with Vue, React, or plain JS.
@@ -583,7 +583,9 @@ desktop.events.on('items:changed', event => {
 
 > **Demo** — `demo/desktop/index.html` ships a full virtual desktop experience with Dock, draggable icons, theme switching, snap-gap control, **live Dock position switching** (top/bottom/left/right), a **📐 BorderLayout demo window** (Basic + Nested tabs), and a **child window / modal dialog demo** (System Settings window).
 >
-> **Theme Demo** — `demo/desktop-medieval-pixel/index.html` is a separate desktop demo that loads the Medieval Pixel theme without changing the default Desktop demo.
+> **Theme Demo** — `demo/desktop/index.html` is the main desktop demo, featuring the Medieval Pixel theme, Dock, draggable icons, virtual desktops, and 9-slice panel borders.
+>
+> **GitHub Pages** — run `npm run build:pages` to build the library, Vue demo, React demo, docs, and the static Pages artifact in `.pages/`. Vue/React/docs demos are served from their generated `dist/` folders on Pages.
 
 ---
 

@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { WindowManager } from '@webos/core/WindowManager'
+import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -51,7 +51,7 @@ function openWindow() {
   if (!wm) return
   const div = document.createElement('div')
   div.style.cssText = 'padding:20px;font-size:14px;'
-  div.innerHTML = '<h3 style="margin:0 0 8px">👋 Hello, World!</h3><p>This is a WebOS-Core window.</p>'
+  div.innerHTML = '<h3 style="margin:0 0 8px">👋 Hello, World!</h3><p>This is a DeskPane window.</p>'
   wm.open({ id: 'quick-hello', title: 'Hello Window', content: div, width: 340, height: 180 })
 }
 
@@ -69,7 +69,7 @@ onMounted(() => {
     {
       name: 'main.ts',
       lang: 'typescript',
-      code: `import { WindowManager } from '@webos/core/WindowManager'
+      code: `import { WindowManager } from '@deskpane/core/WindowManager'
 
 // Create the window manager
 // Pass a container element to run in "isolated" mode (confined to that element)
@@ -83,7 +83,7 @@ const content = document.createElement('div')
 content.style.padding = '20px'
 content.innerHTML = \`
   <h3>Hello, World!</h3>
-  <p>This is a WebOS-Core window.</p>
+  <p>This is a DeskPane window.</p>
 \`
 
 // Open a window

@@ -77,9 +77,9 @@ function createWindowDOM(state) {
     root.className = 'dp-window';
     if (state.parentId)
         root.classList.add('dp-child-window');
-    root.dataset.wosId = state.id;
+    root.dataset.dpId = state.id;
     if (state.parentId)
-        root.dataset.wosParentId = state.parentId;
+        root.dataset.dpParentId = state.parentId;
     applyGeometry(root, state);
     root.style.zIndex = String(state.zIndex);
     // ── Header ──
@@ -703,7 +703,7 @@ class BorderLayout {
             // Create outer region el
             const el = document.createElement('div');
             el.className = `dp-layout-region dp-layout-region--${name}`;
-            el.dataset.wosRegion = name;
+            el.dataset.dpRegion = name;
             // Optional region header
             const hasHeader = !!merged.title;
             let headerEl = null;
@@ -726,7 +726,7 @@ class BorderLayout {
                 if (merged.collapsible) {
                     const btn = document.createElement('button');
                     btn.className = 'dp-region-collapse-btn';
-                    btn.dataset.wosCollapseFor = name;
+                    btn.dataset.dpCollapseFor = name;
                     btn.setAttribute('aria-label', `切換 ${name} 面板`);
                     btn.textContent = this._collapseIcon(name, merged.collapsed ?? false);
                     headerEl.appendChild(btn);
@@ -803,7 +803,7 @@ class BorderLayout {
             const isV = name === 'east' || name === 'west';
             const sp = document.createElement('div');
             sp.className = `dp-layout-splitter dp-layout-splitter--${isV ? 'v' : 'h'}`;
-            sp.dataset.wosSplitter = name;
+            sp.dataset.dpSplitter = name;
             this.splitterEls.set(name, sp);
             this.container.appendChild(sp);
         }
@@ -910,7 +910,7 @@ class BorderLayout {
             const btn = e.target.closest('[data-dp-collapse-for]');
             if (!btn)
                 return;
-            this.toggleCollapse(btn.dataset.wosCollapseFor);
+            this.toggleCollapse(btn.dataset.dpCollapseFor);
         };
         this.container.addEventListener('click', onCollapseClick);
         this.cleanups.push(() => this.container.removeEventListener('click', onCollapseClick));
@@ -1623,7 +1623,7 @@ class WindowManager {
         if (this._modalOverlays.has(childId))
             return;
         const overlay = createModalOverlay();
-        overlay.dataset.wosChildId = childId;
+        overlay.dataset.dpChildId = childId;
         // 點擊遮罩 → 對應子視窗抓回前景 + shake
         overlay.addEventListener('mousedown', (e) => {
             e.stopPropagation();

@@ -14,23 +14,24 @@
   ],
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/deskpane.es.js",
-      "require": "./dist/deskpane.umd.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/deskpane.umd.js"
     },
     "./desktop": {
+      "types": "./dist/desktop.d.ts",
       "import": "./dist/deskpane-desktop.es.js",
-      "require": "./dist/deskpane-desktop.umd.js",
-      "types": "./dist/desktop.d.ts"
+      "require": "./dist/deskpane-desktop.umd.js"
     },
     "./workspace": {
+      "types": "./dist/workspace.d.ts",
       "import": "./dist/deskpane-workspace.es.js",
-      "require": "./dist/deskpane-workspace.umd.js",
-      "types": "./dist/workspace.d.ts"
+      "require": "./dist/deskpane-workspace.umd.js"
     },
     "./vue": {
+      "types": "./dist/vue.d.ts",
       "import": "./dist/deskpane-vue.es.js",
-      "types": "./dist/vue.d.ts"
+      "default": "./dist/deskpane-vue.es.js"
     },
     "./styles/*": "./dist/styles/*",
     "./themes/*": "./dist/themes/*"
@@ -46,6 +47,8 @@
   "scripts": {
     "build": "tsc --noEmit",
     "build:lib": "rollup -c rollup.lib.config.mjs && node scripts/build-themes.mjs",
+    "clean:pages": "node scripts/clean-pages-builds.mjs",
+    "build:pages": "npm run build:lib && npm run clean:pages && npm run build --prefix demo/vue && npm run build --prefix demo/react && npm run build --prefix demo/docs && node scripts/prepare-pages.mjs",
     "build:watch": "tsc --noEmit --watch",
     "dev": "npx http-server demo -p 3000 -o",
     "clean": "node scripts/clean.mjs",
@@ -63,7 +66,6 @@
     "vue": "^3.5.38"
   },
   "keywords": [
-    "webos",
     "window-manager",
     "desktop",
     "framework-agnostic"

@@ -42,6 +42,7 @@ function rawCssPlugin(): Plugin {
 }
 
 export default defineConfig({
+  base: './',
   plugins: [rawCssPlugin(), vue()],
   resolve: {
     alias: {
@@ -50,5 +51,5 @@ export default defineConfig({
   },
   cacheDir: path.join(os.tmpdir(), 'vite-deskpane-vue-demo'),
   server: { port: 3001, open: true },
-  build: { outDir: 'dist' },
+  build: { outDir: 'dist', emptyOutDir: false },
 })

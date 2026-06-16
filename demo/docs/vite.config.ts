@@ -1,4 +1,4 @@
-﻿import { defineConfig } from 'vite'
+import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 import os from 'node:os'
@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs'
 // Virtual module prefix — intentionally does NOT end in .css so Vite's CSS
 // pipeline is not triggered on the virtual module.
 const VIRTUAL_PREFIX = '\0deskpane-raw-css:'
+const deskpaneSrcDir = path.normalize(fileURLToPath(new URL('../../src', import.meta.url))).replace(/\\/g, '/')
 
 // Vite plugin: treat CSS files imported from DeskPane src TS files as raw string exports.
 const srcCssRaw = {
@@ -16,7 +17,7 @@ const srcCssRaw = {
   resolveId(id: string, importer?: string) {
     if (!id.endsWith('.css') || id.includes('?')) return
     const importerNorm = (importer ?? '').replace(/\\/g, '/')
-    if (!importerNorm.includes('/WebOS/src/')) return
+    if (!importerNorm.startsWith(deskpaneSrcDir + '/')) return
     // Replace .css suffix with .rawcss so Vite's CSS pipeline doesn't intercept
     const cssAbsPath = path.resolve(path.dirname(importer!), id).replace(/\\/g, '/').replace(/\.css$/, '.rawcss')
     return VIRTUAL_PREFIX + cssAbsPath
@@ -29,6 +30,7 @@ const srcCssRaw = {
 }
 
 export default defineConfig({
+  base: './',
   plugins: [srcCssRaw, vue()],
   resolve: {
     alias: {
@@ -43,5 +45,6 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    emptyOutDir: false,
   },
 })

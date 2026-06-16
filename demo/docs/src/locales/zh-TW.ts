@@ -1,4 +1,4 @@
-﻿export const zhTW: Record<string, string> = {
+export const zhTW: Record<string, string> = {
   // Header
   'header.sub': '開發者文件',
   'header.demos': 'Demos',

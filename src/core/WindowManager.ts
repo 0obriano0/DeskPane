@@ -626,7 +626,7 @@ export class WindowManager {
     if (this._modalOverlays.has(childId)) return;
 
     const overlay = createModalOverlay();
-    overlay.dataset.wosChildId = childId;
+    overlay.dataset.dpChildId = childId;
 
     // 點擊遮罩 → 對應子視窗抓回前景 + shake
     overlay.addEventListener('mousedown', (e) => {

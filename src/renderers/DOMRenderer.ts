@@ -38,8 +38,8 @@ export function createWindowDOM(state: WindowState): WindowElements {
   const root = document.createElement('div');
   root.className = 'dp-window';
   if (state.parentId) root.classList.add('dp-child-window');
-  root.dataset.wosId = state.id;
-  if (state.parentId) root.dataset.wosParentId = state.parentId;
+  root.dataset.dpId = state.id;
+  if (state.parentId) root.dataset.dpParentId = state.parentId;
   applyGeometry(root, state);
   root.style.zIndex = String(state.zIndex);
 

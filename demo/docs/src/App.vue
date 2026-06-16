@@ -5,7 +5,7 @@
     <header class="docs-header">
       <div class="header-logo">
         <span class="header-icon">🖥</span>
-        <span class="header-title">WebOS-Core</span>
+        <span class="header-title">DeskPane</span>
         <span class="header-sub">{{ t('header.sub') }}</span>
       </div>
       <nav class="header-nav">

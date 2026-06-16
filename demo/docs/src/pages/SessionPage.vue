@@ -96,7 +96,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { WorkspaceManager, SessionManager } from '@webos/workspace'
+import { WorkspaceManager, SessionManager } from '@deskpane/workspace'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -154,8 +154,8 @@ onMounted(() => {
     {
       name: 'single-wm.ts',
       lang: 'typescript',
-      code: `import { WindowManager } from '@webos/core/WindowManager'
-import { SessionManager } from '@webos/workspace'
+      code: `import { WindowManager } from '@deskpane/core/WindowManager'
+import { SessionManager } from '@deskpane/workspace'
 
 const wm = new WindowManager({ container: document.getElementById('desktop')! })
 
@@ -194,7 +194,7 @@ if (saved) {
     {
       name: 'multi-workspace.ts',
       lang: 'typescript',
-      code: `import { WorkspaceManager, SessionManager } from '@webos/workspace'
+      code: `import { WorkspaceManager, SessionManager } from '@deskpane/workspace'
 
 const wsMgr = new WorkspaceManager(
   document.getElementById('desktop')!,
@@ -233,9 +233,9 @@ SessionManager.restoreWorkspaces(json, registry, wsMgr)`,
     {
       name: 'localstorage.ts',
       lang: 'typescript',
-      code: `import { WorkspaceManager, SessionManager } from '@webos/workspace'
+      code: `import { WorkspaceManager, SessionManager } from '@deskpane/workspace'
 
-const STORAGE_KEY = 'webos-session'
+const STORAGE_KEY = 'deskpane-session'
 
 function saveSession(wsMgr: WorkspaceManager) {
   const json = SessionManager.serializeWorkspaces(wsMgr)

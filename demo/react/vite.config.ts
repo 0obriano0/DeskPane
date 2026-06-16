@@ -39,6 +39,7 @@ function rawCssPlugin(): Plugin {
 }
 
 export default defineConfig({
+  base: './',
   plugins: [rawCssPlugin(), react()],
   resolve: {
     alias: {
@@ -47,5 +48,5 @@ export default defineConfig({
   },
   cacheDir: path.join(os.tmpdir(), 'vite-deskpane-react-demo'),
   server: { port: 3002, open: true },
-  build: { outDir: 'dist' },
+  build: { outDir: 'dist', emptyOutDir: false },
 })

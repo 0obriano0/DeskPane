@@ -104,7 +104,7 @@ export class BorderLayout {
       // Create outer region el
       const el = document.createElement('div');
       el.className = `dp-layout-region dp-layout-region--${name}`;
-      el.dataset.wosRegion = name;
+      el.dataset.dpRegion = name;
 
       // Optional region header
       const hasHeader = !!merged.title;
@@ -131,7 +131,7 @@ export class BorderLayout {
         if (merged.collapsible) {
           const btn = document.createElement('button');
           btn.className = 'dp-region-collapse-btn';
-          btn.dataset.wosCollapseFor = name;
+          btn.dataset.dpCollapseFor = name;
           btn.setAttribute('aria-label', `切換 ${name} 面板`);
           btn.textContent = this._collapseIcon(name as LayoutRegion, merged.collapsed ?? false);
           headerEl.appendChild(btn);
@@ -208,7 +208,7 @@ export class BorderLayout {
       const isV = name === 'east' || name === 'west';
       const sp = document.createElement('div');
       sp.className = `dp-layout-splitter dp-layout-splitter--${isV ? 'v' : 'h'}`;
-      sp.dataset.wosSplitter = name;
+      sp.dataset.dpSplitter = name;
 
       this.splitterEls.set(name, sp);
       this.container.appendChild(sp);
@@ -332,7 +332,7 @@ export class BorderLayout {
     const onCollapseClick = (e: MouseEvent) => {
       const btn = (e.target as HTMLElement).closest('[data-dp-collapse-for]') as HTMLElement | null;
       if (!btn) return;
-      this.toggleCollapse(btn.dataset.wosCollapseFor as SplitterKey);
+      this.toggleCollapse(btn.dataset.dpCollapseFor as SplitterKey);
     };
     this.container.addEventListener('click', onCollapseClick);
     this.cleanups.push(() => this.container.removeEventListener('click', onCollapseClick));

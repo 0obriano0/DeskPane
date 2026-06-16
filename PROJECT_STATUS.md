@@ -36,7 +36,7 @@
 | Vue 3 Composable | ✅ | `src/adapters/vue/useWindowManager.ts` |
 | **Vue 3 宣告式元件** — `DpDesktop` / `DpDesktopIcon` / `DpWindowManager` / `DpWindow`，支援 `v-model:items` / `v-model:open` | ✅ | `src/adapters/vue/components.ts`, `demo/vue/src/DeclarativeApp.vue` |
 | React 18 Hook | ✅ | `src/adapters/react/useWindowManager.ts` |
-| Demo（vanilla / jQuery / Vue / React / Desktop / Theme Editor / Layout） | ✅ | `demo/` |
+| Demo（vanilla / jQuery / Vue / React / Desktop / Theme Editor / Layout） | ✅ | `demo/`，GitHub Pages artifact 由 `npm run build:pages` 產生 |
 | Theme Editor — Tab 3 完整桌面預覽 + 雙 CSS 即時注入（core + desktop 同時） | ✅ | `demo/theme-editor/index.html` |
 | Dock 毛玻璃效果（`--dp-dock-backdrop-filter`）— `overflow:clip` 修正讓視窗可穿透顯示 | ✅ | `src/styles/deskpane-desktop.css`, `deskpane.css`, `desktop/Desktop.ts` |
 | Docs 開發手冊（Vue3 SPA，i18n EN/zh-TW，17 頁，含 WindowConfig 完整選項表） | ✅ | `demo/docs/` |
@@ -52,7 +52,7 @@
 | **最小化 restore 修正** — 修正 `minimize()` 未清除 `isActive`，導致單一視窗最小化後 `focus()` 提前返回、無法 restore 的 bug | ✅ | `src/core/WindowManager.ts` |
 | **子視窗管理（parentId / modal）** — `WindowConfig.parentId` 指定父視窗，子視窗 z-index 永遠高於父；`modal:true` = 父視窗加半透明遮罩，點遮罩時子視窗 shake 提示；子視窗隨父最小化/restore；關閉父視窗時 cascade 關閉子視窗；子視窗不在 Dock 獨立顯示；新增 `shake(id)` / `getChildIds(id)` / `getRootWindowId(id)` API；新增事件 `window:child-opened` / `window:child-closed` | ✅ | `src/core/types.ts`, `WindowManager.ts`, `DOMRenderer.ts`, `deskpane.css` |
 | **Dock 群組縮略圖預覽（Windows 風格）** — 父視窗 Dock item hover 280ms 後顯示父+所有子視窗縮略圖卡片列；每張卡片有標題 + × 關閉鈕（hover 才顯示）；Sticky hover（滑鼠移入 popup 不消失）；modal 安全：關閉父視窗前若有 modal 子視窗，shake 子視窗本體並搖晃卡片提示；`syncExisting` 補傳 `parentId` 修正子視窗過濾 bug | ✅ | `src/desktop/Desktop.ts`, `src/desktop/types.ts`, `src/styles/deskpane-desktop.css` |
-| **專案改名 WebOS → DeskPane** — package.json name、UMD global、CSS class prefix（`.dp-*`）、CSS vars（`--dp-*`）、dist 檔名全部更新 | ✅ | 85 個檔案更新 |
+| **專案改名 DeskPane → DeskPane** — package.json name、UMD global、CSS class prefix（`.dp-*`）、CSS vars（`--dp-*`）、dist 檔名全部更新 | ✅ | 85 個檔案更新 |
 | **npm 發佈 deskpane@0.1.1** — 整合 GitHub Actions OIDC Trusted Publisher 自動發佈 | ✅ | npmjs.com/package/deskpane |
 | **GitHub Repo 改名** — remote URL 更新為 `https://github.com/0obriano0/DeskPane.git` | ✅ | |
 | **git tag v0.1.0** — 第一個 Release 標籤 | ✅ | |
@@ -138,7 +138,7 @@ DeskPane/
 │   ├── shared/base.css             ← 共用 reset + header 樣式
 │   ├── vanilla/index.html
 │   ├── jquery/index.html
-│   ├── desktop/index.html          ← 完整虛擬桌面體驗
+│   ├── desktop/index.html          ← 中世紀像素風格完整虛擬桌面體驗
 │   ├── theme-editor/index.html     ← 🎨 Theme Editor（Tab1 Core / Tab2 Desktop / Tab3 完整桌面預覽+CSS 即時注入）
 │   ├── layout/index.html
 │   ├── vue/                        ← 獨立 Vite 專案（port 3001）
@@ -394,7 +394,7 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | 36 | `syncExisting` parentId 遺漏 | 原本 `syncExisting` 路徑只傳 `id/title/label/icon`，漏傳 `parentId`，導致初始存在的子視窗未被過濾、會出現在 Dock。修法：讀 `state.parentId` 一併傳入 |
 | 37 | 群組預覽 popup 定位偏移（Vuetify / position:fixed 失效）| `buildGroupPreview` 用 `position:fixed` + `getBoundingClientRect()` viewport 座標，但若外層有 `transform`/`will-change`，`fixed` 會失效變成相對該容器定位。修法：在最後用 `popup.style.cssText +=` inline 覆寫 `position:fixed`，優先權高於 CSS class，不受外層 stacking context 影響 |
 | 38 | 群組預覽縮略圖 CSS scope 失效（Vuetify scoped CSS）| `cloneNode(true)` 後掛到 `document.body`，脫離 `.v-application` selector scope、Vue scoped `data-v-*` 及 Desktop CSS 變數繼承，縮略圖只剩文字。修法：`buildGroupPreview` 自動偵測第一個 `winEl` 最近的 `.v-application` 作為 popup 掛載點；找不到 fallback `document.body`。新增 `DockSyncOptions.previewMountEl` 供使用者手動指定 CSS scope root |
-| 39 | Vite 開發 server 無法使用 rawCss plugin（CSS SyntaxError）| Vite 的 CSS pipeline 在 `load()` hook 前就攔截 `.css` 檔，導致 DeskPane 的 `import CSS from '*.css'` 在 Vite dev 時出現 `does not provide an export named 'default'` 錯誤。修法：在 `vite.config.ts` 加 `rawCssPlugin()`（`enforce:'pre'`），`resolveId()` 將 `WebOS/src/` 底下的 CSS 路徑加上 `?raw-dp` suffix，`load()` 讀檔並 `export default <string>`，完全繞過 Vite CSS pipeline | 
+| 39 | Vite 開發 server 無法使用 rawCss plugin（CSS SyntaxError）| Vite 的 CSS pipeline 在 `load()` hook 前就攔截 `.css` 檔，導致 DeskPane 的 `import CSS from '*.css'` 在 Vite dev 時出現 `does not provide an export named 'default'` 錯誤。修法：在 `vite.config.ts` 加 `rawCssPlugin()`（`enforce:'pre'`），`resolveId()` 將 `DeskPane/src/` 底下的 CSS 路徑加上 `?raw-dp` suffix，`load()` 讀檔並 `export default <string>`，完全繞過 Vite CSS pipeline | 
 | 40 | `deskpane-workspace.css` pointer-events 設計 | `.dp-workspace-root` 和 `.dp-workspace--active` 都必須保留 `pointer-events:none`。空白處事件穿透到下方 icon-area（icon 可點擊）；視窗元素靠自身的 `pointer-events:auto` 接收事件（由 `.dp-desktop-window-area > *` 及 `.dp-isolated .dp-window` 設定）。**切勿**改為 `pointer-events:auto`，否則 workspace root 會遮住 icon-area，圖示無法點擊 |
 | 41 | root `package.json` UTF-8 BOM 導致 PostCSS parse 失敗 | PostCSS config 搜尋器沿目錄向上找 `package.json`，遇到有 BOM（EF BB BF）的 JSON 時 `JSON.parse()` 丟 `SyntaxError: Unexpected token`。修法：用 `[System.Text.UTF8Encoding]::new($false)` 重寫 `package.json` 移除 BOM |
 | 42 | DeskPane runtime CSS 注入策略 | `Desktop` / `WorkspaceManager` / `WindowManager` / `TaskView` 都支援 `injectStyles:false`。runtime inject 會先偵測既有 `<link>` / bundler `<style>`，避免重複注入；若需要注入，插在 app-level stylesheet 前面，讓專案端 override 保持有效。`WorkspaceManager.injectStyles:false` 會傳遞給內部建立的 `WindowManager`，除非 `windowManagerOptions.injectStyles` 明確覆寫 |
@@ -445,13 +445,12 @@ cd demo/docs  && npm install && npm run dev    # port 3002
 | 首頁 | `demo/index.html` | 所有 Demo 入口卡片 |
 | Vanilla JS | `demo/vanilla/index.html` | 純 JS，snap=true |
 | jQuery | `demo/jquery/index.html` | UMD + jQuery CDN，5 個應用 |
-| Desktop | `demo/desktop/index.html` | 完整虛擬桌面（Dock + Icons + WindowManager + BorderLayout 範例視窗） |
-| Medieval Pixel Desktop | `demo/desktop-medieval-pixel/index.html` | 獨立桌面範例，載入 Medieval Pixel 主題，不影響原 Desktop demo |
+| Desktop | `demo/desktop/index.html` | 中世紀像素風格完整虛擬桌面（Dock + Icons + WindowManager + BorderLayout 範例視窗） |
 | Theme Editor | `demo/theme-editor/index.html` | Tab1 Core CSS 變數 / Tab2 Desktop CSS 變數 / Tab3 完整桌面預覽 + 雙 CSS 即時注入（core + desktop）+ Win11 預設樣式 |
 | Layout | `demo/layout/index.html` | BorderLayout 東西南北中 + 巢狀 + Panel |
-| Vue 3 | `demo/vue/` | 全螢幕虛擬桌面風格；Desktop+WorkspaceManager+TaskView；manual CSS import + `injectStyles:false`；workspace-aware Teleport key；5 個 app（GuideApp/EditorApp/TodoApp/CounterApp/CalcApp），port 3001 |
-| React 18 | `demo/react/` | 全螢幕虛擬桌面風格；Desktop+WorkspaceManager+TaskView；manual CSS import + `injectStyles:false`；workspace-aware createPortal key；5 個 app，port 3002 |
-| Docs | `demo/docs/` | 開發手冊 Vue SPA，i18n EN/zh-TW，port 3002 |
+| Vue 3 | `demo/vue/` / Pages: `demo/vue/dist/index.html` | 全螢幕虛擬桌面風格；Desktop+WorkspaceManager+TaskView；manual CSS import + `injectStyles:false`；workspace-aware Teleport key；5 個 app（GuideApp/EditorApp/TodoApp/CounterApp/CalcApp），port 3001 |
+| React 18 | `demo/react/` / Pages: `demo/react/dist/index.html` | 全螢幕虛擬桌面風格；Desktop+WorkspaceManager+TaskView；manual CSS import + `injectStyles:false`；workspace-aware createPortal key；5 個 app，port 3002 |
+| Docs | `demo/docs/` / Pages: `demo/docs/dist/index.html` | 開發手冊 Vue SPA，i18n EN/zh-TW，port 3002 |
 
 ---
 

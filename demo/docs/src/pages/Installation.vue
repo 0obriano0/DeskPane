@@ -22,12 +22,12 @@
       <p v-html="t('install.esm.intro')"></p>
 
       <h3>{{ t('install.esm.h3Step1') }}</h3>
-      <pre class="code-block">cp dist/webos-core.es.js      your-project/lib/  # dev
-cp dist/webos-core.es.min.js  your-project/lib/  # production</pre>
+      <pre class="code-block">cp dist/deskpane.es.js      your-project/lib/  # dev
+cp dist/deskpane.es.min.js  your-project/lib/  # production</pre>
 
       <h3>{{ t('install.esm.h3Step2') }}</h3>
       <pre class="code-block" v-pre>// main.ts  (TypeScript / bundler)
-import { WindowManager } from './lib/webos-core.es.js'
+import { WindowManager } from './lib/deskpane.es.js'
 
 const wm = new WindowManager({ container: document.getElementById('desktop')! })
 
@@ -40,7 +40,7 @@ wm.open({ id: 'w1', title: 'ESM Window', content: el })</pre>
       <h3>{{ t('install.esm.h3Step3') }}</h3>
       <pre class="code-block" v-pre>&lt;!-- index.html --&gt;
 &lt;script type="module"&gt;
-  import { WindowManager } from './dist/webos-core.es.js'
+  import { WindowManager } from './dist/deskpane.es.js'
 
   const wm = new WindowManager({ container: document.body })
   const el = document.createElement('div')
@@ -51,10 +51,10 @@ wm.open({ id: 'w1', title: 'ESM Window', content: el })</pre>
 
       <h3>{{ t('install.esm.h3Step4') }}</h3>
       <pre class="code-block" v-pre>// The Vue adapter is in the source tree; import it through your bundler alias:
-import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
+import { useWindowManager } from '@deskpane/adapters/vue/useWindowManager'
 
 // In a vite project, add to vite.config.ts:
-// resolve: { alias: { '@webos': path.resolve(__dirname, 'path/to/webos-core/src') } }</pre>
+// resolve: { alias: { '@deskpane': path.resolve(__dirname, 'path/to/deskpane/src') } }</pre>
 
       <h3>{{ t('install.esm.h3Types') }}</h3>
       <pre class="code-block">// dist/index.d.ts is generated automatically.
@@ -62,7 +62,7 @@ import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
 {
   "compilerOptions": {
     "paths": {
-      "@webos/core/*": ["./node_modules/webos-core/dist/*"]
+      "@deskpane/core/*": ["./node_modules/deskpane/dist/*"]
     }
   }
 }</pre>
@@ -78,17 +78,17 @@ import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
 &lt;html&gt;
 &lt;head&gt;
   &lt;meta charset="UTF-8"&gt;
-  &lt;title&gt;WebOS-Core UMD Demo&lt;/title&gt;
+  &lt;title&gt;DeskPane UMD Demo&lt;/title&gt;
 &lt;/head&gt;
 &lt;body&gt;
   &lt;div id="desktop" style="width:100vw;height:100vh;position:relative;"&gt;&lt;/div&gt;
 
   &lt;!-- 1. Load the bundle (use .min.js for production) --&gt;
-  &lt;script src="dist/webos-core.umd.js"&gt;&lt;/script&gt;
+  &lt;script src="dist/deskpane.umd.js"&gt;&lt;/script&gt;
 
   &lt;!-- 2. Use it — no import needed --&gt;
   &lt;script&gt;
-    var WindowManager = window.WebOS.WindowManager
+    var WindowManager = window.DeskPane.WindowManager
 
     var wm = new WindowManager({
       container: document.getElementById('desktop'),
@@ -106,9 +106,9 @@ import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
 
       <h3>{{ t('install.umd.h3jQuery') }}</h3>
       <pre class="code-block" v-pre>&lt;script src="https://code.jquery.com/jquery-3.7.1.min.js"&gt;&lt;/script&gt;
-&lt;script src="dist/webos-core.umd.js"&gt;&lt;/script&gt;
+&lt;script src="dist/deskpane.umd.js"&gt;&lt;/script&gt;
 &lt;script&gt;
-  var wm = new window.WebOS.WindowManager({ container: document.body })
+  var wm = new window.DeskPane.WindowManager({ container: document.body })
 
   wm.on('open', function(win) {
     // jQuery plugin on the window body element
@@ -122,8 +122,8 @@ import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
       <table class="api-table">
         <thead><tr><th>{{ t('install.globals.path') }}</th><th>{{ t('install.globals.type') }}</th><th>{{ t('common.description') }}</th></tr></thead>
         <tbody>
-          <tr><td><code>window.WebOS.WindowManager</code></td><td>class</td><td>{{ t('install.globals.wm') }}</td></tr>
-          <tr><td><code>window.WebOS.DOMRenderer</code></td><td>class</td><td>{{ t('install.globals.renderer') }}</td></tr>
+          <tr><td><code>window.DeskPane.WindowManager</code></td><td>class</td><td>{{ t('install.globals.wm') }}</td></tr>
+          <tr><td><code>window.DeskPane.DOMRenderer</code></td><td>class</td><td>{{ t('install.globals.renderer') }}</td></tr>
         </tbody>
       </table>
     </section>
@@ -144,13 +144,13 @@ import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
       <thead><tr><th>{{ t('install.sizes.file') }}</th><th>{{ t('install.sizes.format') }}</th><th>{{ t('install.sizes.size') }}</th><th>{{ t('install.sizes.use') }}</th></tr></thead>
       <tbody>
         <tr>
-          <td><code>dist/webos-core.es.js</code></td>
+          <td><code>dist/deskpane.es.js</code></td>
           <td>ESM</td>
           <td>~24 KB</td>
           <td v-html="t('install.sizes.es.use')"></td>
         </tr>
         <tr>
-          <td><code>dist/webos-core.umd.js</code></td>
+          <td><code>dist/deskpane.umd.js</code></td>
           <td>UMD</td>
           <td>~26 KB</td>
           <td>{{ t('install.sizes.umd.use') }}</td>
@@ -170,14 +170,14 @@ import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
       <thead><tr><th>{{ t('install.sizes.file') }}</th><th>{{ t('install.sizes.format') }}</th><th>{{ t('common.description') }}</th></tr></thead>
       <tbody>
         <tr>
-          <td><code>dist/webos-workspace.es.js</code></td>
+          <td><code>dist/deskpane-workspace.es.js</code></td>
           <td>ESM</td>
           <td v-html="t('install.sizes.es.use')"></td>
         </tr>
         <tr>
-          <td><code>dist/webos-workspace.umd.js</code></td>
+          <td><code>dist/deskpane-workspace.umd.js</code></td>
           <td>UMD</td>
-          <td>{{ t('install.sizes.umd.use') }} — <code>window.WebOSWorkspace</code></td>
+          <td>{{ t('install.sizes.umd.use') }} — <code>window.DeskPaneWorkspace</code></td>
         </tr>
       </tbody>
     </table>
@@ -186,7 +186,7 @@ import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { WindowManager } from '@webos/core/WindowManager'
+import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -231,7 +231,7 @@ onMounted(() => {
       code: `// ── ES6 / ESM ──────────────────────────────────────
 // Works with Vite, Webpack, Rollup, or native <script type="module">
 
-import { WindowManager } from './dist/webos-core.es.js'
+import { WindowManager } from './dist/deskpane.es.js'
 
 const wm = new WindowManager({
   container: document.getElementById('desktop')!,
@@ -256,11 +256,11 @@ wm.open({ id: 'w1', title: 'ESM Window', content: el })`,
   <div id="desktop" style="width:100vw;height:100vh;position:relative;"></div>
 
   <!-- Step 1: load the UMD bundle -->
-  <script src="dist/webos-core.umd.js"><\/script>
+  <script src="dist/deskpane.umd.js"><\/script>
 
-  <!-- Step 2: use window.WebOS -->
+  <!-- Step 2: use window.DeskPane -->
   <script>
-    var wm = new window.WebOS.WindowManager({
+    var wm = new window.DeskPane.WindowManager({
       container: document.getElementById('desktop'),
       isolated: true,
     })
@@ -279,7 +279,7 @@ wm.open({ id: 'w1', title: 'ESM Window', content: el })`,
       lang: 'typescript',
       code: `<!-- ── Vue 3 integration ─────────────────────────── -->
 <!-- Add to vite.config.ts:
-     resolve: { alias: { '@webos': '/path/to/webos-core/src' } }
+     resolve: { alias: { '@deskpane': '/path/to/deskpane/src' } }
 -->
 
 <template>
@@ -297,7 +297,7 @@ wm.open({ id: 'w1', title: 'ESM Window', content: el })`,
 </template>
 
 <script setup lang="ts">
-import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
+import { useWindowManager } from '@deskpane/adapters/vue/useWindowManager'
 import ClockWindow from './ClockWindow.vue'
 
 const { windows, openVueWindow } = useWindowManager()

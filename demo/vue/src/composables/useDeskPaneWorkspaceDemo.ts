@@ -33,10 +33,11 @@ export function useDeskPaneWorkspaceDemo() {
     const app = demoAppMap.get(appId)
     if (!app) return
 
-    const current = workspaceManager?.current
+    const manager = workspaceManager
+    const current = manager?.current
     if (!current) return
 
-    workspaceManager.openWindow({
+    manager.openWindow({
       workspaceId: current.id,
       appId: app.id,
       title: app.title,

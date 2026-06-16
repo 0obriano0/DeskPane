@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { WindowManager } from '@webos/core/WindowManager'
+import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -49,7 +49,7 @@ function openHello() {
   content.innerHTML = `
     <div style="font-size:48px;margin-bottom:8px">👋</div>
     <h2 style="margin:0 0 8px;font-size:18px">Hello, World!</h2>
-    <p style="color:#888;margin:0">Built with WebOS-Core</p>`
+    <p style="color:#888;margin:0">Built with DeskPane</p>`
   wm.open({
     id: 'hello-world',
     title: 'Hello World',
@@ -67,7 +67,7 @@ onMounted(() => {
     {
       name: 'main.ts',
       lang: 'typescript',
-      code: `import { WindowManager } from '@webos/core/WindowManager'
+      code: `import { WindowManager } from '@deskpane/core/WindowManager'
 
 // Create the window manager
 const wm = new WindowManager()
@@ -78,7 +78,7 @@ content.style.cssText = 'padding: 24px; text-align: center;'
 content.innerHTML = \`
   <div style="font-size: 48px; margin-bottom: 8px">👋</div>
   <h2>Hello, World!</h2>
-  <p>Built with WebOS-Core</p>
+  <p>Built with DeskPane</p>
 \`
 
 // Open the window
@@ -102,7 +102,7 @@ wm.open({
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Hello World — WebOS-Core</title>
+  <title>Hello World — DeskPane</title>
 </head>
 <body style="margin:0; width:100vw; height:100vh; overflow:hidden;">
   <!-- No container needed — defaults to document.body -->

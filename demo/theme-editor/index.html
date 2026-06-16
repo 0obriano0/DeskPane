@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
@@ -666,7 +666,7 @@ function themeDesktopPart(vars) {
 }
 
 /* ── Custom themes (localStorage) ──────────────────────── */
-const CUSTOM_KEY = 'webos-te-custom-themes';
+const CUSTOM_KEY = 'deskpane-te-custom-themes';
 function loadCustomThemes() {
   try { return JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}'); } catch { return {}; }
 }
@@ -1057,7 +1057,7 @@ document.getElementById('btn-copy-core').addEventListener('click', () =>
 document.getElementById('btn-copy-desktop').addEventListener('click', () =>
   copyCSS(generateCSS(desktopValues,'Desktop Theme'), 'copy-feedback'));
 document.getElementById('btn-dl-all').addEventListener('click', () =>
-  downloadCSS(generateCSS(coreValues,'Core Theme') + '\n\n' + generateCSS(desktopValues,'Desktop Theme'), 'webos-theme.css', 'copy-feedback'));
+  downloadCSS(generateCSS(coreValues,'Core Theme') + '\n\n' + generateCSS(desktopValues,'Desktop Theme'), 'deskpane-theme.css', 'copy-feedback'));
 
 /* ── Theme select ────────────────────────────────────────── */
 document.getElementById('theme-select').addEventListener('change', e => {

@@ -77,7 +77,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { WindowManager } from '@webos/core/WindowManager'
+import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -226,7 +226,7 @@ setCode([
     name: 'useWindowManager.ts (React hook)',
     lang: 'typescript',
     code: `import { useState, useCallback, useEffect, useRef } from 'react';
-import { WindowManager } from 'webos-core';
+import { WindowManager } from 'deskpane';
 
 export function useWindowManager(opts) {
   const wmRef = useRef(null);

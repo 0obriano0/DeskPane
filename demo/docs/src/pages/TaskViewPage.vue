@@ -37,7 +37,7 @@
         <tr><td><code>showButton</code></td><td><code>boolean</code></td><td><code>true</code></td><td v-html="t('taskview.opt.showButton')"></td></tr>
         <tr><td><code>buttonLabel</code></td><td><code>string</code></td><td><code>'虛擬桌面'</code></td><td v-html="t('taskview.opt.buttonLabel')"></td></tr>
         <tr><td><code>buttonIcon</code></td><td><code>string</code></td><td><code>'⧉'</code></td><td v-html="t('taskview.opt.buttonIcon')"></td></tr>
-        <tr><td><code>buttonId</code></td><td><code>string</code></td><td><code>'wos-tv-button'</code></td><td v-html="t('taskview.opt.buttonId')"></td></tr>
+        <tr><td><code>buttonId</code></td><td><code>string</code></td><td><code>'dp-tv-button'</code></td><td v-html="t('taskview.opt.buttonId')"></td></tr>
       </tbody>
     </table>
 
@@ -78,7 +78,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { WorkspaceManager, TaskView } from '@webos/workspace'
+import { WorkspaceManager, TaskView } from '@deskpane/workspace'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -122,7 +122,7 @@ onMounted(() => {
     {
       name: 'basic.ts',
       lang: 'typescript',
-      code: `import { WorkspaceManager, TaskView } from '@webos/workspace'
+      code: `import { WorkspaceManager, TaskView } from '@deskpane/workspace'
 
 const wsMgr = new WorkspaceManager(document.getElementById('root')!)
 wsMgr.addWorkspace({ id: 'ws-1', label: 'Desktop 1' })
@@ -141,8 +141,8 @@ tv.destroy()`,
     {
       name: 'dock-integration.ts',
       lang: 'typescript',
-      code: `import { Desktop } from '@webos/desktop'
-import { WorkspaceManager, TaskView } from '@webos/workspace'
+      code: `import { Desktop } from '@deskpane/desktop'
+import { WorkspaceManager, TaskView } from '@deskpane/workspace'
 
 const desktop = new Desktop({
   container: document.getElementById('root')!,

@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write   # 建立 GitHub Release
   id-token: write   # npm OIDC Trusted Publisher
+  pages: write      # 發佈 GitHub Pages
 
 jobs:
   release:
@@ -26,6 +27,15 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Install Vue demo dependencies
+        run: npm install --prefix demo/vue
+
+      - name: Install React demo dependencies
+        run: npm install --prefix demo/react
+
+      - name: Install docs dependencies
+        run: npm install --prefix demo/docs
 
       # 從 tag (e.g. v0.2.0) 取出版本號 0.2.0
       - name: Extract version
@@ -57,13 +67,24 @@ jobs:
           cd release
           zip -r ../deskpane-v${{ steps.ver.outputs.VERSION }}.zip deskpane-v${{ steps.ver.outputs.VERSION }}/
 
+      # 產生 GitHub Pages 靜態展示包，供 release assets 下載使用
+      - name: Build Pages demo bundle
+        run: npm run build:pages
+
+      - name: Zip Pages demo bundle
+        run: |
+          cd .pages
+          zip -r ../deskpane-pages-v${{ steps.ver.outputs.VERSION }}.zip .
+
       # 建立 GitHub Release，附上 zip
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: v${{ steps.ver.outputs.VERSION }}
           generate_release_notes: true
-          files: deskpane-v${{ steps.ver.outputs.VERSION }}.zip
+          files: |
+            deskpane-v${{ steps.ver.outputs.VERSION }}.zip
+            deskpane-pages-v${{ steps.ver.outputs.VERSION }}.zip
 
       # 修正 setup-node 產生的空 Token (避免 404 Not Found 錯誤)
       - name: Fix npmrc

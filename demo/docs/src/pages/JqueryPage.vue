@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { WindowManager } from '@webos/core/WindowManager'
+import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -161,10 +161,10 @@ function openAccordion() {
   if (!wm) return
   const pos = nextPos(); winCount++
   const sections = [
-    { title: '📦 什麼是 WebOS-Core？', body: 'WebOS-Core 是一套框架無關的虛擬桌面視窗管理引擎，支援拖曳、縮放、置頂、最小化、最大化等完整功能。' },
+    { title: '📦 什麼是 DeskPane？', body: 'DeskPane 是一套框架無關的虛擬桌面視窗管理引擎，支援拖曳、縮放、置頂、最小化、最大化等完整功能。' },
     { title: '🔗 如何與 jQuery 整合？', body: '載入 UMD bundle 後，使用 jQuery 建立視窗內容，並以 wm.getBodyElement(id) 取得視窗 body 元素附加外掛。' },
     { title: '📄 支援哪些框架？', body: '支援純 JavaScript、jQuery、Vue 3、React（規劃中）。核心完全框架無關。' },
-    { title: '⚡ 如何安裝？', body: '複製 dist/ 資料夾，或以 script 標籤載入 webos-core.umd.js，無需任何建置步驟。' },
+    { title: '⚡ 如何安裝？', body: '複製 dist/ 資料夾，或以 script 標籤載入 deskpane.umd.js，無需任何建置步驟。' },
   ]
   const el = document.createElement('div')
   el.style.cssText = 'font-family:Segoe UI,sans-serif;'
@@ -260,13 +260,13 @@ onMounted(() => {
     {
       name: 'index.html (UMD + jQuery setup)',
       lang: 'html',
-      code: `<!-- 1. Load WebOS-Core UMD bundle -->
-<script src="dist/webos-core.umd.js"><\/script>
+      code: `<!-- 1. Load DeskPane UMD bundle -->
+<script src="dist/deskpane.umd.js"><\/script>
 <!-- 2. Load jQuery -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"><\/script>
 
 <script>
-  const { WindowManager } = WebOS;
+  const { WindowManager } = DeskPane;
   const wm = new WindowManager({ throttleMs: 16 });
 
   // 3. Create window content with jQuery

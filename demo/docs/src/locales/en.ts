@@ -1,4 +1,4 @@
-﻿export const en: Record<string, string> = {
+export const en: Record<string, string> = {
   // Header
   'header.sub': 'Developer Docs',
   'header.demos': 'Demos',

@@ -108,7 +108,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { WorkspaceManager } from '@webos/workspace'
+import { WorkspaceManager } from '@deskpane/workspace'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -168,7 +168,7 @@ onMounted(() => {
     {
       name: 'setup.ts',
       lang: 'typescript',
-      code: `import { WorkspaceManager } from '@webos/workspace'
+      code: `import { WorkspaceManager } from '@deskpane/workspace'
 
 const wsMgr = new WorkspaceManager(
   document.getElementById('root')!,

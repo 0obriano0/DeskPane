@@ -8,7 +8,7 @@
 
     <h2>{{ t('theme.h2Load') }}</h2>
     <pre class="code-block" v-pre>&lt;!-- In your HTML &lt;head&gt; --&gt;
-&lt;link id="wos-theme" rel="stylesheet" href="dist/themes/light.css"&gt;</pre>
+&lt;link id="dp-theme" rel="stylesheet" href="dist/themes/light.css"&gt;</pre>
 
     <h2>{{ t('theme.h2SetTheme') }}</h2>
     <p v-html="t('theme.setThemeDesc')"></p>
@@ -23,7 +23,7 @@
       </thead>
       <tbody>
         <tr><td><code>basePath</code></td><td><code>string</code></td><td><code>'themes'</code></td><td v-html="t('theme.opt.basePath')"></td></tr>
-        <tr><td><code>linkId</code></td><td><code>string</code></td><td><code>'wos-theme'</code></td><td v-html="t('theme.opt.linkId')"></td></tr>
+        <tr><td><code>linkId</code></td><td><code>string</code></td><td><code>'dp-theme'</code></td><td v-html="t('theme.opt.linkId')"></td></tr>
       </tbody>
     </table>
 
@@ -90,7 +90,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { WindowManager } from '@webos/core/WindowManager'
+import { WindowManager } from '@deskpane/core/WindowManager'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
 
@@ -101,36 +101,36 @@ let wm: WindowManager | null = null
 const demoTheme = ref<'light' | 'dark'>('light')
 
 const LIGHT_VARS = {
-  '--wos-window-header-bg': '#f0f0f0',
-  '--wos-window-title-color': '#333333',
-  '--wos-window-border': '#d0d0d0',
-  '--wos-window-border-active': '#4a90e2',
-  '--wos-window-shadow': '0 2px 12px rgba(0,0,0,0.12)',
-  '--wos-window-shadow-active': '0 4px 24px rgba(0,0,0,0.22)',
-  '--wos-window-header-border': '#e0e0e0',
-  '--wos-window-btn-color': '#555555',
-  '--wos-window-btn-hover-bg': 'rgba(0,0,0,0.08)',
-  '--wos-window-btn-close-hover-bg': '#e53e3e',
-  '--wos-window-btn-close-hover-color': '#ffffff',
-  '--wos-window-body-bg': '#ffffff',
-  '--wos-window-body-color': '#222222',
-  '--wos-snap-guide-color': 'rgba(74,144,226,0.4)',
+  '--dp-window-header-bg': '#f0f0f0',
+  '--dp-window-title-color': '#333333',
+  '--dp-window-border': '#d0d0d0',
+  '--dp-window-border-active': '#4a90e2',
+  '--dp-window-shadow': '0 2px 12px rgba(0,0,0,0.12)',
+  '--dp-window-shadow-active': '0 4px 24px rgba(0,0,0,0.22)',
+  '--dp-window-header-border': '#e0e0e0',
+  '--dp-window-btn-color': '#555555',
+  '--dp-window-btn-hover-bg': 'rgba(0,0,0,0.08)',
+  '--dp-window-btn-close-hover-bg': '#e53e3e',
+  '--dp-window-btn-close-hover-color': '#ffffff',
+  '--dp-window-body-bg': '#ffffff',
+  '--dp-window-body-color': '#222222',
+  '--dp-snap-guide-color': 'rgba(74,144,226,0.4)',
 }
 const DARK_VARS = {
-  '--wos-window-header-bg': '#181825',
-  '--wos-window-title-color': '#cdd6f4',
-  '--wos-window-border': '#313244',
-  '--wos-window-border-active': '#89b4fa',
-  '--wos-window-shadow': '0 2px 12px rgba(0,0,0,0.5)',
-  '--wos-window-shadow-active': '0 4px 24px rgba(0,0,0,0.6)',
-  '--wos-window-header-border': '#313244',
-  '--wos-window-btn-color': '#a6adc8',
-  '--wos-window-btn-hover-bg': 'rgba(255,255,255,0.08)',
-  '--wos-window-btn-close-hover-bg': '#f38ba8',
-  '--wos-window-btn-close-hover-color': '#1e1e2e',
-  '--wos-window-body-bg': '#1e1e2e',
-  '--wos-window-body-color': '#cdd6f4',
-  '--wos-snap-guide-color': 'rgba(137,180,250,0.4)',
+  '--dp-window-header-bg': '#181825',
+  '--dp-window-title-color': '#cdd6f4',
+  '--dp-window-border': '#313244',
+  '--dp-window-border-active': '#89b4fa',
+  '--dp-window-shadow': '0 2px 12px rgba(0,0,0,0.5)',
+  '--dp-window-shadow-active': '0 4px 24px rgba(0,0,0,0.6)',
+  '--dp-window-header-border': '#313244',
+  '--dp-window-btn-color': '#a6adc8',
+  '--dp-window-btn-hover-bg': 'rgba(255,255,255,0.08)',
+  '--dp-window-btn-close-hover-bg': '#f38ba8',
+  '--dp-window-btn-close-hover-color': '#1e1e2e',
+  '--dp-window-body-bg': '#1e1e2e',
+  '--dp-window-body-color': '#cdd6f4',
+  '--dp-snap-guide-color': 'rgba(137,180,250,0.4)',
 }
 
 const demoEl = ref<HTMLElement | null>(null)
@@ -151,30 +151,30 @@ function setDemoTheme(theme: 'light' | 'dark') {
 }
 
 const coreVars = [
-  { name: '--wos-window-header-bg',             desc: 'Title bar background',            value: '#f0f0f0',                           swatch: '#f0f0f0' },
-  { name: '--wos-window-title-color',           desc: 'Title bar text',                  value: '#333333',                           swatch: '#333333' },
-  { name: '--wos-window-border',                desc: 'Window border',                   value: '#d0d0d0',                           swatch: '#d0d0d0' },
-  { name: '--wos-window-border-active',         desc: 'Active window border',            value: '#4a90e2',                           swatch: '#4a90e2' },
-  { name: '--wos-window-shadow',                desc: 'Window shadow',                   value: '0 2px 12px rgba(0,0,0,0.12)',       swatch: null },
-  { name: '--wos-window-shadow-active',         desc: 'Active window shadow',            value: '0 4px 24px rgba(0,0,0,0.22)',       swatch: null },
-  { name: '--wos-window-header-border',         desc: 'Title bar bottom border',         value: '#e0e0e0',                           swatch: '#e0e0e0' },
-  { name: '--wos-window-btn-color',             desc: 'Control button icon',             value: '#555555',                           swatch: '#555555' },
-  { name: '--wos-window-btn-hover-bg',          desc: 'Control button hover background', value: 'rgba(0,0,0,0.08)',                  swatch: null },
-  { name: '--wos-window-btn-close-hover-bg',    desc: 'Close button hover background',   value: '#e53e3e',                           swatch: '#e53e3e' },
-  { name: '--wos-window-btn-close-hover-color', desc: 'Close button hover text',         value: '#ffffff',                           swatch: '#ffffff' },
-  { name: '--wos-window-body-bg',               desc: 'Window body background',          value: '#ffffff',                           swatch: '#ffffff' },
-  { name: '--wos-window-body-color',            desc: 'Window body text',                value: '#222222',                           swatch: '#222222' },
-  { name: '--wos-snap-guide-color',      desc: 'Snap guide line colour',          value: 'rgba(74,144,226,0.4)',              swatch: null },
+  { name: '--dp-window-header-bg',             desc: 'Title bar background',            value: '#f0f0f0',                           swatch: '#f0f0f0' },
+  { name: '--dp-window-title-color',           desc: 'Title bar text',                  value: '#333333',                           swatch: '#333333' },
+  { name: '--dp-window-border',                desc: 'Window border',                   value: '#d0d0d0',                           swatch: '#d0d0d0' },
+  { name: '--dp-window-border-active',         desc: 'Active window border',            value: '#4a90e2',                           swatch: '#4a90e2' },
+  { name: '--dp-window-shadow',                desc: 'Window shadow',                   value: '0 2px 12px rgba(0,0,0,0.12)',       swatch: null },
+  { name: '--dp-window-shadow-active',         desc: 'Active window shadow',            value: '0 4px 24px rgba(0,0,0,0.22)',       swatch: null },
+  { name: '--dp-window-header-border',         desc: 'Title bar bottom border',         value: '#e0e0e0',                           swatch: '#e0e0e0' },
+  { name: '--dp-window-btn-color',             desc: 'Control button icon',             value: '#555555',                           swatch: '#555555' },
+  { name: '--dp-window-btn-hover-bg',          desc: 'Control button hover background', value: 'rgba(0,0,0,0.08)',                  swatch: null },
+  { name: '--dp-window-btn-close-hover-bg',    desc: 'Close button hover background',   value: '#e53e3e',                           swatch: '#e53e3e' },
+  { name: '--dp-window-btn-close-hover-color', desc: 'Close button hover text',         value: '#ffffff',                           swatch: '#ffffff' },
+  { name: '--dp-window-body-bg',               desc: 'Window body background',          value: '#ffffff',                           swatch: '#ffffff' },
+  { name: '--dp-window-body-color',            desc: 'Window body text',                value: '#222222',                           swatch: '#222222' },
+  { name: '--dp-snap-guide-color',      desc: 'Snap guide line colour',          value: 'rgba(74,144,226,0.4)',              swatch: null },
 ]
 
 const desktopVars = [
-  { name: '--wos-desktop-bg',            desc: 'Desktop background (gradient OK)', value: 'linear-gradient(135deg,#f0f4f8,#e2e8f0)' },
-  { name: '--wos-desktop-icon-text',     desc: 'Desktop icon label text',          value: '#1a202c' },
-  { name: '--wos-desktop-icon-hover-bg', desc: 'Desktop icon hover background',    value: 'rgba(0,0,0,0.08)' },
-  { name: '--wos-dock-bg',               desc: 'Dock background (rgba OK)',         value: 'rgba(255,255,255,0.75)' },
-  { name: '--wos-dock-border',           desc: 'Dock border (rgba OK)',             value: 'rgba(0,0,0,0.10)' },
-  { name: '--wos-dock-item-hover-bg',    desc: 'Dock item hover background',        value: 'rgba(0,0,0,0.06)' },
-  { name: '--wos-font',                  desc: 'Global font family',                value: 'system-ui,-apple-system,sans-serif' },
+  { name: '--dp-desktop-bg',            desc: 'Desktop background (gradient OK)', value: 'linear-gradient(135deg,#f0f4f8,#e2e8f0)' },
+  { name: '--dp-desktop-icon-text',     desc: 'Desktop icon label text',          value: '#1a202c' },
+  { name: '--dp-desktop-icon-hover-bg', desc: 'Desktop icon hover background',    value: 'rgba(0,0,0,0.08)' },
+  { name: '--dp-dock-bg',               desc: 'Dock background (rgba OK)',         value: 'rgba(255,255,255,0.75)' },
+  { name: '--dp-dock-border',           desc: 'Dock border (rgba OK)',             value: 'rgba(0,0,0,0.10)' },
+  { name: '--dp-dock-item-hover-bg',    desc: 'Dock item hover background',        value: 'rgba(0,0,0,0.06)' },
+  { name: '--dp-font',                  desc: 'Global font family',                value: 'system-ui,-apple-system,sans-serif' },
 ]
 
 onMounted(() => {
@@ -182,7 +182,7 @@ onMounted(() => {
     wm = new WindowManager({ container: container.value, isolated: true, snap: true, snapGap: 4 })
     const div = document.createElement('div')
     div.style.cssText = 'padding:14px;font-size:13px;'
-    div.innerHTML = '<p style="margin:0 0 6px"><strong>Themed window</strong></p><p style="margin:0;font-size:12px;color:var(--wos-window-body-color,#666)">Toggle Light/Dark above</p>'
+    div.innerHTML = '<p style="margin:0 0 6px"><strong>Themed window</strong></p><p style="margin:0;font-size:12px;color:var(--dp-window-body-color,#666)">Toggle Light/Dark above</p>'
     wm.open({ id: 'theme-demo', title: 'Theme Preview', content: div, x: 30, y: 20, width: 260, height: 120 })
   }
   applyThemeVars('light')
@@ -191,15 +191,15 @@ onMounted(() => {
       name: 'html-link.html',
       lang: 'html',
       code: `<!-- Load light theme (covers Core + Desktop, 22 CSS variables) -->
-<link id="wos-theme" rel="stylesheet" href="dist/themes/light.css">
+<link id="dp-theme" rel="stylesheet" href="dist/themes/light.css">
 
 <!-- Or dark theme -->
-<link id="wos-theme" rel="stylesheet" href="dist/themes/dark.css">`,
+<link id="dp-theme" rel="stylesheet" href="dist/themes/dark.css">`,
     },
     {
       name: 'setTheme.ts',
       lang: 'typescript',
-      code: `import { setTheme } from 'webos-core'
+      code: `import { setTheme } from 'deskpane'
 
 // Switch to dark theme (basePath defaults to 'themes')
 setTheme('dark')
@@ -211,18 +211,18 @@ setTheme('light', { basePath: '/themes' })
 setTheme('dark', { basePath: 'dist/themes' })
 
 // Custom link element id (if you manage the <link> yourself)
-setTheme('dark', { linkId: 'my-wos-theme' })
+setTheme('dark', { linkId: 'my-dp-theme' })
 
 // UMD (no import needed)
-// WebOS.setTheme('dark', { basePath: 'dist/themes' })`,
+// DeskPane.setTheme('dark', { basePath: 'dist/themes' })`,
     },
     {
       name: 'custom-vars.css',
       lang: 'css',
       code: `/* Override individual variables after loading the theme */
 :root {
-  --wos-window-border-active: #7c3aed;   /* purple accent */
-  --wos-window-header-bg:     #f3f0ff;   /* lavender title bar */
+  --dp-window-border-active: #7c3aed;   /* purple accent */
+  --dp-window-header-bg:     #f3f0ff;   /* lavender title bar */
 }`,
     },
   ])

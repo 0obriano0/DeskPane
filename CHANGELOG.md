@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.1 - 2026-06-16
+
+### Added
+
+- Added a GitHub Pages build workflow for static demos, Vue, React, and docs.
+- Added a downloadable `deskpane-pages-vX.X.X.zip` demo bundle to GitHub Release assets.
+
+### Changed
+
+- Changed GitHub Pages deployment to run from version tags (`v*`) instead of every `main` branch push.
+- The main `demo/desktop/` entry now showcases the Medieval Pixel desktop demo.
+- Vue, React, and docs demos now build with relative asset paths for GitHub Pages.
+- Renamed remaining legacy project-name references to DeskPane across demos, docs, package metadata, and generated runtime output.
+- Renamed old internal runtime data attributes to `data-dp-*`.
+
 ## 0.2.0 - 2026-06-16
 
 ### Added
@@ -57,7 +72,7 @@
 
 ### Added
 
-- Added a separate Medieval Pixel desktop demo at `demo/desktop-medieval-pixel/`.
+- Updated the main desktop demo at `demo/desktop/` to showcase the Medieval Pixel theme.
 - Added the built-in `medieval-pixel.css` theme for DeskPane desktop windows, dock, and UI controls.
 - Added Medieval Pixel UI assets under `dist/themes/assets/medieval-pixel/`.
 
@@ -67,4 +82,4 @@
 
 ### Notes
 
-- The existing `demo/desktop/` example remains unchanged.
+- The Medieval Pixel desktop demo is now the main `demo/desktop/` example.

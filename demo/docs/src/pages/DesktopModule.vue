@@ -30,7 +30,7 @@
         <tr><td><code>dragThreshold</code></td><td><code>number</code></td><td><code>6</code></td><td v-html="t('desktop.conf.dragThreshold')"></td></tr>
         <tr><td><code>iconSnap</code></td><td><code>boolean</code></td><td><code>true</code></td><td v-html="t('desktop.conf.iconSnap')"></td></tr>
         <tr><td><code>iconSnapThreshold</code></td><td><code>number</code></td><td><code>20</code></td><td v-html="t('desktop.conf.iconSnapThreshold')"></td></tr>
-        <tr><td><code>storageKey</code></td><td><code>string</code></td><td><code>'wos-desktop'</code></td><td v-html="t('desktop.conf.storageKey')"></td></tr>
+        <tr><td><code>storageKey</code></td><td><code>string</code></td><td><code>'dp-desktop'</code></td><td v-html="t('desktop.conf.storageKey')"></td></tr>
         <tr><td><code>dock</code></td><td><code>DockConfig</code></td><td><code>{}</code></td><td v-html="t('desktop.conf.dock')"></td></tr>
         <tr><td><code>icons</code></td><td><code>DesktopIconConfig[]</code></td><td><code>[]</code></td><td v-html="t('desktop.conf.icons')"></td></tr>
       </tbody>
@@ -92,8 +92,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Desktop } from '@webos/desktop'
-import { WindowManager } from '@webos/core/WindowManager'
+import { Desktop } from '@deskpane/desktop'
+import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -158,8 +158,8 @@ onMounted(() => {
     {
       name: 'setup.ts',
       lang: 'typescript',
-      code: `import { Desktop } from 'webos-core/desktop'
-import { WindowManager } from 'webos-core'
+      code: `import { Desktop } from 'deskpane/desktop'
+import { WindowManager } from 'deskpane'
 
 // 1. Create the desktop
 const desktop = new Desktop({

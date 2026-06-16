@@ -59,8 +59,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, markRaw, defineComponent, h } from 'vue'
-import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
-import type { VueWindowEntry } from '@webos/adapters/vue/useWindowManager'
+import { useWindowManager } from '@deskpane/adapters/vue/useWindowManager'
+import type { VueWindowEntry } from '@deskpane/adapters/vue/useWindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
@@ -159,7 +159,7 @@ onMounted(() => {
       name: 'App.vue',
       lang: 'vue',
       code: `<script setup lang="ts">
-import { useWindowManager } from '@webos/adapters/vue/useWindowManager'
+import { useWindowManager } from '@deskpane/adapters/vue/useWindowManager'
 import ClockWindow from './windows/ClockWindow.vue'
 import CounterWindow from './windows/CounterWindow.vue'
 
