@@ -34,7 +34,7 @@
 - Hid the Task View overlay when closed so its panel cannot intercept clicks after switching desktops.
 - Updated `demo/vue` to use `WorkspaceManager.openWindow({ appId })` instead of hand-written workspace id composition.
 
-## 0.1.4 - 2026-06-16
+## 0.1.4 - skip
 
 ### Added
 
