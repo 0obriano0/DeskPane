@@ -34,7 +34,14 @@ jobs:
 
       # 將 package.json version 與 tag 同步（不建立額外 git commit）
       - name: Sync package.json version
-        run: npm version ${{ steps.ver.outputs.VERSION }} --no-git-tag-version
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          TARGET="${{ steps.ver.outputs.VERSION }}"
+          if [ "$CURRENT" != "$TARGET" ]; then
+            npm version "$TARGET" --no-git-tag-version
+          else
+            echo "package.json already at $TARGET"
+          fi
 
       # 執行 rollup build + build-themes
       - name: Build library

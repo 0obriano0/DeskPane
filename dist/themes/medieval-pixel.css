@@ -1,14 +1,13 @@
 /* DeskPane — Medieval Pixel Theme */
 :root {
   --dp-medieval-panel: url("./assets/medieval-pixel/panel.png");
-  --dp-medieval-toolbar: url("./assets/medieval-pixel/toolbar-blank.png");
   --dp-medieval-button: url("./assets/medieval-pixel/button-blank.png");
 
   --dp-window-border:               #5f4630;
   --dp-window-border-active:        #d7aa54;
   --dp-window-shadow:               0 8px 0 rgba(24, 16, 10, 0.75);
   --dp-window-shadow-active:        0 10px 0 rgba(24, 16, 10, 0.85), 0 0 0 2px rgba(215, 170, 84, 0.18);
-  --dp-window-header-bg:            #8a6138 var(--dp-medieval-toolbar) center / 100% 100% no-repeat;
+  --dp-window-header-bg:            linear-gradient(180deg, #a97845 0%, #7a4f2f 100%);
   --dp-window-header-border:        #3a2a1e;
   --dp-window-title-color:          #2f1d10;
   --dp-window-btn-color:            #3a2414;
@@ -19,7 +18,7 @@
   --dp-window-body-color:           #2f2115;
   --dp-snap-guide-color:            rgba(241, 196, 92, 0.75);
 
-  --dp-layout-header-bg:            #8a6138 var(--dp-medieval-toolbar) center / 100% 100% no-repeat;
+  --dp-layout-header-bg:            linear-gradient(180deg, #a97845 0%, #7a4f2f 100%);
   --dp-layout-header-border:        #4a3322;
   --dp-layout-title-color:          #2f1d10;
   --dp-layout-btn-color:            #3a2414;

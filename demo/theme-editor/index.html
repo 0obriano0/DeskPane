@@ -283,6 +283,7 @@
         <span class="cfe-preset-label">快速載入：</span>
         <button class="cfe-preset-btn active" id="cfe-preset-default" onclick="cfeLoadPreset('default')">🎨 預設</button>
         <button class="cfe-preset-btn" id="cfe-preset-win11" onclick="cfeLoadPreset('win11')">🪟 Win11</button>
+        <button class="cfe-preset-btn" id="cfe-preset-medieval" onclick="cfeLoadPreset('medieval')">🏰 Medieval Pixel</button>
       </div>
       <div class="cfe-editor-wrap">
         <div class="cfe-line-nums" id="cfe-line-nums"></div>
@@ -616,6 +617,40 @@ const THEMES = {
       '--dp-font':                 "'Segoe UI Variable','Segoe UI',system-ui,sans-serif",
       '--dp-desktop-icon-hover-bg':'rgba(255,255,255,0.09)',
       '--dp-dock-item-hover-bg':   'rgba(255,255,255,0.09)',
+    },
+  },
+  'medieval-pixel': {
+    label: 'Medieval Pixel', icon: '🏰', group: 'Pixel',
+    vars: {
+      '--dp-window-border':               '#5f4630',
+      '--dp-window-border-active':        '#d7aa54',
+      '--dp-window-shadow':               '0 8px 0 rgba(24,16,10,0.75)',
+      '--dp-window-shadow-active':        '0 10px 0 rgba(24,16,10,0.85),0 0 0 2px rgba(215,170,84,0.18)',
+      '--dp-window-header-bg':            'linear-gradient(180deg,#a97845 0%,#7a4f2f 100%)',
+      '--dp-layout-header-bg':     'linear-gradient(180deg,#a97845 0%,#7a4f2f 100%)',
+      '--dp-layout-header-border': '#4a3322',
+      '--dp-layout-title-color':   '#2f1d10',
+      '--dp-layout-btn-color':     '#3a2414',
+      '--dp-layout-btn-hover-bg':  'rgba(215,170,84,0.30)',
+      '--dp-layout-splitter-bg':   '#6b4a2b',
+      '--dp-layout-splitter-active':'#d7aa54',
+      '--dp-window-header-border':        '#3a2a1e',
+      '--dp-window-title-color':          '#2f1d10',
+      '--dp-window-btn-color':            '#3a2414',
+      '--dp-window-btn-hover-bg':         'rgba(215,170,84,0.32)',
+      '--dp-window-btn-close-hover-bg':   '#8d2f24',
+      '--dp-window-btn-close-hover-color':'#fff4d0',
+      '--dp-window-body-bg':              '#d8ba78',
+      '--dp-window-body-color':           '#2f2115',
+      '--dp-snap-guide-color':     'rgba(241,196,92,0.75)',
+      '--dp-desktop-bg':           'radial-gradient(circle at 28% 18%,rgba(241,196,92,0.18),transparent 24%),linear-gradient(135deg,#2e2116 0%,#17100b 100%)',
+      '--dp-desktop-icon-text':    '#fff0c2',
+      '--dp-dock-bg':              'rgba(45,31,19,0.88)',
+      '--dp-dock-backdrop-filter': 'none',
+      '--dp-dock-border':          'rgba(215,170,84,0.42)',
+      '--dp-font':                 "Georgia,'Times New Roman',serif",
+      '--dp-desktop-icon-hover-bg':'rgba(215,170,84,0.18)',
+      '--dp-dock-item-hover-bg':   'rgba(215,170,84,0.22)',
     },
   },
 };
@@ -1264,6 +1299,35 @@ function cfeLoadPreset(key) {
     document.getElementById('cfe-status').textContent = `${lines} 行 (Windows 11)`;
     showFeedback('cfe-feedback', '🪟 已載入 Windows 11 樣式');
     cfeSetPreset('win11');
+  } else if (key === 'medieval') {
+    cfeLoadMedievalPreset();
+  }
+}
+
+async function cfeLoadMedievalPreset() {
+  if (cfeCurrentKey !== 'core') {
+    cfeCurrentKey = 'core';
+    document.querySelectorAll('.cfe-file-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('cfe-btn-core').classList.add('active');
+  }
+  document.getElementById('cfe-status').textContent = '載入 Medieval Pixel…';
+  try {
+    const res = await fetch('../../dist/themes/medieval-pixel.css');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    let css = await res.text();
+    css = css.replace(/url\("\.\/assets\/medieval-pixel\//g, 'url("../../dist/themes/assets/medieval-pixel/');
+    document.getElementById('cfe-textarea').value = css;
+    cfeUpdateLineNums();
+    cfeInject('core', css);
+    const lines = css.split('\n').length;
+    document.getElementById('cfe-status').textContent = `${lines} 行 (Medieval Pixel)`;
+    showFeedback('cfe-feedback', '🏰 已載入 Medieval Pixel 樣式');
+    cfeSetPreset('medieval');
+  } catch (e) {
+    document.getElementById('cfe-textarea').value =
+      '/* 無法載入 ../../dist/themes/medieval-pixel.css\\n   請先執行 npm run build:lib */';
+    document.getElementById('cfe-status').textContent = '載入失敗';
+    cfeUpdateLineNums();
   }
 }
 

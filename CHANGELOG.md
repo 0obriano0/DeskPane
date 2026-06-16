@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.4 - 2026-06-16
+
+### Added
+
+- Added a Medieval Pixel preset to `demo/theme-editor/`.
+- The Theme Editor can now load the full `dist/themes/medieval-pixel.css` file so image-based `border-image` styling can be previewed and edited.
+
+### Fixed
+
+- Fixed the GitHub Actions tag release workflow so `npm version` only runs when `package.json` does not already match the tag version.
+
 ## 0.1.3 - 2026-06-15
 
 ### Fixed
