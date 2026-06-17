@@ -11,6 +11,7 @@
         <a href="../index.html" class="active">{{ t('header.demos') }}</a>
         <a href="../vanilla/index.html" target="_blank">{{ t('header.vanillaDemo') }}</a>
         <a href="../vue/index.html" target="_blank">{{ t('header.vueDemo') }}</a>
+        <a href="https://github.com/0obriano0/DeskPane" target="_blank" rel="noopener">GitHub</a>
         <button class="lang-btn" @click="locale = locale === 'en' ? 'zh-TW' : 'en'">
           {{ locale === 'en' ? '中文' : 'EN' }}
         </button>

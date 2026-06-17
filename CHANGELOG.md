@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4 - Unreleased
+
+### Added
+
+- Added GitHub repository links to the demo landing page and all web demo entries.
+
 ## 0.2.3 - 2026-06-17
 
 ### Added
