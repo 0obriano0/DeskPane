@@ -29,8 +29,8 @@ const { desktopRootEl, windows } = useDeskPaneWorkspaceDemo()
 
 .demo-github-link {
   position: fixed;
-  top: 14px;
   right: 14px;
+  bottom: 84px;
   z-index: 30000;
   min-height: 32px;
   padding: 0 12px;

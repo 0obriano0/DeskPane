@@ -4,316 +4,304 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DeskPane — Vanilla JS Demo</title>
-  <meta name="description" content="Plain JavaScript DeskPane demo showing a framework-free web desktop with draggable, resizable windows, Dock integration, TaskView, and virtual workspaces." />
+  <meta name="description" content="Plain JavaScript DeskPane demo focused on Desktop, WindowManager, WorkspaceManager, TaskView, Dock sync, child windows, modal dialogs, snap, and BorderLayout." />
   <link rel="canonical" href="https://0obriano0.github.io/DeskPane/demo/vanilla/" />
   <meta property="og:title" content="DeskPane Vanilla JavaScript Demo" />
-  <meta property="og:description" content="Framework-free web desktop window manager demo with DeskPane." />
+  <meta property="og:description" content="Framework-free DeskPane demo focused on core web desktop window management APIs." />
   <meta property="og:url" content="https://0obriano0.github.io/DeskPane/demo/vanilla/" />
   <meta name="twitter:card" content="summary" />
   <link rel="stylesheet" href="../../dist/themes/dark.css" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #020617; }
     #desktop-root { width: 100vw; height: 100vh; }
     .demo-github-link {
-      position: fixed;
-      top: 14px;
-      right: 14px;
-      z-index: 30000;
-      min-height: 32px;
-      padding: 0 12px;
-      display: inline-flex;
-      align-items: center;
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 8px;
-      background: rgba(15,23,42,0.72);
-      color: #e2e8f0;
-      text-decoration: none;
-      font: 700 12px system-ui, sans-serif;
-      backdrop-filter: blur(14px);
+      position: fixed; right: 14px; bottom: 84px; z-index: 30000;
+      min-height: 32px; padding: 0 12px; display: inline-flex; align-items: center;
+      border: 1px solid rgba(255,255,255,0.18); border-radius: 8px;
+      background: rgba(15,23,42,0.72); color: #e2e8f0; text-decoration: none;
+      font: 700 12px system-ui, sans-serif; backdrop-filter: blur(14px);
     }
     .demo-github-link:hover { background: rgba(30,41,59,0.86); border-color: rgba(96,165,250,0.6); }
+    .panel {
+      height: 100%; overflow: auto; padding: 16px; color: #e2e8f0;
+      background: var(--dp-window-body-bg, #111827);
+      font: 13px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    .panel h2 { margin: 0 0 10px; font-size: 17px; }
+    .panel h3 { margin: 16px 0 8px; font-size: 13px; color: #93c5fd; text-transform: uppercase; letter-spacing: .08em; }
+    .muted { color: rgba(226,232,240,.62); }
+    .grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card {
+      padding: 12px; border: 1px solid rgba(148,163,184,.18); border-radius: 8px;
+      background: rgba(255,255,255,.045);
+    }
+    .card strong { display: block; margin-bottom: 4px; color: #f8fafc; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .btn {
+      min-height: 32px; padding: 0 12px; border: 1px solid rgba(148,163,184,.24);
+      border-radius: 7px; background: rgba(255,255,255,.07); color: #e2e8f0;
+      cursor: pointer; font: 700 12px system-ui, sans-serif;
+    }
+    .btn:hover { border-color: rgba(96,165,250,.58); background: rgba(59,130,246,.18); }
+    .btn.primary { border-color: rgba(59,130,246,.54); background: rgba(59,130,246,.24); color: #dbeafe; }
+    .btn.danger { border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.18); color: #fecaca; }
+    .field { display: grid; grid-template-columns: 130px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
+    .field input, .field select {
+      width: 100%; height: 32px; border: 1px solid rgba(148,163,184,.24); border-radius: 7px;
+      padding: 0 10px; background: rgba(15,23,42,.72); color: #e2e8f0;
+    }
+    .event-log {
+      max-height: 160px; overflow: auto; margin-top: 8px; padding: 10px;
+      border-radius: 7px; background: rgba(2,6,23,.55); font: 11px/1.55 "Cascadia Code", Consolas, monospace;
+    }
+    .event-log div { color: #86efac; }
+    code, pre {
+      font-family: "Cascadia Code", Consolas, monospace;
+      background: rgba(2,6,23,.55); color: #93c5fd; border-radius: 6px;
+    }
+    code { padding: 1px 5px; }
+    pre { padding: 10px; overflow: auto; font-size: 11px; }
+    .layout-cell {
+      height: 100%; display: grid; place-items: center; color: rgba(226,232,240,.6);
+      background: rgba(255,255,255,.035); font-size: 12px; user-select: none;
+    }
   </style>
 </head>
 <body>
   <a class="demo-github-link" href="https://github.com/0obriano0/DeskPane" target="_blank" rel="noopener">GitHub</a>
   <div id="desktop-root"></div>
+
   <script type="module">
-    import { WindowManager, BorderLayout, setTheme } from '../../dist/deskpane.es.js';
+    import { BorderLayout, setTheme } from '../../dist/deskpane.es.js';
     import { Desktop } from '../../dist/deskpane-desktop.es.js';
     import { WorkspaceManager, TaskView } from '../../dist/deskpane-workspace.es.js';
-    
+
+    const root = document.getElementById('desktop-root');
     const desktop = new Desktop({
-      container: document.getElementById('desktop-root'),
+      container: root,
       dragThreshold: 10,
       dock: { position: 'bottom', showLabels: true, iconSize: 44, items: [] },
       icons: [
-        { id: 'icon-intro',   label: '功能介紹',    icon: '🖥',  action: () => openApp('intro')   },
-        { id: 'icon-editor',  label: '文字編輯器',  icon: '📝',  action: () => openApp('editor')  },
-        { id: 'icon-counter', label: 'Keep-Alive', icon: '🔢',  action: () => openApp('counter') },
-        { id: 'icon-snap',    label: 'Snap 吸附',  icon: '⚡',  action: () => openApp('snap')    },
-        { id: 'icon-calc',    label: '計算機',      icon: '🧮',  action: () => openApp('calc')    },
-        { id: 'icon-fixed',   label: '固定大小',    icon: '🔒',  action: () => openApp('fixed')   },
-        { id: 'icon-layout',  label: 'BorderLayout', icon: '📐', action: () => openApp('layout')  },
+        { id: 'icon-overview', label: 'Overview', icon: '🖥', x: 40, y: 40, action: () => openApp('overview') },
+        { id: 'icon-window-lab', label: 'Window Lab', icon: '🪟', x: 40, y: 140, action: () => openApp('window-lab') },
+        { id: 'icon-layout', label: 'BorderLayout', icon: '📐', x: 40, y: 240, action: () => openApp('layout') },
+        { id: 'icon-children', label: 'Child Windows', icon: '🔗', x: 170, y: 40, action: () => openApp('children') },
+        { id: 'icon-events', label: 'Events', icon: '📡', x: 170, y: 140, action: () => openApp('events') },
       ],
     });
 
-    const wsMgr = new WorkspaceManager(desktop.getElement(), {
+    const workspaces = new WorkspaceManager(desktop.getElement(), {
       animationMs: 220,
       windowManagerOptions: { isolated: true, snap: true },
     });
-    wsMgr.addWorkspace({ id: 'ws-1', label: '桌面 1' });
-    desktop.syncDockWithWindows(wsMgr.getWindowManager('ws-1'));
-    wsMgr.events.on('workspace:switched', ({ to }) => {
-      desktop.syncDockWithWindows(wsMgr.getWindowManager(to));
+    workspaces.addWorkspace({ id: 'ws-1', label: '桌面 1' });
+    desktop.syncDockWithWindows(workspaces.getWindowManager('ws-1'));
+    workspaces.events.on('workspace:switched', ({ to }) => {
+      desktop.syncDockWithWindows(workspaces.getWindowManager(to));
+      currentWm().activateTopWindow();
     });
-    const taskView = new TaskView(wsMgr, { dock: desktop.getDock() });
+    const taskView = new TaskView(workspaces, { dock: desktop.getDock() });
 
     function currentWm() {
-      const cur = wsMgr.current;
-      if (!cur) throw new Error('No active workspace');
-      return wsMgr.getWindowManager(cur.id);
+      const current = workspaces.current;
+      if (!current) throw new Error('No active workspace');
+      return workspaces.getWindowManager(current.id);
     }
 
-    // ── makeCalc ──────────────────────────────────────────────
-    function makeCalc() {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'padding:12px;font-family:system-ui;height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px';
-      const out = document.createElement('div');
-      out.style.cssText = 'width:100%;padding:10px;font-size:22px;text-align:right;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);min-height:48px;word-break:break-all;color:inherit';
-      out.textContent = '0';
-      const grid = document.createElement('div');
-      grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:1';
-      let expr = '';
-      const keys = ['C','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','⌫','='];
-      keys.forEach(k => {
-        const btn = document.createElement('button');
-        btn.textContent = k;
-        const isOp = '÷×−+='.includes(k);
-        const isFn = 'C±%'.includes(k);
-        btn.style.cssText = [
-          'padding:0;font-size:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);cursor:pointer;font-weight:500',
-          'background:' + (isOp ? '#ff9500' : isFn ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)'),
-          'color:' + (isOp ? '#fff' : 'inherit'),
-        ].join(';');
-        btn.onclick = () => {
-          if (k === 'C') { expr = ''; out.textContent = '0'; }
-          else if (k === '=') {
-            try { const r = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))(); out.textContent = r; expr = String(r); }
-            catch { out.textContent = '錯誤'; expr = ''; }
-          }
-          else if (k === '⌫') { expr = expr.slice(0,-1); out.textContent = expr || '0'; }
-          else if (k === '±') { try { const v = -Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))(); out.textContent = v; expr = String(v); } catch {} }
-          else if (k === '%') { try { const v = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))() / 100; out.textContent = v; expr = String(v); } catch {} }
-          else { expr += k; out.textContent = expr; }
-        };
-        grid.appendChild(btn);
+    function el(tag, attrs = {}, children = []) {
+      const node = document.createElement(tag);
+      Object.entries(attrs).forEach(([key, value]) => {
+        if (key === 'class') node.className = value;
+        else if (key === 'style') node.style.cssText = value;
+        else if (key.startsWith('on') && typeof value === 'function') node.addEventListener(key.slice(2), value);
+        else node.setAttribute(key, value);
       });
-      wrap.append(out, grid);
-      return wrap;
+      children.forEach(child => node.append(child instanceof Node ? child : document.createTextNode(child)));
+      return node;
     }
 
-    // ── makeLayoutDemo ────────────────────────────────────────
-    function makeLayoutDemo() {
-      const root = document.createElement('div');
-      root.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;font-family:system-ui;font-size:13px';
-      const tabs = document.createElement('div');
-      tabs.style.cssText = 'display:flex;gap:4px;padding:6px 8px;background:var(--dp-window-header-bg,#1e1e2e);border-bottom:1px solid var(--dp-window-header-border,#3a3a4a);flex-shrink:0';
-      const tabDefs = [
-        { id: 'tab-border', label: '📐 BorderLayout' },
-        { id: 'tab-nested', label: '🗂 巢狀 Layout' },
-      ];
-      const paneEls = {};
-      const tabBtns = {};
-      function switchTab(id) {
-        Object.keys(paneEls).forEach(k => {
-          paneEls[k].style.display = k === id ? 'flex' : 'none';
-          tabBtns[k].style.background = k === id ? 'var(--dp-window-border-active,#5b8dee)' : 'transparent';
-          tabBtns[k].style.color = k === id ? '#fff' : 'inherit';
-        });
-      }
-      tabDefs.forEach(({ id, label }) => {
-        const btn = document.createElement('button');
-        btn.textContent = label;
-        btn.style.cssText = 'padding:4px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:5px;cursor:pointer;background:transparent;font-size:12px;color:inherit;transition:background .15s';
-        btn.onclick = () => switchTab(id);
-        tabBtns[id] = btn;
-        tabs.appendChild(btn);
-      });
-      root.appendChild(tabs);
-      function cell(label) {
-        const d = document.createElement('div');
-        d.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:12px;user-select:none';
-        d.textContent = label;
-        return d;
-      }
-      function region(attrs, label) {
-        const d = document.createElement('div');
-        Object.entries(attrs).forEach(([k, v]) => d.dataset[k] = v);
-        d.appendChild(cell(label));
-        return d;
-      }
-      function makePane() {
-        const d = document.createElement('div');
-        d.style.cssText = 'flex:1;position:relative;overflow:hidden;';
-        return d;
-      }
-      const pane1 = makePane();
-      pane1.appendChild(region({ region:'north', size:'80', title:'工具列', icon:'🔧' }, 'North — 工具列'));
-      pane1.appendChild(region({ region:'south', size:'80', title:'狀態列' }, 'South — 狀態列'));
-      pane1.appendChild(region({ region:'west',  size:'160', collapsible:'', title:'側邊欄', icon:'📁' }, 'West'));
-      pane1.appendChild(region({ region:'east',  size:'140', collapsible:'', title:'屬性', icon:'🔍' }, 'East'));
-      pane1.appendChild(region({ region:'center', title:'主內容' }, 'Center — 主編輯區'));
-      paneEls['tab-border'] = pane1;
-      root.appendChild(pane1);
-      new BorderLayout({ container: pane1 });
-      const pane2 = makePane();
-      pane2.appendChild(region({ region:'north', size:'80', title:'主工具列' }, 'North'));
-      pane2.appendChild(region({ region:'west', size:'140', collapsible:'', title:'導航' }, 'West'));
-      const centerOuter = document.createElement('div');
-      centerOuter.dataset.region = 'center';
-      centerOuter.appendChild(region({ region:'north', size:'70', title:'分頁列' }, 'Inner North — 分頁'));
-      centerOuter.appendChild(region({ region:'south', size:'70', collapsible:'', title:'輸出' }, 'Inner South — 輸出'));
-      centerOuter.appendChild(region({ region:'center', title:'編輯器' }, 'Inner Center'));
-      pane2.appendChild(centerOuter);
-      paneEls['tab-nested'] = pane2;
-      root.appendChild(pane2);
-      new BorderLayout({ container: pane2 });
-      switchTab('tab-border');
-      return root;
+    function panel(title, body) {
+      return el('div', { class: 'panel' }, [el('h2', {}, [title]), body]);
     }
-
-    // ── App state (keep-alive) ────────────────────────────────
-    let editorContent = 'DeskPane Vanilla ES Module Demo\n================================\n\n此為文字編輯器示範。\n最小化後重新開啟，內容依然保留（Keep-Alive）。\n';
-    let counterValue = 0;
-
-    const defs = {
-      intro: {
-        title: '🖥 功能介紹', width: 500, height: 380,
-        make() {
-          const div = document.createElement('div');
-          div.style.cssText = 'padding:20px;font-family:system-ui;height:100%;overflow:auto;box-sizing:border-box;line-height:1.7';
-          div.innerHTML = `
-            <h3 style="margin-bottom:12px;font-size:16px">🖥 Vanilla JS ES Module Demo</h3>
-            <p style="font-size:13px;color:#888;margin-bottom:16px">本頁以原生 ES Module 方式引入 DeskPane，示範框架各項核心功能。</p>
-            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📝 <b>文字編輯器</b> — textarea，最小化後內容保留（Keep-Alive）</div>
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🔢 <b>Keep-Alive 計數器</b> — 最小化後數值不重置</div>
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">⚡ <b>Snap 吸附</b> — 視窗拖曳時自動邊緣吸附</div>
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🧮 <b>計算機</b> — 完整四則運算邏輯</div>
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🔒 <b>固定大小</b> — resizable: false 示範</div>
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📐 <b>BorderLayout</b> — 區域佈局管理器</div>
-            </div>
-            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:16px 0"/>
-            <pre style="font-size:11px;color:#7dd3fc;background:#1e293b;padding:10px;border-radius:6px;overflow:auto">import { WindowManager, BorderLayout } from '../../dist/deskpane.es.js'
-import { Desktop } from '../../dist/deskpane-desktop.es.js'
-import { WorkspaceManager, TaskView } from '../../dist/deskpane-workspace.es.js'</pre>
-          `;
-          return div;
-        }
-      },
-      editor: {
-        title: '📝 文字編輯器', width: 560, height: 380,
-        make() {
-          const wrap = document.createElement('div');
-          wrap.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column';
-          const ta = document.createElement('textarea');
-          ta.value = editorContent;
-          ta.style.cssText = 'flex:1;padding:12px;font-size:14px;font-family:monospace;border:none;outline:none;resize:none;background:transparent;color:inherit';
-          ta.placeholder = '開始輸入...';
-          ta.oninput = () => { editorContent = ta.value; };
-          const bar = document.createElement('div');
-          bar.style.cssText = 'padding:6px 12px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:rgba(255,255,255,0.4);background:rgba(0,0,0,0.2)';
-          bar.textContent = '最小化後重新開啟，內容依然保留（Keep-Alive 狀態）';
-          wrap.append(ta, bar);
-          return wrap;
-        }
-      },
-      counter: {
-        title: '🔢 Keep-Alive 計數器', width: 300, height: 280,
-        make() {
-          const wrap = document.createElement('div');
-          wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;font-family:system-ui;padding:20px;text-align:center';
-          const num = document.createElement('div');
-          num.textContent = counterValue;
-          num.style.cssText = 'font-size:64px;font-weight:700;line-height:1;color:#3b82f6';
-          const row = document.createElement('div');
-          row.style.cssText = 'display:flex;gap:12px';
-          [['－', -1], ['＋', 1]].forEach(([label, delta]) => {
-            const btn = document.createElement('button');
-            btn.textContent = label;
-            btn.style.cssText = 'width:48px;height:48px;font-size:24px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);cursor:pointer;background:rgba(255,255,255,0.08);color:inherit';
-            btn.onclick = () => { counterValue += delta; num.textContent = counterValue; num.style.color = counterValue > 0 ? '#34d399' : counterValue < 0 ? '#f87171' : '#3b82f6'; };
-            row.appendChild(btn);
-          });
-          const rst = document.createElement('button');
-          rst.textContent = '重置';
-          rst.style.cssText = 'padding:6px 18px;font-size:13px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);cursor:pointer;background:rgba(255,255,255,0.06);color:inherit';
-          rst.onclick = () => { counterValue = 0; num.textContent = 0; num.style.color = '#3b82f6'; };
-          const hint = document.createElement('p');
-          hint.style.cssText = 'font-size:11px;color:#888;margin:0';
-          hint.textContent = '最小化後重新開啟，數值保留（Keep-Alive）';
-          wrap.append(num, row, rst, hint);
-          return wrap;
-        }
-      },
-      snap: {
-        title: '⚡ Snap 吸附示範', width: 420, height: 280,
-        make() {
-          const div = document.createElement('div');
-          div.style.cssText = 'padding:20px;font-family:system-ui;height:100%;overflow:auto;box-sizing:border-box';
-          div.innerHTML = `
-            <h4 style="margin-bottom:12px;font-size:15px">⚡ 視窗吸附功能</h4>
-            <p style="font-size:13px;line-height:1.8;color:#aaa">拖曳多個視窗靠近時，會自動吸附對齊邊緣。</p>
-            <ul style="margin-top:12px;font-size:13px;line-height:2;padding-left:20px;color:#ccc">
-              <li>視窗間隔小於吸附閾值時自動對齊</li>
-              <li>支援上下左右四個方向</li>
-              <li>WorkspaceManager 選項：<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px">snap: true</code></li>
-              <li>可透過 <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px">wm.setSnapGap(n)</code> 調整間距</li>
-            </ul>
-            <p style="margin-top:16px;font-size:12px;color:#666">試試拖曳本視窗靠近其他視窗的邊緣！</p>
-          `;
-          return div;
-        }
-      },
-      calc: {
-        title: '🧮 計算機', width: 280, height: 380, resizable: false,
-        make: () => makeCalc(),
-      },
-      fixed: {
-        title: '🔒 固定大小對話框', width: 340, height: 200, resizable: false,
-        make() {
-          const div = document.createElement('div');
-          div.style.cssText = 'padding:24px;font-family:system-ui;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;text-align:center';
-          div.innerHTML = `
-            <div style="font-size:36px">🔒</div>
-            <div style="font-size:15px;font-weight:600">固定大小視窗</div>
-            <div style="font-size:13px;color:#888;line-height:1.6">此視窗設定了 <code style="background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:3px">resizable: false</code><br/>無法被調整大小。</div>
-          `;
-          return div;
-        }
-      },
-      layout: {
-        title: '📐 BorderLayout', width: 720, height: 480,
-        make: () => makeLayoutDemo(),
-      },
-    };
 
     function openApp(id) {
-      const def = defs[id];
+      const def = apps[id];
       if (!def) return;
       currentWm().open({
         id: 'app-' + id,
         title: def.title,
+        icon: def.icon,
+        label: def.label,
         width: def.width,
         height: def.height,
+        x: def.x,
+        y: def.y,
         resizable: def.resizable,
         slotType: 'dom',
         content: def.make(),
       });
     }
 
-    openApp('intro');
+    function makeOverview() {
+      const grid = el('div', { class: 'grid' }, [
+        feature('Desktop', 'Icons are data-driven, draggable, and stored by Desktop.'),
+        feature('Dock sync', 'Window events automatically update the Dock active/minimized state.'),
+        feature('WorkspaceManager', 'Task View can add/switch virtual desktops without app code.'),
+        feature('WindowManager', 'Open, focus, minimize, maximize, restore, snap, and close are all visible.'),
+        feature('Child windows', 'parentId and modal behavior keep child windows attached to their parent.'),
+        feature('BorderLayout', 'Region-based layout can be mounted inside any DeskPane window.'),
+      ]);
+      const code = el('pre', {}, [`const desktop = new Desktop({ container, icons })
+const workspaces = new WorkspaceManager(desktop.getElement(), {
+  windowManagerOptions: { isolated: true, snap: true }
+})
+desktop.syncDockWithWindows(workspaces.getWindowManager('ws-1'))
+new TaskView(workspaces, { dock: desktop.getDock() })`]);
+      const body = el('div', {}, [
+        el('p', { class: 'muted' }, ['This demo uses only vanilla JavaScript and DeskPane modules. The content exists to exercise the DeskPane API, not to simulate unrelated applications.']),
+        el('h3', {}, ['What is active here']),
+        grid,
+        el('h3', {}, ['Minimal setup']),
+        code,
+      ]);
+      return panel('Vanilla DeskPane Demo', body);
+    }
+
+    function feature(title, text) {
+      return el('div', { class: 'card' }, [el('strong', {}, [title]), el('span', { class: 'muted' }, [text])]);
+    }
+
+    function makeWindowLab() {
+      const gapInput = el('input', { type: 'number', min: '0', max: '48', value: '0', oninput: () => currentWm().setSnapGap(Number(gapInput.value) || 0) });
+      const body = el('div', {}, [
+        el('p', { class: 'muted' }, ['Use these controls to exercise WindowManager methods against this window.']),
+        el('div', { class: 'field' }, [el('span', {}, ['Snap gap']), gapInput]),
+        el('div', { class: 'btn-row' }, [
+          el('button', { class: 'btn', onclick: () => currentWm().minimize('app-window-lab') }, ['Minimize']),
+          el('button', { class: 'btn', onclick: () => currentWm().maximize('app-window-lab') }, ['Maximize']),
+          el('button', { class: 'btn', onclick: () => currentWm().restore('app-window-lab') }, ['Restore']),
+          el('button', { class: 'btn', onclick: () => currentWm().shake('app-window-lab') }, ['Shake']),
+          el('button', { class: 'btn primary', onclick: () => openFloatingProbe() }, ['Open snap probe']),
+          el('button', { class: 'btn danger', onclick: () => currentWm().close('app-window-lab') }, ['Close']),
+        ]),
+        el('h3', {}, ['Try it']),
+        el('p', { class: 'muted' }, ['Open the snap probe and drag it near this window. Change snap gap, then drag again.']),
+      ]);
+      return panel('WindowManager Lab', body);
+    }
+
+    function openFloatingProbe() {
+      currentWm().open({
+        id: 'snap-probe-' + Date.now(),
+        title: 'Snap probe',
+        width: 260,
+        height: 150,
+        x: 520,
+        y: 120,
+        content: panel('Snap probe', el('p', { class: 'muted' }, ['Drag this window near another window to see snap alignment and gap behavior.'])),
+      });
+    }
+
+    function makeLayoutDemo() {
+      const root = el('div', { style: 'width:100%;height:100%;position:relative;font-family:system-ui;font-size:13px' });
+      root.append(
+        region('north', '64', 'Toolbar', 'North toolbar'),
+        region('west', '170', 'Navigation', 'West panel', true),
+        region('east', '150', 'Inspector', 'East panel', true),
+        region('south', '58', 'Status', 'South status'),
+        region('center', '', 'Main', 'Center workspace'),
+      );
+      setTimeout(() => new BorderLayout({ container: root }), 0);
+      return root;
+    }
+
+    function region(name, size, title, label, collapsible = false) {
+      const node = el('div');
+      node.dataset.region = name;
+      node.dataset.title = title;
+      if (size) node.dataset.size = size;
+      if (collapsible) node.dataset.collapsible = '';
+      node.append(el('div', { class: 'layout-cell' }, [label]));
+      return node;
+    }
+
+    function makeChildrenDemo() {
+      const body = el('div', {}, [
+        el('p', { class: 'muted' }, ['This parent window opens modal and non-modal children with parentId. Children stay above the parent and do not get standalone Dock items.']),
+        el('div', { class: 'btn-row' }, [
+          el('button', { class: 'btn primary', onclick: () => openModalChild() }, ['Open modal child']),
+          el('button', { class: 'btn', onclick: () => openNonModalChild() }, ['Open non-modal child']),
+        ]),
+        el('h3', {}, ['Behavior']),
+        el('div', { class: 'grid' }, [
+          feature('Modal child', 'Parent receives an overlay; clicking it shakes the modal child.'),
+          feature('Non-modal child', 'Parent and child can both be focused, but Dock still groups them.'),
+        ]),
+      ]);
+      return panel('Parent / Child Window Demo', body);
+    }
+
+    function openModalChild() {
+      currentWm().open({
+        id: 'child-modal',
+        title: 'Modal child',
+        parentId: 'app-children',
+        modal: true,
+        width: 340,
+        height: 210,
+        resizable: false,
+        content: panel('Modal child', el('div', {}, [
+          el('p', { class: 'muted' }, ['The parent is blocked until this modal child closes.']),
+          el('div', { class: 'btn-row' }, [el('button', { class: 'btn primary', onclick: () => currentWm().close('child-modal') }, ['Close modal'])]),
+        ])),
+      });
+    }
+
+    function openNonModalChild() {
+      currentWm().open({
+        id: 'child-inspector',
+        title: 'Non-modal child',
+        parentId: 'app-children',
+        modal: false,
+        width: 320,
+        height: 230,
+        content: panel('Non-modal child', el('p', { class: 'muted' }, ['This child stays attached to the parent, but the parent remains interactive.'])),
+      });
+    }
+
+    function makeEventsDemo() {
+      const log = el('div', { class: 'event-log' });
+      const add = text => {
+        log.prepend(el('div', {}, [new Date().toLocaleTimeString('zh-TW', { hour12: false }) + '  ' + text]));
+        while (log.children.length > 30) log.lastChild.remove();
+      };
+      const wm = currentWm();
+      ['window:opened','window:closed','window:focused','window:minimized','window:maximized','window:restored'].forEach(eventName => {
+        wm.events.on(eventName, payload => add(`${eventName} ${payload.id ?? payload.title ?? ''}`));
+      });
+      const body = el('div', {}, [
+        el('p', { class: 'muted' }, ['Open, focus, minimize, maximize, restore, and close windows to see WindowManager events.']),
+        el('div', { class: 'btn-row' }, [
+          el('button', { class: 'btn primary', onclick: () => openFloatingProbe() }, ['Open probe window']),
+          el('button', { class: 'btn', onclick: () => taskView.open() }, ['Open Task View']),
+        ]),
+        log,
+      ]);
+      setTimeout(() => add('event monitor attached'), 0);
+      return panel('Event Monitor', body);
+    }
+
+    const apps = {
+      overview: { title: '🖥 Overview', label: 'Overview', icon: '🖥', width: 560, height: 430, x: 80, y: 54, make: makeOverview },
+      'window-lab': { title: '🪟 Window Lab', label: 'Window Lab', icon: '🪟', width: 480, height: 330, x: 150, y: 90, make: makeWindowLab },
+      layout: { title: '📐 BorderLayout', label: 'BorderLayout', icon: '📐', width: 720, height: 460, x: 180, y: 70, make: makeLayoutDemo },
+      children: { title: '🔗 Child Windows', label: 'Child Windows', icon: '🔗', width: 500, height: 330, x: 220, y: 110, make: makeChildrenDemo },
+      events: { title: '📡 Event Monitor', label: 'Events', icon: '📡', width: 480, height: 360, x: 260, y: 130, make: makeEventsDemo },
+    };
+
+    setTheme('dark', { basePath: '../../dist/themes' });
+    openApp('overview');
   </script>
 </body>
 </html>

@@ -4,46 +4,80 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DeskPane — jQuery Demo</title>
-  <meta name="description" content="jQuery and UMD DeskPane demo showing browser desktop windows, Dock integration, virtual workspaces, and draggable web applications." />
+  <meta name="description" content="jQuery and UMD DeskPane demo focused on Desktop, Dock, WindowManager, WorkspaceManager, TaskView, child windows, modal dialogs, snap, and BorderLayout." />
   <link rel="canonical" href="https://0obriano0.github.io/DeskPane/demo/jquery/" />
   <meta property="og:title" content="DeskPane jQuery Demo" />
-  <meta property="og:description" content="DeskPane UMD and jQuery web desktop window manager demo." />
+  <meta property="og:description" content="DeskPane UMD and jQuery demo focused on web desktop window management APIs." />
   <meta property="og:url" content="https://0obriano0.github.io/DeskPane/demo/jquery/" />
   <meta name="twitter:card" content="summary" />
   <link rel="stylesheet" href="../../dist/themes/dark.css" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #020617; }
     #desktop-root { width: 100vw; height: 100vh; }
     .demo-github-link {
-      position: fixed;
-      top: 14px;
-      right: 14px;
-      z-index: 30000;
-      min-height: 32px;
-      padding: 0 12px;
-      display: inline-flex;
-      align-items: center;
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 8px;
-      background: rgba(15,23,42,0.72);
-      color: #e2e8f0;
-      text-decoration: none;
-      font: 700 12px system-ui, sans-serif;
-      backdrop-filter: blur(14px);
+      position: fixed; right: 14px; bottom: 84px; z-index: 30000;
+      min-height: 32px; padding: 0 12px; display: inline-flex; align-items: center;
+      border: 1px solid rgba(255,255,255,0.18); border-radius: 8px;
+      background: rgba(15,23,42,0.72); color: #e2e8f0; text-decoration: none;
+      font: 700 12px system-ui, sans-serif; backdrop-filter: blur(14px);
     }
     .demo-github-link:hover { background: rgba(30,41,59,0.86); border-color: rgba(96,165,250,0.6); }
+    .panel {
+      height: 100%; overflow: auto; padding: 16px; color: #e2e8f0;
+      background: var(--dp-window-body-bg, #111827);
+      font: 13px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    .panel h2 { margin: 0 0 10px; font-size: 17px; }
+    .panel h3 { margin: 16px 0 8px; font-size: 13px; color: #93c5fd; text-transform: uppercase; letter-spacing: .08em; }
+    .muted { color: rgba(226,232,240,.62); }
+    .grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card {
+      padding: 12px; border: 1px solid rgba(148,163,184,.18); border-radius: 8px;
+      background: rgba(255,255,255,.045);
+    }
+    .card strong { display: block; margin-bottom: 4px; color: #f8fafc; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .btn {
+      min-height: 32px; padding: 0 12px; border: 1px solid rgba(148,163,184,.24);
+      border-radius: 7px; background: rgba(255,255,255,.07); color: #e2e8f0;
+      cursor: pointer; font: 700 12px system-ui, sans-serif;
+    }
+    .btn:hover { border-color: rgba(96,165,250,.58); background: rgba(59,130,246,.18); }
+    .btn.primary { border-color: rgba(59,130,246,.54); background: rgba(59,130,246,.24); color: #dbeafe; }
+    .btn.danger { border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.18); color: #fecaca; }
+    .field { display: grid; grid-template-columns: 130px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
+    .field input {
+      width: 100%; height: 32px; border: 1px solid rgba(148,163,184,.24); border-radius: 7px;
+      padding: 0 10px; background: rgba(15,23,42,.72); color: #e2e8f0;
+    }
+    .event-log {
+      max-height: 160px; overflow: auto; margin-top: 8px; padding: 10px;
+      border-radius: 7px; background: rgba(2,6,23,.55); font: 11px/1.55 "Cascadia Code", Consolas, monospace;
+    }
+    .event-log div { color: #86efac; }
+    code, pre {
+      font-family: "Cascadia Code", Consolas, monospace;
+      background: rgba(2,6,23,.55); color: #93c5fd; border-radius: 6px;
+    }
+    code { padding: 1px 5px; }
+    pre { padding: 10px; overflow: auto; font-size: 11px; }
+    .layout-cell {
+      height: 100%; display: grid; place-items: center; color: rgba(226,232,240,.6);
+      background: rgba(255,255,255,.035); font-size: 12px; user-select: none;
+    }
   </style>
 </head>
 <body>
   <a class="demo-github-link" href="https://github.com/0obriano0/DeskPane" target="_blank" rel="noopener">GitHub</a>
   <div id="desktop-root"></div>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="../../dist/deskpane.umd.js"></script>
   <script src="../../dist/deskpane-desktop.umd.js"></script>
   <script src="../../dist/deskpane-workspace.umd.js"></script>
   <script>
-    const { BorderLayout } = DeskPane;
+    const { BorderLayout, setTheme } = DeskPane;
     const { Desktop } = DeskPaneDesktop;
     const { WorkspaceManager, TaskView } = DeskPaneWorkspace;
 
@@ -52,305 +86,207 @@
       dragThreshold: 10,
       dock: { position: 'bottom', showLabels: true, iconSize: 44, items: [] },
       icons: [
-        { id: 'icon-intro',   label: 'jQuery 說明', icon: '💙', action: () => openApp('intro')   },
-        { id: 'icon-form',    label: 'jQuery Form', icon: '📋', action: () => openApp('form')    },
-        { id: 'icon-table',   label: '動態 Table',  icon: '📊', action: () => openApp('table')   },
-        { id: 'icon-animate', label: 'jQuery 動畫', icon: '🎬', action: () => openApp('animate') },
-        { id: 'icon-calc',    label: '計算機',      icon: '🧮', action: () => openApp('calc')    },
-        { id: 'icon-layout',  label: 'BorderLayout', icon: '📐', action: () => openApp('layout') },
+        { id: 'icon-overview', label: 'Overview', icon: '💙', x: 40, y: 40, action: () => openApp('overview') },
+        { id: 'icon-window-lab', label: 'Window Lab', icon: '🪟', x: 40, y: 140, action: () => openApp('window-lab') },
+        { id: 'icon-layout', label: 'BorderLayout', icon: '📐', x: 40, y: 240, action: () => openApp('layout') },
+        { id: 'icon-children', label: 'Child Windows', icon: '🔗', x: 170, y: 40, action: () => openApp('children') },
+        { id: 'icon-events', label: 'Events', icon: '📡', x: 170, y: 140, action: () => openApp('events') },
       ],
     });
 
-    const wsMgr = new WorkspaceManager(desktop.getElement(), {
+    const workspaces = new WorkspaceManager(desktop.getElement(), {
       animationMs: 220,
       windowManagerOptions: { isolated: true, snap: true },
     });
-    wsMgr.addWorkspace({ id: 'ws-1', label: '桌面 1' });
-    desktop.syncDockWithWindows(wsMgr.getWindowManager('ws-1'));
-    wsMgr.events.on('workspace:switched', ({ to }) => {
-      desktop.syncDockWithWindows(wsMgr.getWindowManager(to));
+    workspaces.addWorkspace({ id: 'ws-1', label: '桌面 1' });
+    desktop.syncDockWithWindows(workspaces.getWindowManager('ws-1'));
+    workspaces.events.on('workspace:switched', ({ to }) => {
+      desktop.syncDockWithWindows(workspaces.getWindowManager(to));
+      currentWm().activateTopWindow();
     });
-    const taskView = new TaskView(wsMgr, { dock: desktop.getDock() });
+    const taskView = new TaskView(workspaces, { dock: desktop.getDock() });
 
     function currentWm() {
-      const cur = wsMgr.current;
-      if (!cur) throw new Error('No active workspace');
-      return wsMgr.getWindowManager(cur.id);
+      const current = workspaces.current;
+      if (!current) throw new Error('No active workspace');
+      return workspaces.getWindowManager(current.id);
     }
 
-    // ── makeCalc (with jQuery) ────────────────────────────────
-    function makeCalc() {
-      const $wrap = $('<div>').css({ padding: '12px', fontFamily: 'system-ui', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '10px' });
-      const $out = $('<div>').css({ width: '100%', padding: '10px', fontSize: '22px', textAlign: 'right', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)', minHeight: '48px', wordBreak: 'break-all', color: 'inherit' }).text('0');
-      const $grid = $('<div>').css({ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '6px', flex: '1' });
-      let expr = '';
-      const keys = ['C','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','⌫','='];
-      keys.forEach(k => {
-        const isOp = '÷×−+='.includes(k);
-        const isFn = 'C±%'.includes(k);
-        $('<button>').text(k).css({
-          padding: '0', fontSize: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', fontWeight: '500',
-          background: isOp ? '#ff9500' : isFn ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)',
-          color: isOp ? '#fff' : 'inherit',
-        }).on('click', () => {
-          if (k === 'C') { expr = ''; $out.text('0'); }
-          else if (k === '=') {
-            try { const r = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))(); $out.text(r); expr = String(r); }
-            catch { $out.text('錯誤'); expr = ''; }
-          }
-          else if (k === '⌫') { expr = expr.slice(0,-1); $out.text(expr || '0'); }
-          else if (k === '±') { try { const v = -Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))(); $out.text(v); expr = String(v); } catch {} }
-          else if (k === '%') { try { const v = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))() / 100; $out.text(v); expr = String(v); } catch {} }
-          else { expr += k; $out.text(expr); }
-        }).appendTo($grid);
-      });
-      $wrap.append($out, $grid);
-      return $wrap[0];
+    function panel(title, $body) {
+      return $('<div class="panel">').append($('<h2>').text(title), $body)[0];
     }
 
-    // ── makeLayoutDemo ────────────────────────────────────────
-    function makeLayoutDemo() {
-      const root = document.createElement('div');
-      root.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;font-family:system-ui;font-size:13px';
-      const tabs = document.createElement('div');
-      tabs.style.cssText = 'display:flex;gap:4px;padding:6px 8px;background:var(--dp-window-header-bg,#1e1e2e);border-bottom:1px solid var(--dp-window-header-border,#3a3a4a);flex-shrink:0';
-      const tabDefs = [
-        { id: 'tab-border', label: '📐 BorderLayout' },
-        { id: 'tab-nested', label: '🗂 巢狀 Layout' },
-      ];
-      const paneEls = {};
-      const tabBtns = {};
-      function switchTab(id) {
-        Object.keys(paneEls).forEach(k => {
-          paneEls[k].style.display = k === id ? 'flex' : 'none';
-          tabBtns[k].style.background = k === id ? 'var(--dp-window-border-active,#5b8dee)' : 'transparent';
-          tabBtns[k].style.color = k === id ? '#fff' : 'inherit';
-        });
-      }
-      tabDefs.forEach(({ id, label }) => {
-        const btn = document.createElement('button');
-        btn.textContent = label;
-        btn.style.cssText = 'padding:4px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:5px;cursor:pointer;background:transparent;font-size:12px;color:inherit;transition:background .15s';
-        btn.onclick = () => switchTab(id);
-        tabBtns[id] = btn;
-        tabs.appendChild(btn);
-      });
-      root.appendChild(tabs);
-      function cell(label) {
-        const d = document.createElement('div');
-        d.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:12px;user-select:none';
-        d.textContent = label;
-        return d;
-      }
-      function region(attrs, label) {
-        const d = document.createElement('div');
-        Object.entries(attrs).forEach(([k, v]) => d.dataset[k] = v);
-        d.appendChild(cell(label));
-        return d;
-      }
-      function makePane() {
-        const d = document.createElement('div');
-        d.style.cssText = 'flex:1;position:relative;overflow:hidden;';
-        return d;
-      }
-      const pane1 = makePane();
-      pane1.appendChild(region({ region:'north', size:'80', title:'工具列', icon:'🔧' }, 'North — 工具列'));
-      pane1.appendChild(region({ region:'south', size:'80', title:'狀態列' }, 'South — 狀態列'));
-      pane1.appendChild(region({ region:'west',  size:'160', collapsible:'', title:'側邊欄', icon:'📁' }, 'West'));
-      pane1.appendChild(region({ region:'east',  size:'140', collapsible:'', title:'屬性', icon:'🔍' }, 'East'));
-      pane1.appendChild(region({ region:'center', title:'主內容' }, 'Center — 主編輯區'));
-      paneEls['tab-border'] = pane1;
-      root.appendChild(pane1);
-      new BorderLayout({ container: pane1 });
-      const pane2 = makePane();
-      pane2.appendChild(region({ region:'north', size:'80', title:'主工具列' }, 'North'));
-      pane2.appendChild(region({ region:'west', size:'140', collapsible:'', title:'導航' }, 'West'));
-      const centerOuter = document.createElement('div');
-      centerOuter.dataset.region = 'center';
-      centerOuter.appendChild(region({ region:'north', size:'70', title:'分頁列' }, 'Inner North — 分頁'));
-      centerOuter.appendChild(region({ region:'south', size:'70', collapsible:'', title:'輸出' }, 'Inner South — 輸出'));
-      centerOuter.appendChild(region({ region:'center', title:'編輯器' }, 'Inner Center'));
-      pane2.appendChild(centerOuter);
-      paneEls['tab-nested'] = pane2;
-      root.appendChild(pane2);
-      new BorderLayout({ container: pane2 });
-      switchTab('tab-border');
-      return root;
+    function card(title, text) {
+      return $('<div class="card">').append($('<strong>').text(title), $('<span class="muted">').text(text));
     }
-
-    // ── App definitions ────────────────────────────────────────
-    const defs = {
-      intro: {
-        title: '💙 jQuery 整合說明', width: 520, height: 440,
-        make() {
-          const $div = $('<div>').css({ padding: '20px', fontFamily: 'system-ui', height: '100%', overflow: 'auto', boxSizing: 'border-box' });
-          $div.html(`
-            <h3 style="margin-bottom:12px;font-size:16px">💙 DeskPane + jQuery</h3>
-            <p style="font-size:13px;color:#888;margin-bottom:16px;line-height:1.7">DeskPane 與 jQuery 完全相容，你可以用 jQuery 建立視窗內容，DeskPane 負責視窗管理。</p>
-            <pre style="font-size:11px;color:#7dd3fc;background:#1e293b;padding:12px;border-radius:6px;overflow:auto;margin-bottom:16px">&lt;script src="jquery-3.7.1.min.js"&gt;&lt;/script&gt;
-&lt;script src="deskpane.umd.js"&gt;&lt;/script&gt;
-&lt;script src="deskpane-desktop.umd.js"&gt;&lt;/script&gt;
-// 用 jQuery 建立視窗內容
-wm.open({ id: 'my-app', title: '📋 Form', content: $form[0] })</pre>
-            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📋 <b>jQuery Form</b> — 驗證表單，$.serializeArray()</div>
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📊 <b>動態 Table</b> — jQuery DOM 操作新增/刪除列</div>
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🎬 <b>jQuery 動畫</b> — fadeIn/fadeOut/slideToggle/rotate</div>
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">🧮 <b>計算機</b> — 以 jQuery 建立 UI</div>
-              <div style="padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px">📐 <b>BorderLayout</b> — DeskPane.BorderLayout 佈局管理器</div>
-            </div>
-          `);
-          return $div[0];
-        }
-      },
-      form: {
-        title: '📋 jQuery Form', width: 420, height: 400,
-        make() {
-          const $div = $('<div>').css({ padding: '20px', fontFamily: 'system-ui', height: '100%', overflow: 'auto', boxSizing: 'border-box' });
-          $div.html(`
-            <h4 style="margin-bottom:16px;font-size:14px">📋 驗證表單</h4>
-            <form id="jq-form" style="display:flex;flex-direction:column;gap:12px">
-              <div>
-                <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:500">姓名 *</label>
-                <input name="name" type="text" placeholder="請輸入姓名" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);font-size:13px;background:rgba(255,255,255,0.06);color:inherit;box-sizing:border-box"/>
-              </div>
-              <div>
-                <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:500">部門 *</label>
-                <select name="dept" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);font-size:13px;background:rgba(30,30,50,0.9);color:inherit;box-sizing:border-box">
-                  <option value="">-- 請選擇 --</option>
-                  <option>研發部</option><option>業務部</option><option>財務部</option>
-                </select>
-              </div>
-              <div>
-                <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:500">Email *</label>
-                <input name="email" type="email" placeholder="name@company.com" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);font-size:13px;background:rgba(255,255,255,0.06);color:inherit;box-sizing:border-box"/>
-              </div>
-              <button type="submit" style="padding:10px;border-radius:8px;border:none;cursor:pointer;background:#4a90e2;color:#fff;font-size:14px;font-weight:600">送出</button>
-            </form>
-            <div id="form-result" style="margin-top:12px;font-size:12px;display:none"></div>
-          `);
-          $div.find('#jq-form').on('submit', function(e) {
-            e.preventDefault();
-            const data = $(this).serializeArray();
-            const errors = data.filter(f => !f.value.trim());
-            const $res = $div.find('#form-result');
-            if (errors.length) {
-              $res.text('⚠️ 請填寫所有必填欄位').css('color', '#f87171').show();
-              return;
-            }
-            const txt = data.map(f => f.name + ': ' + f.value).join('  |  ');
-            $res.text('✅ 送出成功：' + txt).css('color', '#34d399').show();
-          });
-          return $div[0];
-        }
-      },
-      table: {
-        title: '📊 動態 Table', width: 560, height: 420,
-        make() {
-          const $div = $('<div>').css({ padding: '16px', fontFamily: 'system-ui', height: '100%', overflow: 'auto', boxSizing: 'border-box' });
-          let rowId = 0;
-          const rows = [
-            { id: ++rowId, name: '張小明', dept: '研發部', score: 92 },
-            { id: ++rowId, name: '李大花', dept: '業務部', score: 87 },
-            { id: ++rowId, name: '王志遠', dept: '財務部', score: 78 },
-          ];
-          const names = ['陳美玲','林大鵬','吳明志','黃建成','劉雅琪'];
-          const depts = ['研發部','業務部','財務部','人資部'];
-          function render() {
-            $div.empty();
-            $('<h4>').text('📊 員工資料表').css({ marginBottom: '8px', fontSize: '14px' }).appendTo($div);
-            $('<button>').text('＋ 新增一列').css({
-              padding: '6px 16px', borderRadius: '6px', border: 'none', background: '#4a90e2',
-              color: '#fff', cursor: 'pointer', fontSize: '13px', marginBottom: '12px',
-            }).on('click', () => {
-              rows.push({ id: ++rowId, name: names[Math.floor(Math.random()*names.length)], dept: depts[Math.floor(Math.random()*depts.length)], score: Math.floor(Math.random()*40)+60 });
-              render();
-            }).appendTo($div);
-            const $table = $('<table>').css({ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }).appendTo($div);
-            $('<thead>').append($('<tr>').append(
-              ['ID','姓名','部門','分數','操作'].map(h => $('<th>').text(h).css({ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#888', fontWeight: '500' }))
-            )).appendTo($table);
-            const $tbody = $('<tbody>').appendTo($table);
-            rows.forEach(r => {
-              const idx = rows.indexOf(r);
-              $('<tr>').append(
-                $('<td>').text(r.id).css({ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }),
-                $('<td>').text(r.name).css({ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }),
-                $('<td>').text(r.dept).css({ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }),
-                $('<td>').text(r.score).css({ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }),
-                $('<td>').css({ padding: '4px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }).append(
-                  $('<button>').text('刪除').css({ padding: '3px 10px', borderRadius: '4px', border: '1px solid #f87171', background: 'transparent', color: '#f87171', cursor: 'pointer', fontSize: '12px' })
-                    .on('click', () => { rows.splice(idx, 1); render(); })
-                )
-              ).appendTo($tbody);
-            });
-          }
-          render();
-          return $div[0];
-        }
-      },
-      animate: {
-        title: '🎬 jQuery 動畫', width: 400, height: 380,
-        make() {
-          const $div = $('<div>').css({ padding: '20px', fontFamily: 'system-ui', height: '100%', overflow: 'auto', boxSizing: 'border-box' });
-          const $box = $('<div>').css({
-            width: '120px', height: '80px',
-            background: 'linear-gradient(135deg,#4a90e2,#7c3aed)',
-            borderRadius: '12px', margin: '0 auto 20px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontSize: '32px',
-          }).text('🎬').appendTo($div);
-          const anims = [
-            ['fadeOut → fadeIn', () => $box.fadeOut(400, () => $box.fadeIn(400))],
-            ['slideUp → slideDown', () => $box.slideUp(400, () => $box.slideDown(400))],
-            ['animate 位移', () => $box.animate({ marginLeft: '80px' }, 300, () => $box.animate({ marginLeft: '0px' }, 300))],
-            ['CSS rotate 旋轉', () => {
-              $box.css({ transition: 'transform 0.5s', transform: 'rotate(360deg)' });
-              setTimeout(() => $box.css({ transform: 'rotate(0deg)' }), 550);
-            }],
-            ['pulse 縮放', () => {
-              $box.animate({ width: '144px', height: '96px' }, 200).animate({ width: '120px', height: '80px' }, 200);
-            }],
-          ];
-          anims.forEach(([label, fn]) => {
-            $('<button>').text(label).css({
-              display: 'block', width: '100%', padding: '9px 16px',
-              borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)',
-              background: 'rgba(255,255,255,0.06)', color: 'inherit',
-              cursor: 'pointer', fontSize: '13px', marginBottom: '8px', textAlign: 'left',
-              transition: 'background .15s',
-            }).on('mouseenter', function() { $(this).css('background','rgba(255,255,255,0.14)'); })
-              .on('mouseleave', function() { $(this).css('background','rgba(255,255,255,0.06)'); })
-              .on('click', fn).appendTo($div);
-          });
-          return $div[0];
-        }
-      },
-      calc: {
-        title: '🧮 計算機', width: 280, height: 380, resizable: false,
-        make: () => makeCalc(),
-      },
-      layout: {
-        title: '📐 BorderLayout', width: 720, height: 480,
-        make: () => makeLayoutDemo(),
-      },
-    };
 
     function openApp(id) {
-      const def = defs[id];
+      const def = apps[id];
       if (!def) return;
       currentWm().open({
         id: 'app-' + id,
         title: def.title,
+        icon: def.icon,
+        label: def.label,
         width: def.width,
         height: def.height,
+        x: def.x,
+        y: def.y,
         resizable: def.resizable,
         slotType: 'dom',
         content: def.make(),
       });
     }
 
-    openApp('intro');
+    function makeOverview() {
+      const $grid = $('<div class="grid">').append(
+        card('UMD modules', 'DeskPane is loaded from script tags and available on window.DeskPane.'),
+        card('jQuery content', 'Window contents are built with jQuery and passed as HTMLElement content.'),
+        card('Desktop + Dock', 'Desktop icons open windows; WindowManager events keep the Dock in sync.'),
+        card('WorkspaceManager', 'Task View can add and switch virtual desktops without framework state.'),
+        card('Child windows', 'parentId and modal behavior work with jQuery-created content.'),
+        card('BorderLayout', 'DeskPane layout components can be mounted inside jQuery-built DOM.'),
+      );
+      const $code = $('<pre>').text(`const desktop = new DeskPaneDesktop.Desktop({ container, icons })
+const wm = workspaceManager.getWindowManager('ws-1')
+wm.open({ title: 'jQuery content', content: $panel[0] })`);
+      const $body = $('<div>').append(
+        $('<p class="muted">').text('This demo intentionally focuses on DeskPane integration points. jQuery is only used to create and bind window content.'),
+        $('<h3>').text('What is active here'),
+        $grid,
+        $('<h3>').text('jQuery integration shape'),
+        $code,
+      );
+      return panel('jQuery + DeskPane Demo', $body);
+    }
+
+    function makeWindowLab() {
+      const $gap = $('<input type="number" min="0" max="48" value="0">').on('input', () => currentWm().setSnapGap(Number($gap.val()) || 0));
+      const $body = $('<div>').append(
+        $('<p class="muted">').text('These jQuery buttons call WindowManager methods against this window.'),
+        $('<div class="field">').append($('<span>').text('Snap gap'), $gap),
+        $('<div class="btn-row">').append(
+          $('<button class="btn">').text('Minimize').on('click', () => currentWm().minimize('app-window-lab')),
+          $('<button class="btn">').text('Maximize').on('click', () => currentWm().maximize('app-window-lab')),
+          $('<button class="btn">').text('Restore').on('click', () => currentWm().restore('app-window-lab')),
+          $('<button class="btn">').text('Shake').on('click', () => currentWm().shake('app-window-lab')),
+          $('<button class="btn primary">').text('Open snap probe').on('click', openFloatingProbe),
+          $('<button class="btn danger">').text('Close').on('click', () => currentWm().close('app-window-lab')),
+        ),
+        $('<h3>').text('Try it'),
+        $('<p class="muted">').text('Open the snap probe and drag it near this window. Change snap gap, then drag again.'),
+      );
+      return panel('WindowManager Lab', $body);
+    }
+
+    function openFloatingProbe() {
+      currentWm().open({
+        id: 'snap-probe-' + Date.now(),
+        title: 'Snap probe',
+        width: 260,
+        height: 150,
+        x: 520,
+        y: 120,
+        content: panel('Snap probe', $('<p class="muted">').text('Drag this window near another window to see snap alignment and gap behavior.')),
+      });
+    }
+
+    function makeLayoutDemo() {
+      const $root = $('<div>').css({ width: '100%', height: '100%', position: 'relative', fontFamily: 'system-ui', fontSize: '13px' });
+      $root.append(
+        region('north', '64', 'Toolbar', 'North toolbar'),
+        region('west', '170', 'Navigation', 'West panel', true),
+        region('east', '150', 'Inspector', 'East panel', true),
+        region('south', '58', 'Status', 'South status'),
+        region('center', '', 'Main', 'Center workspace'),
+      );
+      setTimeout(() => new BorderLayout({ container: $root[0] }), 0);
+      return $root[0];
+    }
+
+    function region(name, size, title, label, collapsible = false) {
+      const $node = $('<div>').attr({ 'data-region': name, 'data-title': title });
+      if (size) $node.attr('data-size', size);
+      if (collapsible) $node.attr('data-collapsible', '');
+      return $node.append($('<div class="layout-cell">').text(label));
+    }
+
+    function makeChildrenDemo() {
+      const $body = $('<div>').append(
+        $('<p class="muted">').text('This parent window opens modal and non-modal children with parentId. Children stay above the parent and do not get standalone Dock items.'),
+        $('<div class="btn-row">').append(
+          $('<button class="btn primary">').text('Open modal child').on('click', openModalChild),
+          $('<button class="btn">').text('Open non-modal child').on('click', openNonModalChild),
+        ),
+        $('<h3>').text('Behavior'),
+        $('<div class="grid">').append(
+          card('Modal child', 'Parent receives an overlay; clicking it shakes the modal child.'),
+          card('Non-modal child', 'Parent and child can both be focused, but Dock still groups them.'),
+        ),
+      );
+      return panel('Parent / Child Window Demo', $body);
+    }
+
+    function openModalChild() {
+      currentWm().open({
+        id: 'child-modal',
+        title: 'Modal child',
+        parentId: 'app-children',
+        modal: true,
+        width: 340,
+        height: 210,
+        resizable: false,
+        content: panel('Modal child', $('<div>').append(
+          $('<p class="muted">').text('The parent is blocked until this modal child closes.'),
+          $('<div class="btn-row">').append($('<button class="btn primary">').text('Close modal').on('click', () => currentWm().close('child-modal'))),
+        )),
+      });
+    }
+
+    function openNonModalChild() {
+      currentWm().open({
+        id: 'child-inspector',
+        title: 'Non-modal child',
+        parentId: 'app-children',
+        modal: false,
+        width: 320,
+        height: 230,
+        content: panel('Non-modal child', $('<p class="muted">').text('This child stays attached to the parent, but the parent remains interactive.')),
+      });
+    }
+
+    function makeEventsDemo() {
+      const $log = $('<div class="event-log">');
+      const add = text => {
+        $log.prepend($('<div>').text(new Date().toLocaleTimeString('zh-TW', { hour12: false }) + '  ' + text));
+        $log.children().slice(30).remove();
+      };
+      const wm = currentWm();
+      ['window:opened','window:closed','window:focused','window:minimized','window:maximized','window:restored'].forEach(eventName => {
+        wm.events.on(eventName, payload => add(`${eventName} ${payload.id || payload.title || ''}`));
+      });
+      setTimeout(() => add('event monitor attached'), 0);
+      const $body = $('<div>').append(
+        $('<p class="muted">').text('Open, focus, minimize, maximize, restore, and close windows to see WindowManager events.'),
+        $('<div class="btn-row">').append(
+          $('<button class="btn primary">').text('Open probe window').on('click', openFloatingProbe),
+          $('<button class="btn">').text('Open Task View').on('click', () => taskView.open()),
+        ),
+        $log,
+      );
+      return panel('Event Monitor', $body);
+    }
+
+    const apps = {
+      overview: { title: '💙 Overview', label: 'Overview', icon: '💙', width: 560, height: 430, x: 80, y: 54, make: makeOverview },
+      'window-lab': { title: '🪟 Window Lab', label: 'Window Lab', icon: '🪟', width: 480, height: 330, x: 150, y: 90, make: makeWindowLab },
+      layout: { title: '📐 BorderLayout', label: 'BorderLayout', icon: '📐', width: 720, height: 460, x: 180, y: 70, make: makeLayoutDemo },
+      children: { title: '🔗 Child Windows', label: 'Child Windows', icon: '🔗', width: 500, height: 330, x: 220, y: 110, make: makeChildrenDemo },
+      events: { title: '📡 Event Monitor', label: 'Events', icon: '📡', width: 480, height: 360, x: 260, y: 130, make: makeEventsDemo },
+    };
+
+    setTheme('dark', { basePath: '../../dist/themes' });
+    openApp('overview');
   </script>
 </body>
 </html>

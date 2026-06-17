@@ -5,6 +5,9 @@
 ### Added
 
 - Added GitHub repository links to the demo landing page and all web demo entries.
+- Refactored the vanilla and jQuery demos into focused DeskPane API labs covering Desktop, Dock sync, WindowManager controls, WorkspaceManager, TaskView, child/modal windows, events, snap gap, and BorderLayout.
+- Moved floating GitHub links in desktop-style demos away from the top-right window control area so maximized windows remain fully operable.
+- Fixed the React demo GitHub link styling by loading the demo app stylesheet.
 
 ## 0.2.3 - 2026-06-17
 
