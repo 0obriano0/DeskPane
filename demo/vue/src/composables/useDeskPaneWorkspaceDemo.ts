@@ -49,9 +49,34 @@ export function useDeskPaneWorkspaceDemo() {
       height: app.height,
       x: app.x,
       y: app.y,
+      resizable: app.resizable,
     })
 
     syncWorkspaceWindows(current.id)
+  }
+
+  function openChildApp(workspaceId: string, parentWindowId: string, appId: string, modal: boolean) {
+    const app = demoAppMap.get(appId)
+    if (!app || !workspaceManager) return
+
+    workspaceManager.openWindow({
+      workspaceId,
+      appId: app.id,
+      title: app.title,
+      icon: app.icon,
+      label: app.label,
+      slotType: 'vue',
+      content: null,
+      parentId: parentWindowId,
+      modal,
+      width: app.width,
+      height: app.height,
+      x: app.x,
+      y: app.y,
+      resizable: app.resizable,
+    })
+
+    syncWorkspaceWindows(workspaceId)
   }
 
   function publishWindowEntries() {
@@ -80,6 +105,7 @@ export function useDeskPaneWorkspaceDemo() {
           id,
           bodyEl,
           component: app.component,
+          props: createWindowProps(workspaceId, id, appId),
         })
       })
 
@@ -105,6 +131,23 @@ export function useDeskPaneWorkspaceDemo() {
     WINDOW_SYNC_EVENTS.forEach(event => {
       cleanup.push(wm.events.on(event, () => syncWorkspaceWindows(workspaceId)))
     })
+  }
+
+  function createWindowProps(workspaceId: string, windowId: string, appId: string): Record<string, unknown> | undefined {
+    if (appId === 'settings') {
+      return {
+        onOpenModal: () => openChildApp(workspaceId, windowId, 'settings-confirm', true),
+        onOpenProperties: () => openChildApp(workspaceId, windowId, 'settings-properties', false),
+      }
+    }
+
+    if (appId === 'settings-confirm') {
+      return {
+        onClose: () => workspaceManager?.getWindowManager(workspaceId).close(windowId),
+      }
+    }
+
+    return undefined
   }
 
   function mountDeskPane() {

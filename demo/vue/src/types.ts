@@ -10,6 +10,8 @@ export interface DemoAppDefinition {
   height: number
   x: number
   y: number
+  showInDesktop?: boolean
+  resizable?: boolean
 }
 
 export interface WindowTeleportEntry {
@@ -17,4 +19,5 @@ export interface WindowTeleportEntry {
   id: string
   bodyEl: HTMLElement
   component: Component
+  props?: Record<string, unknown>
 }

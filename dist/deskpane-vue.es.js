@@ -3349,6 +3349,8 @@ const DpWindow = defineComponent({
         width: { type: Number, default: undefined },
         height: { type: Number, default: undefined },
         resizable: { type: Boolean, default: undefined },
+        parentId: { type: String, default: undefined },
+        modal: { type: Boolean, default: undefined },
         open: { type: Boolean, default: true },
     },
     emits: [
@@ -3377,6 +3379,8 @@ const DpWindow = defineComponent({
                 width: props.width,
                 height: props.height,
                 resizable: props.resizable,
+                parentId: props.parentId,
+                modal: props.modal,
                 slotType: 'vue',
                 content: null,
             }),
@@ -3415,6 +3419,8 @@ const DpWindow = defineComponent({
             width: props.width,
             height: props.height,
             resizable: props.resizable,
+            parentId: props.parentId,
+            modal: props.modal,
         }), () => manager?.updateWindow(registration), { deep: true });
         onBeforeUnmount(() => manager?.unregisterWindow(props.id));
         return () => null;

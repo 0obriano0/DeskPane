@@ -694,6 +694,14 @@ declare const DpWindow: vue.DefineComponent<vue.ExtractPropTypes<{
         type: BooleanConstructor;
         default: undefined;
     };
+    parentId: {
+        type: StringConstructor;
+        default: undefined;
+    };
+    modal: {
+        type: BooleanConstructor;
+        default: undefined;
+    };
     open: {
         type: BooleanConstructor;
         default: boolean;
@@ -735,6 +743,14 @@ declare const DpWindow: vue.DefineComponent<vue.ExtractPropTypes<{
         type: BooleanConstructor;
         default: undefined;
     };
+    parentId: {
+        type: StringConstructor;
+        default: undefined;
+    };
+    modal: {
+        type: BooleanConstructor;
+        default: undefined;
+    };
     open: {
         type: BooleanConstructor;
         default: boolean;
@@ -756,6 +772,8 @@ declare const DpWindow: vue.DefineComponent<vue.ExtractPropTypes<{
     width: number;
     height: number;
     resizable: boolean;
+    parentId: string;
+    modal: boolean;
     open: boolean;
 }, {}, {}, {}, string, vue.ComponentProvideOptions, true, {}, any>;
 

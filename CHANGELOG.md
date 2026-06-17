@@ -1,8 +1,11 @@
 # Changelog
 
-## 0.2.3 - Unreleased
+## 0.2.3 - 2026-06-17
 
-_No changes yet._
+### Added
+
+- Added `parentId` and `modal` props to the Vue `<DpWindow>` component so declarative Vue windows can use core child/modal window behavior.
+- Added a Vue workspace demo that mirrors the desktop settings child-window example with modal and non-modal child buttons.
 
 ## 0.2.2 - 2026-06-16
 

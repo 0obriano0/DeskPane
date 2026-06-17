@@ -191,6 +191,24 @@ function onWindowInitialized({ bodyEl }: { bodyEl: HTMLElement }) {
 
 `initialized` follows the Wijmo-style pattern: it fires after the underlying DeskPane instance or window body is created, so advanced users can store the instance or attach vanilla JS / jQuery behavior without leaving the declarative template API.
 
+Declarative Vue windows also support core child/modal behavior. Use `parent-id` to attach a window to its parent and `modal` to block the parent until the child is closed:
+
+```vue
+<DpWindow id="settings" v-model:open="settingsOpen" title="Settings">
+  <SettingsPanel />
+</DpWindow>
+
+<DpWindow
+  id="settings-confirm"
+  v-model:open="confirmOpen"
+  title="Confirm changes"
+  parent-id="settings"
+  modal
+>
+  <ConfirmChanges />
+</DpWindow>
+```
+
 ### React 18
 
 ```tsx

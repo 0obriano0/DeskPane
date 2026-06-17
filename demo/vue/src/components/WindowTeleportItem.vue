@@ -1,7 +1,7 @@
 <template>
   <Teleport :to="entry.bodyEl">
     <KeepAlive>
-      <component :is="entry.component" :key="cacheKey" />
+      <component :is="entry.component" :key="cacheKey" v-bind="entry.props" />
     </KeepAlive>
   </Teleport>
 </template>
