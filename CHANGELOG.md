@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.1 - Unreleased
+## 0.3.1 - 2026-06-18
 
 ### Added
 
@@ -13,8 +13,6 @@
 ### Changed
 
 - Documented the full WindowManager and Desktop event surfaces in README and developer docs.
-
-### Fixed
 
 ## 0.3.0 - 2026-06-18
 
