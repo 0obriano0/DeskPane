@@ -6,6 +6,8 @@
 
 - Added Windows-like drag restore for maximized windows: dragging a maximized title bar past `maximizedDragRestoreThreshold` restores the saved window size and continues the same drag gesture.
 - Added `window:maximized-drag-restored` so apps can distinguish drag-to-restore from regular restore actions.
+- Added Windows-like edge snap preview: dragging a resizable window pointer to the top edge previews maximize, while left/right pointer edges preview half-screen placement and apply on release.
+- Added `edgeSnap`, `edgeSnapThreshold`, and `window:edge-snapped` with an `edgeSnapTarget` payload for apps that need to react to top/left/right snap actions.
 
 ### Changed
 

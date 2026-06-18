@@ -76,6 +76,7 @@ const EVENT_DOCS = computed(() => [
   { name: 'window:maximized', when: t('events.maximized.when'), payload: 'WindowState' },
   { name: 'window:restored',  when: t('events.restored.when'),  payload: 'WindowState' },
   { name: 'window:maximized-drag-restored', when: t('events.maximizedDragRestored.when'), payload: 'WindowState' },
+  { name: 'window:edge-snapped', when: t('events.edgeSnapped.when'), payload: 'EdgeSnapEvent' },
   { name: 'window:moved',     when: t('events.moved.when'),     payload: 'WindowState' },
   { name: 'window:resized',   when: t('events.resized.when'),   payload: 'WindowState' },
   { name: 'window:child-opened', when: t('events.childOpened.when'), payload: '{ parentId, childId }' },
@@ -86,6 +87,7 @@ const EVENT_COLORS: Record<string, string> = {
   'window:opened': 'green', 'window:closed': 'red', 'window:focused': 'blue',
   'window:minimized': 'orange', 'window:maximized': 'purple', 'window:restored': 'teal',
   'window:maximized-drag-restored': 'teal',
+  'window:edge-snapped': 'purple',
   'window:moved': 'gray', 'window:resized': 'gray',
   'window:child-opened': 'indigo', 'window:child-closed': 'indigo',
 }
@@ -93,7 +95,7 @@ const EVENT_COLORS: Record<string, string> = {
 const ALL_EVENTS: WinEvent[] = [
   'window:opened', 'window:closed', 'window:focused',
   'window:minimized', 'window:maximized', 'window:restored',
-  'window:maximized-drag-restored',
+  'window:maximized-drag-restored', 'window:edge-snapped',
   'window:moved', 'window:resized',
   'window:child-opened', 'window:child-closed',
 ]
@@ -111,7 +113,7 @@ function initWM() {
       logs.value.unshift({
         time: now(),
         event: ev,
-        id: data?.id ?? '',
+        id: data?.id ?? data?.childId ?? '',
         type: EVENT_COLORS[ev] ?? 'gray',
       })
       if (logs.value.length > 20) logs.value.pop()
@@ -155,14 +157,15 @@ const ALL_EVENTS: WinEvent[] = [
   'window:opened',    'window:closed',
   'window:focused',   'window:minimized',
   'window:maximized', 'window:restored',
-  'window:maximized-drag-restored',
+  'window:maximized-drag-restored', 'window:edge-snapped',
   'window:moved',     'window:resized',
   'window:child-opened', 'window:child-closed',
 ]
 
 ALL_EVENTS.forEach(ev => {
-  wm.events.on(ev, (data: WindowState) => {
-    console.log(\`[\${ev}] id=\${data.id}\`)
+  wm.events.on(ev, (data: any) => {
+    const id = data.id ?? data.childId ?? ''
+    console.log(\`[\${ev}] id=\${id}\`)
   })
 })
 

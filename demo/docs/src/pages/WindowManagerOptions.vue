@@ -23,6 +23,8 @@
         <tr><td><code>snap</code></td><td><code>boolean</code></td><td><code>true</code></td><td v-html="t('wmopt.opt.snap')"></td></tr>
         <tr><td><code>snapThreshold</code></td><td><code>number</code></td><td><code>20</code></td><td v-html="t('wmopt.opt.snapThreshold')"></td></tr>
         <tr><td><code>snapGap</code></td><td><code>number</code></td><td><code>0</code></td><td v-html="t('wmopt.opt.snapGap')"></td></tr>
+        <tr><td><code>edgeSnap</code></td><td><code>boolean</code></td><td><code>true</code></td><td v-html="t('wmopt.opt.edgeSnap')"></td></tr>
+        <tr><td><code>edgeSnapThreshold</code></td><td><code>number</code></td><td><code>snapThreshold</code></td><td v-html="t('wmopt.opt.edgeSnapThreshold')"></td></tr>
       </tbody>
     </table>
 
@@ -116,6 +118,7 @@ const wm = new WindowManager({
   snap: true,
   snapThreshold: 20,   // snap trigger distance (px)
   snapGap: 6,          // gap between windows when snapped
+  edgeSnap: true,      // preview maximize / left-half / right-half at edges
 })
 
 // ── Fine-grained throttle ──────────────────────────────

@@ -35,6 +35,8 @@
         <tr><td><code>snap</code></td><td><code>boolean</code></td><td><code>true</code></td><td v-html="t('snap.opt.snap')"></td></tr>
         <tr><td><code>snapThreshold</code></td><td><code>number</code></td><td><code>20</code></td><td v-html="t('snap.opt.snapThreshold')"></td></tr>
         <tr><td><code>snapGap</code></td><td><code>number</code></td><td><code>0</code></td><td v-html="t('snap.opt.snapGap')"></td></tr>
+        <tr><td><code>edgeSnap</code></td><td><code>boolean</code></td><td><code>true</code></td><td v-html="t('snap.opt.edgeSnap')"></td></tr>
+        <tr><td><code>edgeSnapThreshold</code></td><td><code>number</code></td><td><code>snapThreshold</code></td><td v-html="t('snap.opt.edgeSnapThreshold')"></td></tr>
       </tbody>
     </table>
 
@@ -134,6 +136,7 @@ const wm = new WindowManager({
   snap: true,           // enable snap (default: true)
   snapThreshold: 20,    // trigger distance in px (default: 20)
   snapGap: 6,           // gap between windows when snapping (default: 0)
+  edgeSnap: true,       // Windows-like top/left/right preview (default: true)
                         // Note: container edges are always flush (no gap)
 })
 

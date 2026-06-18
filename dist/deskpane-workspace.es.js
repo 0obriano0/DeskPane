@@ -67,6 +67,8 @@ class DragResizeHandler {
         this._dragOffY = 0;
         this._dragStartX = 0;
         this._dragStartY = 0;
+        this._lastDragX = 0;
+        this._lastDragY = 0;
         this._maximizedDragRestored = false;
         // 縮放狀態
         this._resizing = false;
@@ -135,6 +137,8 @@ class DragResizeHandler {
         this._dragOffY = clientY - rect.top;
         this._dragStartX = clientX;
         this._dragStartY = clientY;
+        this._lastDragX = 0;
+        this._lastDragY = 0;
         this._maximizedDragRestored = false;
         this._winEl.style.userSelect = 'none';
         this._opts.onDragStart();
@@ -192,7 +196,9 @@ class DragResizeHandler {
             let x = e.clientX - this._dragOffX - left;
             let y = e.clientY - this._dragOffY - top;
             if (this._opts.snapFn) {
-                const snapped = this._opts.snapFn(x, y, this._winEl.offsetWidth, this._winEl.offsetHeight);
+                const pointerX = e.clientX - left;
+                const pointerY = e.clientY - top;
+                const snapped = this._opts.snapFn(x, y, this._winEl.offsetWidth, this._winEl.offsetHeight, pointerX, pointerY);
                 x = snapped.x;
                 y = snapped.y;
             }
@@ -220,6 +226,8 @@ class DragResizeHandler {
             }
             this._winEl.style.left = `${x}px`;
             this._winEl.style.top = `${y}px`;
+            this._lastDragX = x;
+            this._lastDragY = y;
             this._opts.onDrag(x, y);
         }
         else if (this._resizing && this._resizeEdge) {
@@ -308,7 +316,7 @@ class DragResizeHandler {
         if (this._dragging) {
             this._dragging = false;
             this._winEl.style.userSelect = '';
-            this._opts.onDragEnd();
+            this._opts.onDragEnd(this._lastDragX, this._lastDragY);
         }
         if (this._resizing) {
             this._resizing = false;
@@ -380,7 +388,7 @@ class DragResizeHandler {
     }
 }
 
-var BASE_CSS = "/* ============================================================\r\n * DeskPane — Default Styles\r\n * Version: 0.1.0\r\n *\r\n * Copy this file to your project and link it with:\r\n *   <link rel=\"stylesheet\" href=\"deskpane.css\">\r\n *\r\n * When using injectStyles: false option, these styles will\r\n * NOT be injected automatically — this file is your starting\r\n * point for customization.\r\n *\r\n * All values use CSS custom properties (--dp-*) so you can\r\n * override them in :root without touching this file.\r\n * ============================================================ */\r\n\r\n.dp-window {\r\n  position: fixed;\r\n  box-sizing: border-box;\r\n  display: flex;\r\n  flex-direction: column;\r\n  border: 4px solid var(--dp-window-border, #d0d0d0);\r\n  border-radius: 6px;\r\n  box-shadow: var(--dp-window-shadow, 0 4px 24px rgba(0,0,0,0.18));\r\n  background: var(--dp-window-bg, var(--dp-window-body-bg, #ffffff));\n  overflow: hidden;\r\n  min-width: 200px;\r\n  min-height: 120px;\r\n  transition: box-shadow 0.15s, border-color 0.15s;\r\n  pointer-events: auto;\r\n}\r\n.dp-window.dp-active {\r\n  border-color: var(--dp-window-border-active, #b0b8c8);\r\n  box-shadow: var(--dp-window-shadow-active, 0 8px 36px rgba(0,0,0,0.28));\r\n}\r\n.dp-window.dp-minimized {\r\n  display: none !important;\r\n}\r\n.dp-window.dp-maximized {\r\n  left: 72px !important;\r\n  top: 0 !important;\r\n  width: calc(100vw - 72px) !important;\r\n  height: calc(100vh - 48px) !important;\r\n  border-radius: 0;\r\n  border-width: 0;\r\n}\r\n\r\n/* ── Isolated container mode ──────────────────────────── */\r\n.dp-isolated {\r\n  position: relative;\r\n  overflow: clip;\r\n}\r\n.dp-isolated .dp-window {\r\n  position: absolute;\r\n}\r\n.dp-isolated .dp-window.dp-maximized {\r\n  left:   var(--dp-dock-inset-left,   0px) !important;\r\n  top:    var(--dp-dock-inset-top,    0px) !important;\r\n  width:  calc(100% - var(--dp-dock-inset-left, 0px) - var(--dp-dock-inset-right,  0px)) !important;\r\n  height: calc(100% - var(--dp-dock-inset-top,  0px) - var(--dp-dock-inset-bottom, 0px)) !important;\r\n  border-radius: 0;\r\n}\r\n\r\n/* ── Header ───────────────────────────────────────────── */\r\n.dp-header {\r\n  display: flex;\r\n  align-items: center;\r\n  padding: 0 8px;\r\n  height: 36px;\r\n  background: var(--dp-window-header-bg, #f5f5f5);\r\n  border-bottom: 1px solid var(--dp-window-header-border, #e0e0e0);\r\n  cursor: move;\r\n  user-select: none;\r\n  flex-shrink: 0;\r\n}\r\n.dp-title {\r\n  flex: 1;\r\n  font-size: 13px;\r\n  font-weight: 600;\r\n  color: var(--dp-window-title-color, #333333);\r\n  overflow: hidden;\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n}\r\n\r\n/* ── Control buttons ──────────────────────────────────── */\r\n.dp-btn {\r\n  width: 24px;\r\n  height: 24px;\r\n  border: none;\r\n  border-radius: 4px;\r\n  background: transparent;\r\n  cursor: pointer;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 14px;\r\n  color: var(--dp-window-btn-color, #555555);\r\n  margin-left: 2px;\r\n  transition: background 0.1s;\r\n}\r\n.dp-btn:hover { background: var(--dp-window-btn-hover-bg, #e0e0e0); }\r\n.dp-btn.dp-btn-close:hover {\r\n  background: var(--dp-window-btn-close-hover-bg, #ff5f57);\r\n  color: var(--dp-window-btn-close-hover-color, #ffffff);\r\n}\r\n.dp-btn:disabled {\r\n  opacity: 0.3;\r\n  cursor: not-allowed;\r\n}\r\n.dp-btn:disabled:hover { background: transparent; }\r\n\r\n/* ── Body ─────────────────────────────────────────────── */\r\n.dp-body {\n  flex: 1;\n  min-height: 0;\n  overflow: auto;\n  position: relative;\r\n  background: var(--dp-window-body-bg, #ffffff);\r\n  color: var(--dp-window-body-color, #222222);\r\n}\r\n.dp-body.dp-has-layout {\r\n  overflow: hidden;\r\n}\r\n\r\n/* ── Snap guide lines ─────────────────────────────────── */\r\n.dp-snap-guide {\r\n  position: absolute;\r\n  pointer-events: none;\r\n  z-index: 2147483647;\r\n  display: none;\r\n  background: var(--dp-snap-guide-color, rgba(0, 120, 255, 0.55));\r\n}\r\n.dp-snap-guide--v {\r\n  width: 1px;\r\n  top: 0;\r\n  bottom: 0;\r\n}\r\n.dp-snap-guide--h {\r\n  height: 1px;\r\n  left: 0;\r\n  right: 0;\r\n}\r\n\r\n/* ── Child Window ─────────────────────────────────────── */\r\n/* 子視窗標題列加左側色條，與父視窗做視覺區隔 */\r\n.dp-child-window > .dp-header {\r\n  padding-left: 10px;\r\n}\r\n.dp-child-window > .dp-header::before {\r\n  content: '';\r\n  display: inline-block;\r\n  width: 3px;\r\n  height: 16px;\r\n  border-radius: 2px;\r\n  background: var(--dp-window-border-active, #b0b8c8);\r\n  margin-right: 6px;\r\n  flex-shrink: 0;\r\n  opacity: 0.7;\r\n}\r\n\r\n/* ── Modal Overlay ────────────────────────────────────── */\r\n/* 覆蓋整個父視窗，阻止互動；pointer-events:all 攔截所有點擊 */\r\n.dp-modal-overlay {\r\n  position: absolute;\r\n  inset: 0;\r\n  background: rgba(0, 0, 0, 0.30);\r\n  z-index: 9000;\r\n  cursor: not-allowed;\r\n  border-radius: 0 0 2px 2px; /* 對齊 body，不蓋到標題列圓角 */\r\n  pointer-events: all;\r\n  /* 淡入效果 */\r\n  animation: dp-overlay-in 0.15s ease;\r\n}\r\n@keyframes dp-overlay-in {\r\n  from { opacity: 0; }\r\n  to   { opacity: 1; }\r\n}\r\n\r\n/* ── Shake Animation ──────────────────────────────────── */\r\n/* 點擊遮罩時對應的 modal 子視窗抖動，提示使用者需先處理 */\r\n@keyframes dp-shake {\r\n  0%,  100% { transform: translateX(0); }\r\n  15%       { transform: translateX(-7px); }\r\n  30%       { transform: translateX(7px); }\r\n  45%       { transform: translateX(-5px); }\r\n  60%       { transform: translateX(5px); }\r\n  75%       { transform: translateX(-3px); }\r\n  90%       { transform: translateX(3px); }\r\n}\r\n.dp-shake {\r\n  animation: dp-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;\r\n}\r\n";
+var BASE_CSS = "/* ============================================================\r\n * DeskPane — Default Styles\r\n * Version: 0.1.0\r\n *\r\n * Copy this file to your project and link it with:\r\n *   <link rel=\"stylesheet\" href=\"deskpane.css\">\r\n *\r\n * When using injectStyles: false option, these styles will\r\n * NOT be injected automatically — this file is your starting\r\n * point for customization.\r\n *\r\n * All values use CSS custom properties (--dp-*) so you can\r\n * override them in :root without touching this file.\r\n * ============================================================ */\r\n\r\n.dp-window {\r\n  position: fixed;\r\n  box-sizing: border-box;\r\n  display: flex;\r\n  flex-direction: column;\r\n  border: 4px solid var(--dp-window-border, #d0d0d0);\r\n  border-radius: 6px;\r\n  box-shadow: var(--dp-window-shadow, 0 4px 24px rgba(0,0,0,0.18));\r\n  background: var(--dp-window-bg, var(--dp-window-body-bg, #ffffff));\n  overflow: hidden;\r\n  min-width: 200px;\r\n  min-height: 120px;\r\n  transition: box-shadow 0.15s, border-color 0.15s;\r\n  pointer-events: auto;\r\n}\r\n.dp-window.dp-active {\r\n  border-color: var(--dp-window-border-active, #b0b8c8);\r\n  box-shadow: var(--dp-window-shadow-active, 0 8px 36px rgba(0,0,0,0.28));\r\n}\r\n.dp-window.dp-minimized {\r\n  display: none !important;\r\n}\r\n.dp-window.dp-maximized {\r\n  left: 72px !important;\r\n  top: 0 !important;\r\n  width: calc(100vw - 72px) !important;\r\n  height: calc(100vh - 48px) !important;\r\n  border-radius: 0;\r\n  border-width: 0;\r\n}\r\n\r\n/* ── Isolated container mode ──────────────────────────── */\r\n.dp-isolated {\r\n  position: relative;\r\n  overflow: clip;\r\n}\r\n.dp-isolated .dp-window {\r\n  position: absolute;\r\n}\r\n.dp-isolated .dp-window.dp-maximized {\r\n  left:   var(--dp-dock-inset-left,   0px) !important;\r\n  top:    var(--dp-dock-inset-top,    0px) !important;\r\n  width:  calc(100% - var(--dp-dock-inset-left, 0px) - var(--dp-dock-inset-right,  0px)) !important;\r\n  height: calc(100% - var(--dp-dock-inset-top,  0px) - var(--dp-dock-inset-bottom, 0px)) !important;\r\n  border-radius: 0;\r\n}\r\n\r\n/* ── Header ───────────────────────────────────────────── */\r\n.dp-header {\r\n  display: flex;\r\n  align-items: center;\r\n  padding: 0 8px;\r\n  height: 36px;\r\n  background: var(--dp-window-header-bg, #f5f5f5);\r\n  border-bottom: 1px solid var(--dp-window-header-border, #e0e0e0);\r\n  cursor: move;\r\n  user-select: none;\r\n  flex-shrink: 0;\r\n}\r\n.dp-title {\r\n  flex: 1;\r\n  font-size: 13px;\r\n  font-weight: 600;\r\n  color: var(--dp-window-title-color, #333333);\r\n  overflow: hidden;\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n}\r\n\r\n/* ── Control buttons ──────────────────────────────────── */\r\n.dp-btn {\r\n  width: 24px;\r\n  height: 24px;\r\n  border: none;\r\n  border-radius: 4px;\r\n  background: transparent;\r\n  cursor: pointer;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 14px;\r\n  color: var(--dp-window-btn-color, #555555);\r\n  margin-left: 2px;\r\n  transition: background 0.1s;\r\n}\r\n.dp-btn:hover { background: var(--dp-window-btn-hover-bg, #e0e0e0); }\r\n.dp-btn.dp-btn-close:hover {\r\n  background: var(--dp-window-btn-close-hover-bg, #ff5f57);\r\n  color: var(--dp-window-btn-close-hover-color, #ffffff);\r\n}\r\n.dp-btn:disabled {\r\n  opacity: 0.3;\r\n  cursor: not-allowed;\r\n}\r\n.dp-btn:disabled:hover { background: transparent; }\r\n\r\n/* ── Body ─────────────────────────────────────────────── */\r\n.dp-body {\n  flex: 1;\n  min-height: 0;\n  overflow: auto;\n  position: relative;\r\n  background: var(--dp-window-body-bg, #ffffff);\r\n  color: var(--dp-window-body-color, #222222);\r\n}\r\n.dp-body.dp-has-layout {\r\n  overflow: hidden;\r\n}\r\n\r\n/* ── Snap guide lines ─────────────────────────────────── */\r\n.dp-snap-guide {\r\n  position: absolute;\r\n  pointer-events: none;\r\n  z-index: 2147483647;\r\n  display: none;\r\n  background: var(--dp-snap-guide-color, rgba(0, 120, 255, 0.55));\r\n}\r\n.dp-snap-guide--v {\r\n  width: 1px;\r\n  top: 0;\r\n  bottom: 0;\r\n}\r\n.dp-snap-guide--h {\n  height: 1px;\n  left: 0;\n  right: 0;\n}\n\n/* ── Windows-like edge snap preview ───────────────────── */\n.dp-edge-snap-preview {\n  position: absolute;\n  pointer-events: none;\n  z-index: 8998;\n  display: block;\n  opacity: 0;\n  border: 2px solid var(--dp-edge-snap-preview-border, rgba(0, 120, 255, 0.72));\n  background: var(--dp-edge-snap-preview-bg, rgba(0, 120, 255, 0.16));\n  box-shadow: inset 0 0 0 1px var(--dp-edge-snap-preview-inner-border, rgba(255, 255, 255, 0.35));\n  border-radius: var(--dp-edge-snap-preview-radius, 8px);\n  transform: scale(0.985);\n  transition:\n    opacity 120ms ease,\n    transform 120ms ease,\n    left 90ms ease,\n    top 90ms ease,\n    width 90ms ease,\n    height 90ms ease;\n}\n.dp-edge-snap-preview--visible {\n  opacity: 1;\n  transform: scale(1);\n}\n\n/* ── Child Window ─────────────────────────────────────── */\n/* 子視窗標題列加左側色條，與父視窗做視覺區隔 */\r\n.dp-child-window > .dp-header {\r\n  padding-left: 10px;\r\n}\r\n.dp-child-window > .dp-header::before {\r\n  content: '';\r\n  display: inline-block;\r\n  width: 3px;\r\n  height: 16px;\r\n  border-radius: 2px;\r\n  background: var(--dp-window-border-active, #b0b8c8);\r\n  margin-right: 6px;\r\n  flex-shrink: 0;\r\n  opacity: 0.7;\r\n}\r\n\r\n/* ── Modal Overlay ────────────────────────────────────── */\r\n/* 覆蓋整個父視窗，阻止互動；pointer-events:all 攔截所有點擊 */\r\n.dp-modal-overlay {\r\n  position: absolute;\r\n  inset: 0;\r\n  background: rgba(0, 0, 0, 0.30);\r\n  z-index: 9000;\r\n  cursor: not-allowed;\r\n  border-radius: 0 0 2px 2px; /* 對齊 body，不蓋到標題列圓角 */\r\n  pointer-events: all;\r\n  /* 淡入效果 */\r\n  animation: dp-overlay-in 0.15s ease;\r\n}\r\n@keyframes dp-overlay-in {\r\n  from { opacity: 0; }\r\n  to   { opacity: 1; }\r\n}\r\n\r\n/* ── Shake Animation ──────────────────────────────────── */\r\n/* 點擊遮罩時對應的 modal 子視窗抖動，提示使用者需先處理 */\r\n@keyframes dp-shake {\r\n  0%,  100% { transform: translateX(0); }\r\n  15%       { transform: translateX(-7px); }\r\n  30%       { transform: translateX(7px); }\r\n  45%       { transform: translateX(-5px); }\r\n  60%       { transform: translateX(5px); }\r\n  75%       { transform: translateX(-3px); }\r\n  90%       { transform: translateX(3px); }\r\n}\r\n.dp-shake {\r\n  animation: dp-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;\r\n}\r\n";
 
 // ============================================================
 // DeskPane — Runtime CSS injection helpers
@@ -1152,6 +1160,8 @@ class WindowManager {
         this._cascadeCount = 0;
         this._guideV = null;
         this._guideH = null;
+        this._edgeSnapPreviewEl = null;
+        this._activeEdgeSnap = null;
         /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
         this._layouts = new Map();
         /** 父視窗 → 子視窗 ID Set（一對多） */
@@ -1165,6 +1175,8 @@ class WindowManager {
         this._snapEnabled = opts.snap ?? true;
         this._snapThreshold = opts.snapThreshold ?? 20;
         this._snapGap = opts.snapGap ?? 0;
+        this._edgeSnapEnabled = this._snapEnabled && (opts.edgeSnap ?? true);
+        this._edgeSnapThreshold = opts.edgeSnapThreshold ?? this._snapThreshold;
         this._maximizedDragRestoreThreshold = opts.maximizedDragRestoreThreshold ?? 12;
         this.events = new EventBus();
         if (opts.injectStyles !== false)
@@ -1246,7 +1258,9 @@ class WindowManager {
                 this.events.emit('window:moved', { ...state });
             },
             onDragEnd: () => {
+                this._applyEdgeSnap(state.id);
                 this._hideSnapGuides();
+                this._hideEdgeSnapPreview();
             },
             onResize: (x, y, w, h) => {
                 state.x = x;
@@ -1628,6 +1642,9 @@ class WindowManager {
         this._guideH?.remove();
         this._guideV = null;
         this._guideH = null;
+        this._edgeSnapPreviewEl?.remove();
+        this._edgeSnapPreviewEl = null;
+        this._activeEdgeSnap = null;
         this._resizeObserver?.disconnect();
         this._resizeObserver = null;
         if (this._isolated) {
@@ -1678,6 +1695,124 @@ class WindowManager {
             this._guideV.style.display = 'none';
         if (this._guideH)
             this._guideH.style.display = 'none';
+    }
+    /** 延遲建立 Windows-like edge snap 預覽區塊。 */
+    _ensureEdgeSnapPreview() {
+        if (!this._edgeSnapPreviewEl) {
+            this._edgeSnapPreviewEl = document.createElement('div');
+            this._edgeSnapPreviewEl.className = 'dp-edge-snap-preview';
+            this._container.appendChild(this._edgeSnapPreviewEl);
+        }
+        return this._edgeSnapPreviewEl;
+    }
+    /** 取得可用視窗區域；Desktop 會透過 CSS 變數提供 Dock inset。 */
+    _getWindowAreaBounds() {
+        const width = this._isolated ? this._container.offsetWidth : window.innerWidth;
+        const height = this._isolated ? this._container.offsetHeight : window.innerHeight;
+        const cs = getComputedStyle(this._container);
+        const dockTop = parseFloat(cs.getPropertyValue('--dp-dock-inset-top')) || 0;
+        const dockRight = parseFloat(cs.getPropertyValue('--dp-dock-inset-right')) || 0;
+        const dockBottom = parseFloat(cs.getPropertyValue('--dp-dock-inset-bottom')) || 0;
+        const dockLeft = parseFloat(cs.getPropertyValue('--dp-dock-inset-left')) || 0;
+        return {
+            x: dockLeft,
+            y: dockTop,
+            width: Math.max(0, width - dockLeft - dockRight),
+            height: Math.max(0, height - dockTop - dockBottom),
+        };
+    }
+    _getEdgeSnapRect(target) {
+        const area = this._getWindowAreaBounds();
+        if (target === 'left') {
+            return { x: area.x, y: area.y, width: Math.floor(area.width / 2), height: area.height };
+        }
+        if (target === 'right') {
+            const width = Math.ceil(area.width / 2);
+            return { x: area.x + area.width - width, y: area.y, width, height: area.height };
+        }
+        return area;
+    }
+    /** 根據目前滑鼠座標更新邊緣預覽。只預覽，mouseup 才真正套用。 */
+    _updateEdgeSnapPreview(id, pointerX, pointerY) {
+        if (!this._edgeSnapEnabled)
+            return;
+        const win = this._wins.get(id);
+        if (!win || !win.state.resizable || win.state.parentId || win.state.isMinimized) {
+            this._hideEdgeSnapPreview();
+            return;
+        }
+        const area = this._getWindowAreaBounds();
+        const threshold = this._edgeSnapThreshold;
+        let target = null;
+        if (pointerY <= area.y + threshold) {
+            target = 'maximize';
+        }
+        else if (pointerX <= area.x + threshold) {
+            target = 'left';
+        }
+        else if (pointerX >= area.x + area.width - threshold) {
+            target = 'right';
+        }
+        if (!target) {
+            this._hideEdgeSnapPreview();
+            return;
+        }
+        const rect = this._getEdgeSnapRect(target);
+        const el = this._ensureEdgeSnapPreview();
+        el.style.left = `${rect.x}px`;
+        el.style.top = `${rect.y}px`;
+        el.style.width = `${rect.width}px`;
+        el.style.height = `${rect.height}px`;
+        el.dataset.edgeSnapTarget = target;
+        el.classList.add('dp-edge-snap-preview--visible');
+        this._activeEdgeSnap = { id, target };
+    }
+    _hideEdgeSnapPreview() {
+        if (this._edgeSnapPreviewEl) {
+            this._edgeSnapPreviewEl.classList.remove('dp-edge-snap-preview--visible');
+            delete this._edgeSnapPreviewEl.dataset.edgeSnapTarget;
+        }
+        this._activeEdgeSnap = null;
+    }
+    /** mouseup 時套用目前 edge snap 預覽。 */
+    _applyEdgeSnap(id) {
+        const active = this._activeEdgeSnap;
+        if (!active || active.id !== id)
+            return;
+        const target = active.target;
+        this._activeEdgeSnap = null;
+        if (target === 'maximize') {
+            this.maximize(id);
+            const win = this._wins.get(id);
+            if (win)
+                this.events.emit('window:edge-snapped', { ...win.state, edgeSnapTarget: target });
+            return;
+        }
+        const win = this._wins.get(id);
+        if (!win || !win.state.resizable)
+            return;
+        const rect = this._getEdgeSnapRect(target);
+        if (!win.state._savedGeometry) {
+            win.state._savedGeometry = {
+                x: win.state.x,
+                y: win.state.y,
+                width: win.state.width,
+                height: win.state.height,
+            };
+        }
+        win.state.isMaximized = false;
+        win.state.isMinimized = false;
+        win.state.x = rect.x;
+        win.state.y = rect.y;
+        win.state.width = rect.width;
+        win.state.height = rect.height;
+        win.elements.root.classList.remove('dp-maximized', 'dp-minimized');
+        win.elements.btnMax.textContent = '□';
+        win.elements.btnMax.setAttribute('aria-label', '最大化');
+        applyGeometry(win.elements.root, win.state);
+        this.events.emit('window:resized', { ...win.state });
+        this.events.emit('window:moved', { ...win.state });
+        this.events.emit('window:edge-snapped', { ...win.state, edgeSnapTarget: target });
     }
     // ── Layout auto-detection ─────────────────────────────────
     /**
@@ -1820,11 +1955,12 @@ class WindowManager {
     }
     /** 建立拖曳 snap 函式（用於 DragResizeHandler.snapFn） */
     _buildSnapFn(stateId) {
-        return (x, y, w, h) => {
+        return (x, y, w, h, pointerX, pointerY) => {
             const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
             const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
             const result = snapPosition({ x, y, width: w, height: h }, { width: cw, height: ch }, this._getOtherWindows(stateId), this._snapThreshold, this._snapGap);
             this._updateSnapGuides(result.guides);
+            this._updateEdgeSnapPreview(stateId, pointerX, pointerY);
             return { x: result.x, y: result.y };
         };
     }

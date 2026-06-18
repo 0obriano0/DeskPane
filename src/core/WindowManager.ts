@@ -20,6 +20,7 @@ export type WinEvent =
   | 'window:maximized'
   | 'window:restored'
   | 'window:maximized-drag-restored'
+  | 'window:edge-snapped'
   | 'window:moved'
   | 'window:resized'
   | 'window:child-opened'
@@ -31,6 +32,8 @@ const BASE_Z = 100;
 /** 視窗 z-index 上限；超過時自動正規化，確保低於 Dock/Toolbar（預設 9999） */
 const MAX_Z = 8999;
 const CASCADE_OFFSET = 30;
+export type EdgeSnapTarget = 'maximize' | 'left' | 'right';
+export type EdgeSnapEvent = WindowState & { edgeSnapTarget: EdgeSnapTarget };
 
 export interface WindowManagerOptions {
   /** 視窗容器，預設為 document.body */
@@ -58,6 +61,16 @@ export interface WindowManagerOptions {
    * 大於 0 時，兩視窗對齊後會保留指定像素的空隙；容器邊緣不受影響。
    */
   snapGap?: number;
+  /**
+   * Windows-like edge snap preview. When enabled, dragging a resizable window pointer
+   * to the top edge previews maximize; left/right pointer edges preview half-screen placement.
+   * Requires `snap !== false`. Default true.
+   */
+  edgeSnap?: boolean;
+  /**
+   * Pointer distance from container edge that activates edge snap preview. Defaults to snapThreshold.
+   */
+  edgeSnapThreshold?: number;
   /**
    * 是否自動注入 Core CSS 樣式，預設 true。
    * 若已用 <link> 或 bundler import 載入 deskpane.css，runtime 會自動略過重複注入。
@@ -91,9 +104,13 @@ export class WindowManager {
   private readonly _snapEnabled: boolean;
   private readonly _snapThreshold: number;
   private _snapGap: number;
+  private readonly _edgeSnapEnabled: boolean;
+  private readonly _edgeSnapThreshold: number;
   private readonly _maximizedDragRestoreThreshold: number;
   private _guideV: HTMLElement | null = null;
   private _guideH: HTMLElement | null = null;
+  private _edgeSnapPreviewEl: HTMLElement | null = null;
+  private _activeEdgeSnap: { id: string; target: EdgeSnapTarget } | null = null;
   /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
   private readonly _layouts = new Map<string, BorderLayout | Panel>();
   /** 父視窗 → 子視窗 ID Set（一對多） */
@@ -110,6 +127,8 @@ export class WindowManager {
     this._snapEnabled = opts.snap ?? true;
     this._snapThreshold = opts.snapThreshold ?? 20;
     this._snapGap = opts.snapGap ?? 0;
+    this._edgeSnapEnabled = this._snapEnabled && (opts.edgeSnap ?? true);
+    this._edgeSnapThreshold = opts.edgeSnapThreshold ?? this._snapThreshold;
     this._maximizedDragRestoreThreshold = opts.maximizedDragRestoreThreshold ?? 12;
     this.events = new EventBus();
     if (opts.injectStyles !== false) injectStyles();
@@ -200,7 +219,9 @@ export class WindowManager {
           this.events.emit<WindowState>('window:moved', { ...state });
         },
         onDragEnd: () => {
+          this._applyEdgeSnap(state.id);
           this._hideSnapGuides();
+          this._hideEdgeSnapPreview();
         },
         onResize: (x, y, w, h) => {
           state.x = x; state.y = y; state.width = w; state.height = h;
@@ -612,6 +633,9 @@ export class WindowManager {
     this._guideH?.remove();
     this._guideV = null;
     this._guideH = null;
+    this._edgeSnapPreviewEl?.remove();
+    this._edgeSnapPreviewEl = null;
+    this._activeEdgeSnap = null;
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
     if (this._isolated) {
@@ -661,6 +685,128 @@ export class WindowManager {
   private _hideSnapGuides(): void {
     if (this._guideV) this._guideV.style.display = 'none';
     if (this._guideH) this._guideH.style.display = 'none';
+  }
+
+  /** 延遲建立 Windows-like edge snap 預覽區塊。 */
+  private _ensureEdgeSnapPreview(): HTMLElement {
+    if (!this._edgeSnapPreviewEl) {
+      this._edgeSnapPreviewEl = document.createElement('div');
+      this._edgeSnapPreviewEl.className = 'dp-edge-snap-preview';
+      this._container.appendChild(this._edgeSnapPreviewEl);
+    }
+    return this._edgeSnapPreviewEl;
+  }
+
+  /** 取得可用視窗區域；Desktop 會透過 CSS 變數提供 Dock inset。 */
+  private _getWindowAreaBounds(): { x: number; y: number; width: number; height: number } {
+    const width = this._isolated ? this._container.offsetWidth : window.innerWidth;
+    const height = this._isolated ? this._container.offsetHeight : window.innerHeight;
+    const cs = getComputedStyle(this._container);
+    const dockTop = parseFloat(cs.getPropertyValue('--dp-dock-inset-top')) || 0;
+    const dockRight = parseFloat(cs.getPropertyValue('--dp-dock-inset-right')) || 0;
+    const dockBottom = parseFloat(cs.getPropertyValue('--dp-dock-inset-bottom')) || 0;
+    const dockLeft = parseFloat(cs.getPropertyValue('--dp-dock-inset-left')) || 0;
+    return {
+      x: dockLeft,
+      y: dockTop,
+      width: Math.max(0, width - dockLeft - dockRight),
+      height: Math.max(0, height - dockTop - dockBottom),
+    };
+  }
+
+  private _getEdgeSnapRect(target: EdgeSnapTarget): { x: number; y: number; width: number; height: number } {
+    const area = this._getWindowAreaBounds();
+    if (target === 'left') {
+      return { x: area.x, y: area.y, width: Math.floor(area.width / 2), height: area.height };
+    }
+    if (target === 'right') {
+      const width = Math.ceil(area.width / 2);
+      return { x: area.x + area.width - width, y: area.y, width, height: area.height };
+    }
+    return area;
+  }
+
+  /** 根據目前滑鼠座標更新邊緣預覽。只預覽，mouseup 才真正套用。 */
+  private _updateEdgeSnapPreview(id: string, pointerX: number, pointerY: number): void {
+    if (!this._edgeSnapEnabled) return;
+    const win = this._wins.get(id);
+    if (!win || !win.state.resizable || win.state.parentId || win.state.isMinimized) {
+      this._hideEdgeSnapPreview();
+      return;
+    }
+
+    const area = this._getWindowAreaBounds();
+    const threshold = this._edgeSnapThreshold;
+    let target: EdgeSnapTarget | null = null;
+    if (pointerY <= area.y + threshold) {
+      target = 'maximize';
+    } else if (pointerX <= area.x + threshold) {
+      target = 'left';
+    } else if (pointerX >= area.x + area.width - threshold) {
+      target = 'right';
+    }
+
+    if (!target) {
+      this._hideEdgeSnapPreview();
+      return;
+    }
+
+    const rect = this._getEdgeSnapRect(target);
+    const el = this._ensureEdgeSnapPreview();
+    el.style.left = `${rect.x}px`;
+    el.style.top = `${rect.y}px`;
+    el.style.width = `${rect.width}px`;
+    el.style.height = `${rect.height}px`;
+    el.dataset.edgeSnapTarget = target;
+    el.classList.add('dp-edge-snap-preview--visible');
+    this._activeEdgeSnap = { id, target };
+  }
+
+  private _hideEdgeSnapPreview(): void {
+    if (this._edgeSnapPreviewEl) {
+      this._edgeSnapPreviewEl.classList.remove('dp-edge-snap-preview--visible');
+      delete this._edgeSnapPreviewEl.dataset.edgeSnapTarget;
+    }
+    this._activeEdgeSnap = null;
+  }
+
+  /** mouseup 時套用目前 edge snap 預覽。 */
+  private _applyEdgeSnap(id: string): void {
+    const active = this._activeEdgeSnap;
+    if (!active || active.id !== id) return;
+    const target = active.target;
+    this._activeEdgeSnap = null;
+    if (target === 'maximize') {
+      this.maximize(id);
+      const win = this._wins.get(id);
+      if (win) this.events.emit<EdgeSnapEvent>('window:edge-snapped', { ...win.state, edgeSnapTarget: target });
+      return;
+    }
+
+    const win = this._wins.get(id);
+    if (!win || !win.state.resizable) return;
+    const rect = this._getEdgeSnapRect(target);
+    if (!win.state._savedGeometry) {
+      win.state._savedGeometry = {
+        x: win.state.x,
+        y: win.state.y,
+        width: win.state.width,
+        height: win.state.height,
+      };
+    }
+    win.state.isMaximized = false;
+    win.state.isMinimized = false;
+    win.state.x = rect.x;
+    win.state.y = rect.y;
+    win.state.width = rect.width;
+    win.state.height = rect.height;
+    win.elements.root.classList.remove('dp-maximized', 'dp-minimized');
+    win.elements.btnMax.textContent = '□';
+    win.elements.btnMax.setAttribute('aria-label', '最大化');
+    applyGeometry(win.elements.root, win.state);
+    this.events.emit<WindowState>('window:resized', { ...win.state });
+    this.events.emit<WindowState>('window:moved', { ...win.state });
+    this.events.emit<EdgeSnapEvent>('window:edge-snapped', { ...win.state, edgeSnapTarget: target });
   }
 
   // ── Layout auto-detection ─────────────────────────────────
@@ -814,7 +960,7 @@ export class WindowManager {
 
   /** 建立拖曳 snap 函式（用於 DragResizeHandler.snapFn） */
   private _buildSnapFn(stateId: string): DragResizeOptions['snapFn'] {
-    return (x, y, w, h) => {
+    return (x, y, w, h, pointerX, pointerY) => {
       const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
       const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
       const result = snapPosition(
@@ -825,6 +971,7 @@ export class WindowManager {
         this._snapGap,
       );
       this._updateSnapGuides(result.guides);
+      this._updateEdgeSnapPreview(stateId, pointerX, pointerY);
       return { x: result.x, y: result.y };
     };
   }

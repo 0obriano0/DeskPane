@@ -17,6 +17,10 @@
   --dp-window-body-bg:              #d8ba78;
   --dp-window-body-color:           #2f2115;
   --dp-snap-guide-color:            rgba(241, 196, 92, 0.75);
+  --dp-edge-snap-preview-bg:        rgba(241, 196, 92, 0.18);
+  --dp-edge-snap-preview-border:    rgba(241, 196, 92, 0.78);
+  --dp-edge-snap-preview-inner-border: rgba(255, 244, 208, 0.34);
+  --dp-edge-snap-preview-radius:    0;
 
   --dp-layout-header-bg:            linear-gradient(180deg, #a97845 0%, #7a4f2f 100%);
   --dp-layout-header-border:        #4a3322;

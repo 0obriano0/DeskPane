@@ -390,6 +390,10 @@ const CORE_VAR_DEFS = [
     { name: '--dp-window-body-bg',          type: 'color', tip: '視窗內容區背景色' },
     { name: '--dp-window-body-color',       type: 'color', tip: '視窗內容區文字顏色' },
     { name: '--dp-snap-guide-color', type: 'text',  tip: 'Snap 引導線顏色（rgba）' },
+    { name: '--dp-edge-snap-preview-bg', type: 'text', tip: '邊緣吸附預覽背景（rgba）' },
+    { name: '--dp-edge-snap-preview-border', type: 'text', tip: '邊緣吸附預覽邊框（rgba）' },
+    { name: '--dp-edge-snap-preview-inner-border', type: 'text', tip: '邊緣吸附預覽內框（rgba）' },
+    { name: '--dp-edge-snap-preview-radius', type: 'text', tip: '邊緣吸附預覽圓角，例如 8px' },
   ]},
 ];
 
@@ -447,6 +451,10 @@ const THEMES = {
       '--dp-window-body-bg':              '#13131f',
       '--dp-window-body-color':           '#e0e0f0',
       '--dp-snap-guide-color':     'rgba(91,141,238,0.70)',
+      '--dp-edge-snap-preview-bg': 'rgba(91,141,238,0.16)',
+      '--dp-edge-snap-preview-border': 'rgba(91,141,238,0.72)',
+      '--dp-edge-snap-preview-inner-border': 'rgba(255,255,255,0.28)',
+      '--dp-edge-snap-preview-radius': '8px',
       '--dp-desktop-bg':           'linear-gradient(135deg,#1a2a4a 0%,#0d1b2a 100%)',
       '--dp-desktop-icon-text':    '#ffffff',
       '--dp-dock-bg':              'rgba(20,30,50,0.75)',
@@ -480,6 +488,10 @@ const THEMES = {
       '--dp-window-body-bg':              '#ffffff',
       '--dp-window-body-color':           '#222222',
       '--dp-snap-guide-color':     'rgba(0,120,255,0.55)',
+      '--dp-edge-snap-preview-bg': 'rgba(0,120,255,0.12)',
+      '--dp-edge-snap-preview-border': 'rgba(0,120,255,0.62)',
+      '--dp-edge-snap-preview-inner-border': 'rgba(255,255,255,0.60)',
+      '--dp-edge-snap-preview-radius': '8px',
       '--dp-desktop-bg':           'linear-gradient(135deg,#e8eaf0 0%,#d0d4e0 100%)',
       '--dp-desktop-icon-text':    '#1a1a2e',
       '--dp-dock-bg':              'rgba(220,225,240,0.85)',
@@ -514,6 +526,10 @@ const THEMES = {
       '--dp-window-body-bg':              '#0a1929',
       '--dp-window-body-color':           '#bfdbfe',
       '--dp-snap-guide-color':     'rgba(59,130,246,0.75)',
+      '--dp-edge-snap-preview-bg': 'rgba(59,130,246,0.16)',
+      '--dp-edge-snap-preview-border': 'rgba(59,130,246,0.72)',
+      '--dp-edge-snap-preview-inner-border': 'rgba(255,255,255,0.28)',
+      '--dp-edge-snap-preview-radius': '8px',
       '--dp-desktop-bg':           'linear-gradient(135deg,#0a1929 0%,#0f2744 100%)',
       '--dp-desktop-icon-text':    '#bfdbfe',
       '--dp-dock-bg':              'rgba(15,39,68,0.85)',
@@ -548,6 +564,10 @@ const THEMES = {
       '--dp-window-body-bg':              '#002b36',
       '--dp-window-body-color':           '#839496',
       '--dp-snap-guide-color':     'rgba(38,139,210,0.70)',
+      '--dp-edge-snap-preview-bg': 'rgba(38,139,210,0.16)',
+      '--dp-edge-snap-preview-border': 'rgba(38,139,210,0.70)',
+      '--dp-edge-snap-preview-inner-border': 'rgba(253,246,227,0.24)',
+      '--dp-edge-snap-preview-radius': '8px',
       '--dp-desktop-bg':           'linear-gradient(135deg,#002b36 0%,#073642 100%)',
       '--dp-desktop-icon-text':    '#839496',
       '--dp-dock-bg':              'rgba(0,43,54,0.85)',
@@ -582,6 +602,10 @@ const THEMES = {
       '--dp-window-body-bg':              '#ffffff',
       '--dp-window-body-color':           '#1a1a1a',
       '--dp-snap-guide-color':     'rgba(0,120,212,0.50)',
+      '--dp-edge-snap-preview-bg': 'rgba(0,120,212,0.12)',
+      '--dp-edge-snap-preview-border': 'rgba(0,120,212,0.58)',
+      '--dp-edge-snap-preview-inner-border': 'rgba(255,255,255,0.70)',
+      '--dp-edge-snap-preview-radius': '8px',
       '--dp-desktop-bg':           'linear-gradient(180deg,#dce8f5 0%,#c8d8ef 100%)',
       '--dp-desktop-icon-text':    '#1a1a1a',
       '--dp-dock-bg':              'rgba(242,246,252,0.88)',
@@ -616,6 +640,10 @@ const THEMES = {
       '--dp-window-body-bg':              '#1c1c1c',
       '--dp-window-body-color':           'rgba(255,255,255,0.87)',
       '--dp-snap-guide-color':     'rgba(0,120,212,0.60)',
+      '--dp-edge-snap-preview-bg': 'rgba(0,120,212,0.18)',
+      '--dp-edge-snap-preview-border': 'rgba(0,120,212,0.68)',
+      '--dp-edge-snap-preview-inner-border': 'rgba(255,255,255,0.22)',
+      '--dp-edge-snap-preview-radius': '8px',
       '--dp-desktop-bg':           'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)',
       '--dp-desktop-icon-text':    '#ffffff',
       '--dp-dock-bg':              'rgba(32,32,32,0.88)',
@@ -650,6 +678,10 @@ const THEMES = {
       '--dp-window-body-bg':              '#d8ba78',
       '--dp-window-body-color':           '#2f2115',
       '--dp-snap-guide-color':     'rgba(241,196,92,0.75)',
+      '--dp-edge-snap-preview-bg': 'rgba(241,196,92,0.18)',
+      '--dp-edge-snap-preview-border': 'rgba(241,196,92,0.78)',
+      '--dp-edge-snap-preview-inner-border': 'rgba(255,244,208,0.34)',
+      '--dp-edge-snap-preview-radius': '0',
       '--dp-desktop-bg':           'radial-gradient(circle at 28% 18%,rgba(241,196,92,0.18),transparent 24%),linear-gradient(135deg,#2e2116 0%,#17100b 100%)',
       '--dp-desktop-icon-text':    '#fff0c2',
       '--dp-dock-bg':              'rgba(45,31,19,0.88)',
@@ -950,7 +982,7 @@ function syncEditorToValues(containerId, varDefs, values) {
 let corewm = null;
 function initCorePreview() {
   const container = document.getElementById('core-preview-area');
-  corewm = new DeskPane.WindowManager({ container, isolated: true, snap: false });
+  corewm = new DeskPane.WindowManager({ container, isolated: true, snap: true });
 
   corewm.open({ id: 'prev-main', title: '📝 示範視窗 — 即時主題預覽', width: 460, height: 280, x: 40, y: 30,
     content: (() => {
@@ -1268,6 +1300,31 @@ const CFE_WIN11_CSS = `/* ======================================================
   height: 1px;
   left: 0;
   right: 0;
+}
+
+/* ── Edge snap preview (Win11 accent blue) ───────────────── */
+.dp-edge-snap-preview {
+  position: absolute;
+  pointer-events: none;
+  z-index: 8998;
+  display: block;
+  opacity: 0;
+  border: 2px solid rgba(0, 120, 212, 0.58);
+  background: rgba(0, 120, 212, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.70);
+  border-radius: 8px;
+  transform: scale(0.985);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    left 90ms ease,
+    top 90ms ease,
+    width 90ms ease,
+    height 90ms ease;
+}
+.dp-edge-snap-preview--visible {
+  opacity: 1;
+  transform: scale(1);
 }
 `;
 

@@ -130,6 +130,16 @@ interface WindowManagerOptions {
      */
     snapGap?: number;
     /**
+     * Windows-like edge snap preview. When enabled, dragging a resizable window pointer
+     * to the top edge previews maximize; left/right pointer edges preview half-screen placement.
+     * Requires `snap !== false`. Default true.
+     */
+    edgeSnap?: boolean;
+    /**
+     * Pointer distance from container edge that activates edge snap preview. Defaults to snapThreshold.
+     */
+    edgeSnapThreshold?: number;
+    /**
      * 是否自動注入 Core CSS 樣式，預設 true。
      * 若已用 <link> 或 bundler import 載入 deskpane.css，runtime 會自動略過重複注入。
      * 設為 false 時完全不注入樣式，由使用者自行控制 CSS 載入順序。
@@ -152,9 +162,13 @@ declare class WindowManager {
     private readonly _snapEnabled;
     private readonly _snapThreshold;
     private _snapGap;
+    private readonly _edgeSnapEnabled;
+    private readonly _edgeSnapThreshold;
     private readonly _maximizedDragRestoreThreshold;
     private _guideV;
     private _guideH;
+    private _edgeSnapPreviewEl;
+    private _activeEdgeSnap;
     /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
     private readonly _layouts;
     /** 父視窗 → 子視窗 ID Set（一對多） */
@@ -263,6 +277,16 @@ declare class WindowManager {
     private _updateSnapGuides;
     /** 拖曳結束時隱藏所有 guide 線 */
     private _hideSnapGuides;
+    /** 延遲建立 Windows-like edge snap 預覽區塊。 */
+    private _ensureEdgeSnapPreview;
+    /** 取得可用視窗區域；Desktop 會透過 CSS 變數提供 Dock inset。 */
+    private _getWindowAreaBounds;
+    private _getEdgeSnapRect;
+    /** 根據目前滑鼠座標更新邊緣預覽。只預覽，mouseup 才真正套用。 */
+    private _updateEdgeSnapPreview;
+    private _hideEdgeSnapPreview;
+    /** mouseup 時套用目前 edge snap 預覽。 */
+    private _applyEdgeSnap;
     /**
      * 偵測 content 是否包含 BorderLayout 或 Panel 宣告，並自動初始化。
      * - content 有 [data-region] 直接子元素 → BorderLayout（body 作為容器）
@@ -745,7 +769,7 @@ declare const DpWindow: vue.DefineComponent<vue.ExtractPropTypes<{
         type: BooleanConstructor;
         default: boolean;
     };
-}>, () => null, {}, {}, {}, vue.ComponentOptionsMixin, vue.ComponentOptionsMixin, ("initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored")[], "initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored", vue.PublicProps, Readonly<vue.ExtractPropTypes<{
+}>, () => null, {}, {}, {}, vue.ComponentOptionsMixin, vue.ComponentOptionsMixin, ("initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored" | "edgeSnapped")[], "initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored" | "edgeSnapped", vue.PublicProps, Readonly<vue.ExtractPropTypes<{
     id: {
         type: StringConstructor;
         required: true;
@@ -804,6 +828,7 @@ declare const DpWindow: vue.DefineComponent<vue.ExtractPropTypes<{
     onMaximized?: ((...args: any[]) => any) | undefined;
     onRestored?: ((...args: any[]) => any) | undefined;
     onMaximizedDragRestored?: ((...args: any[]) => any) | undefined;
+    onEdgeSnapped?: ((...args: any[]) => any) | undefined;
 }>, {
     label: string;
     icon: string;

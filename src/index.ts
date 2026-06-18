@@ -11,7 +11,7 @@ export type {
   SlotType,
   EventCallback,
 } from './core/types.js';
-export type { WinEvent, WindowManagerOptions } from './core/WindowManager.js';
+export type { WinEvent, WindowManagerOptions, EdgeSnapTarget, EdgeSnapEvent } from './core/WindowManager.js';
 export type { SnapRect, SnapGuide, SnapResult } from './core/SnapHelper.js';
 export { snapPosition } from './core/SnapHelper.js';
 export type { WosThemePreset, SetThemeOptions } from './themes/setTheme.js';

@@ -21,7 +21,14 @@ export interface DragResizeOptions {
    * Snap 吸附函數。拖曳時以「原始計算座標」呼叫，回傳吸附後座標。
    * 若不傳則不做吸附。
    */
-  snapFn?: (x: number, y: number, width: number, height: number) => { x: number; y: number };
+  snapFn?: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    pointerX: number,
+    pointerY: number,
+  ) => { x: number; y: number };
   /**
    * 縮放吸附函數。縮放時呼叫，回傳吸附後的位置與大小。
    * 若不傳則縮放時不做吸附。
@@ -52,7 +59,7 @@ export interface DragResizeOptions {
   onMaximizedDragRestore?: (clientX: number, clientY: number, ratioX: number, offsetY: number) => { x: number; y: number } | null;
   onDragStart?: () => void;
   onDrag?: (x: number, y: number) => void;
-  onDragEnd?: () => void;
+  onDragEnd?: (x: number, y: number) => void;
   onResizeStart?: () => void;
   onResize?: (x: number, y: number, width: number, height: number) => void;
   onResizeEnd?: () => void;
@@ -97,6 +104,8 @@ export class DragResizeHandler {
   private _dragOffY = 0;
   private _dragStartX = 0;
   private _dragStartY = 0;
+  private _lastDragX = 0;
+  private _lastDragY = 0;
   private _maximizedDragRestored = false;
 
   // 縮放狀態
@@ -183,6 +192,8 @@ export class DragResizeHandler {
     this._dragOffY = clientY - rect.top;
     this._dragStartX = clientX;
     this._dragStartY = clientY;
+    this._lastDragX = 0;
+    this._lastDragY = 0;
     this._maximizedDragRestored = false;
     this._winEl.style.userSelect = 'none';
     this._opts.onDragStart();
@@ -244,7 +255,9 @@ export class DragResizeHandler {
       let x = e.clientX - this._dragOffX - left;
       let y = e.clientY - this._dragOffY - top;
       if (this._opts.snapFn) {
-        const snapped = this._opts.snapFn(x, y, this._winEl.offsetWidth, this._winEl.offsetHeight);
+        const pointerX = e.clientX - left;
+        const pointerY = e.clientY - top;
+        const snapped = this._opts.snapFn(x, y, this._winEl.offsetWidth, this._winEl.offsetHeight, pointerX, pointerY);
         x = snapped.x;
         y = snapped.y;
       }
@@ -275,6 +288,8 @@ export class DragResizeHandler {
       }
       this._winEl.style.left = `${x}px`;
       this._winEl.style.top = `${y}px`;
+      this._lastDragX = x;
+      this._lastDragY = y;
       this._opts.onDrag(x, y);
     } else if (this._resizing && this._resizeEdge) {
       this._applyResize(e.clientX, e.clientY);
@@ -371,7 +386,7 @@ export class DragResizeHandler {
     if (this._dragging) {
       this._dragging = false;
       this._winEl.style.userSelect = '';
-      this._opts.onDragEnd();
+      this._opts.onDragEnd(this._lastDragX, this._lastDragY);
     }
     if (this._resizing) {
       this._resizing = false;
