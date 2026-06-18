@@ -8,6 +8,8 @@ Build floating windows, draggable panels, virtual desktops, and ERP-style layout
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/deskpane)](https://bundlephobia.com/package/deskpane)
 
+**Links:** [Live demos](https://0obriano0.github.io/DeskPane/demo/) · [Developer docs](https://0obriano0.github.io/DeskPane/demo/docs/dist/) · [npm](https://www.npmjs.com/package/deskpane)
+
 ---
 
 ## Why DeskPane?
@@ -21,6 +23,20 @@ DeskPane is:
 - 🎨 **Themeable** — 30 CSS custom properties, light/dark built-in, fully customizable
 - 📦 **Modular** — use only what you need (core / desktop / workspace)
 - 🏗️ **Production-ready** — used in real ERP systems
+
+---
+
+## Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
+- [Desktop Module](#desktop-module)
+- [Workspace Module](#workspace-module)
+- [Developer Documentation](#developer-documentation)
+- [Troubleshooting](#troubleshooting)
+- [Building from Source](#building-from-source)
 
 ---
 
@@ -64,15 +80,52 @@ DeskPane is:
 npm install deskpane
 ```
 
-### CDN / Script Tag (no build step)
+### Import Modes
+
+Use one style-loading strategy per app:
+
+| Mode | Best for | Recommendation |
+|------|----------|----------------|
+| Bundler manual CSS import | Vite, Vue, React, app-level theme overrides | Import CSS yourself and set `injectStyles:false` |
+| Runtime CSS injection | Small demos, script-tag prototypes | Let DeskPane inject core CSS |
+| CDN CSS + UMD | jQuery, CMS pages, no build step | Use `<link>` tags and `window.DeskPane` |
+
+### Bundler CSS
 
 ```html
-<!-- Styles -->
+<!-- Equivalent files are available under dist/styles/ and dist/themes/. -->
+```
+
+```typescript
+import 'deskpane/dist/styles/deskpane.css'
+import 'deskpane/dist/styles/deskpane-desktop.css'
+import 'deskpane/dist/styles/deskpane-workspace.css'
+import 'deskpane/dist/styles/deskpane-taskview.css'
+import 'deskpane/dist/themes/light.css'
+```
+
+When CSS is imported by the host app, disable runtime injection:
+
+```typescript
+const wm = new WindowManager({
+  container: document.getElementById('desktop')!,
+  isolated: true,
+  injectStyles: false,
+})
+```
+
+### CDN / Script Tag
+
+```html
 <link rel="stylesheet" href="https://unpkg.com/deskpane/dist/styles/deskpane.css">
 <link rel="stylesheet" href="https://unpkg.com/deskpane/dist/themes/light.css">
-<!-- Runtime -->
 <script src="https://unpkg.com/deskpane/dist/deskpane.umd.min.js"></script>
-<!-- window.DeskPane is now available -->
+```
+
+jsDelivr works too:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/deskpane/dist/deskpane.umd.min.js"></script>
 ```
 
 ---
@@ -82,11 +135,14 @@ npm install deskpane
 ### ES Module
 
 ```typescript
+import 'deskpane/dist/styles/deskpane.css'
+import 'deskpane/dist/themes/light.css'
 import { WindowManager } from 'deskpane'
 
 const wm = new WindowManager({
   container: document.getElementById('desktop')!,
   isolated: true,
+  injectStyles: false,
 })
 
 const el = document.createElement('div')
@@ -99,11 +155,14 @@ wm.open({ id: 'hello', title: 'My Window', content: el })
 
 ```html
 <div id="desktop" style="width:100vw; height:100vh; position:relative;"></div>
-<script src="dist/deskpane.umd.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/deskpane/dist/styles/deskpane.css">
+<link rel="stylesheet" href="https://unpkg.com/deskpane/dist/themes/light.css">
+<script src="https://unpkg.com/deskpane/dist/deskpane.umd.min.js"></script>
 <script>
   var wm = new window.DeskPane.WindowManager({
     container: document.getElementById('desktop'),
-    isolated: true
+    isolated: true,
+    injectStyles: false
   })
   var el = document.createElement('div')
   el.textContent = 'Hello from UMD!'
@@ -818,11 +877,11 @@ An in-depth interactive docs site is included at `demo/docs/` (Vue 3 SPA, i18n E
 cd demo/docs && npm install && npm run dev   # http://localhost:3002
 ```
 
-**Pages covered (20 total):**
+**Pages covered (21 total):**
 
 | Category | Pages |
 |----------|-------|
-| Getting Started | Overview, Installation, Quick Start |
+| Getting Started | Overview, Installation, Quick Start, Troubleshooting |
 | Core API | WindowManager Options, Open & Close, Min / Max / Restore, Snap & Alignment, Events, Session |
 | Theming | Theme System |
 | Desktop Module | Desktop & Dock, BorderLayout |
@@ -830,6 +889,56 @@ cd demo/docs && npm install && npm run dev   # http://localhost:3002
 | Vanilla JS | Hello World, DOM Content, jQuery |
 | Vue 3 | useWindowManager, KeepAlive |
 | React | useWindowManager |
+
+---
+
+## Troubleshooting
+
+### CSS import vs runtime injection
+
+If your app imports DeskPane CSS through a bundler, keep style order predictable by disabling runtime injection:
+
+```typescript
+import 'deskpane/dist/styles/deskpane.css'
+import 'deskpane/dist/styles/deskpane-desktop.css'
+import 'deskpane/dist/themes/light.css'
+
+new Desktop({
+  container,
+  injectStyles: false,
+})
+
+new WorkspaceManager(desktop.getElement(), {
+  injectStyles: false,
+  windowManagerOptions: {
+    isolated: true,
+    snap: true,
+    injectStyles: false,
+  },
+})
+```
+
+### Vite source-development CSS error
+
+When developing directly against DeskPane source, Vite may report:
+
+```text
+deskpane-desktop.css does not provide an export named default
+```
+
+DeskPane's library build converts internal CSS imports into strings. Vite dev needs the demo raw CSS plugin so DeskPane source CSS can be imported as a string while the host app's manual CSS imports still use normal CSS handling.
+
+### Vue / React workspace content goes black
+
+DeskPane owns the window DOM. Vue and React content is mounted by `Teleport` / `createPortal`. In multi-workspace apps:
+
+- Make real window ids workspace-scoped, for example `ws-2::counter`.
+- Include `workspaceId:id` in portal / teleport keys.
+- Re-sync framework state after `workspace:switched`.
+
+### Transparent window or pointer-event issues
+
+Core CSS should give `.dp-window`, `.dp-header`, and `.dp-body` reliable backgrounds and `pointer-events:auto`. If your app overrides these classes, check that runtime CSS is not injected after your override stylesheet.
 
 ---
 

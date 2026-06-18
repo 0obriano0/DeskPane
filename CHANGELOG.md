@@ -8,6 +8,12 @@
 - Refactored the vanilla and jQuery demos into focused DeskPane API labs covering Desktop, Dock sync, WindowManager controls, WorkspaceManager, TaskView, child/modal windows, events, snap gap, and BorderLayout.
 - Moved floating GitHub links in desktop-style demos away from the top-right window control area so maximized windows remain fully operable.
 - Fixed the React demo GitHub link styling by loading the demo app stylesheet.
+- Added a docs Troubleshooting page covering Vite CSS imports, runtime style injection, workspace-scoped portal/teleport windows, TaskView snapshots, and pointer-event issues.
+
+### Changed
+
+- Refactored the docs Quick Start page with Wijmo-like framework tabs for Vanilla JS, jQuery, Vue 3, and React code samples.
+- Expanded the docs Installation page and README with clearer npm, CDN, manual CSS import, and `injectStyles:false` guidance.
 
 ## 0.2.3 - 2026-06-17
 

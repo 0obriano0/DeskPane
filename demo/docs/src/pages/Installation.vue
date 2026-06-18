@@ -6,6 +6,35 @@
     <h1>{{ t('install.h1') }}</h1>
     <p v-html="t('install.intro')"></p>
 
+    <section class="install-cards" aria-label="Installation choices">
+      <article class="install-card">
+        <h2>npm / bundler</h2>
+        <p>Best for Vite, Vue, React, TypeScript, and app-level CSS overrides.</p>
+        <pre class="code-block">npm install deskpane</pre>
+      </article>
+      <article class="install-card">
+        <h2>CDN / no build</h2>
+        <p>Best for vanilla HTML, jQuery pages, prototypes, and docs examples.</p>
+        <pre class="code-block">&lt;script src="https://unpkg.com/deskpane/dist/deskpane.umd.min.js"&gt;&lt;/script&gt;</pre>
+      </article>
+    </section>
+
+    <h2>Recommended CSS loading</h2>
+    <p>
+      If your app imports DeskPane CSS with a bundler, disable runtime injection so your app-level overrides keep a stable order.
+      If you use the CDN script-only workflow, the runtime injector can load the core styles for you.
+    </p>
+    <pre class="code-block" v-pre>// Bundler mode
+import 'deskpane/dist/styles/deskpane.css'
+import 'deskpane/dist/styles/deskpane-desktop.css'
+import 'deskpane/dist/themes/light.css'
+
+const wm = new WindowManager({
+  container: document.getElementById('desktop')!,
+  isolated: true,
+  injectStyles: false,
+})</pre>
+
     <!-- ── Tab switcher ─────────────────────────────── -->
     <div class="tab-bar">
       <button :class="['tab', { active: tab === 'esm' }]" @click="tab = 'esm'">
@@ -22,14 +51,19 @@
       <p v-html="t('install.esm.intro')"></p>
 
       <h3>{{ t('install.esm.h3Step1') }}</h3>
-      <pre class="code-block">cp dist/deskpane.es.js      your-project/lib/  # dev
-cp dist/deskpane.es.min.js  your-project/lib/  # production</pre>
+      <pre class="code-block">npm install deskpane</pre>
 
       <h3>{{ t('install.esm.h3Step2') }}</h3>
       <pre class="code-block" v-pre>// main.ts  (TypeScript / bundler)
-import { WindowManager } from './lib/deskpane.es.js'
+import 'deskpane/dist/styles/deskpane.css'
+import 'deskpane/dist/themes/light.css'
+import { WindowManager } from 'deskpane'
 
-const wm = new WindowManager({ container: document.getElementById('desktop')! })
+const wm = new WindowManager({
+  container: document.getElementById('desktop')!,
+  isolated: true,
+  injectStyles: false,
+})
 
 const el = document.createElement('div')
 el.style.padding = '20px'
@@ -39,10 +73,12 @@ wm.open({ id: 'w1', title: 'ESM Window', content: el })</pre>
 
       <h3>{{ t('install.esm.h3Step3') }}</h3>
       <pre class="code-block" v-pre>&lt;!-- index.html --&gt;
+&lt;link rel="stylesheet" href="https://unpkg.com/deskpane/dist/styles/deskpane.css"&gt;
+&lt;link rel="stylesheet" href="https://unpkg.com/deskpane/dist/themes/light.css"&gt;
 &lt;script type="module"&gt;
-  import { WindowManager } from './dist/deskpane.es.js'
+  import { WindowManager } from 'https://unpkg.com/deskpane/dist/deskpane.es.min.js'
 
-  const wm = new WindowManager({ container: document.body })
+  const wm = new WindowManager({ container: document.body, injectStyles: false })
   const el = document.createElement('div')
   el.style.padding = '20px'
   el.textContent = 'Hello!'
@@ -79,12 +115,14 @@ import { useWindowManager } from '@deskpane/adapters/vue/useWindowManager'
 &lt;head&gt;
   &lt;meta charset="UTF-8"&gt;
   &lt;title&gt;DeskPane UMD Demo&lt;/title&gt;
+  &lt;link rel="stylesheet" href="https://unpkg.com/deskpane/dist/styles/deskpane.css"&gt;
+  &lt;link rel="stylesheet" href="https://unpkg.com/deskpane/dist/themes/light.css"&gt;
 &lt;/head&gt;
 &lt;body&gt;
   &lt;div id="desktop" style="width:100vw;height:100vh;position:relative;"&gt;&lt;/div&gt;
 
-  &lt;!-- 1. Load the bundle (use .min.js for production) --&gt;
-  &lt;script src="dist/deskpane.umd.js"&gt;&lt;/script&gt;
+  &lt;!-- 1. Load the bundle --&gt;
+  &lt;script src="https://unpkg.com/deskpane/dist/deskpane.umd.min.js"&gt;&lt;/script&gt;
 
   &lt;!-- 2. Use it — no import needed --&gt;
   &lt;script&gt;
@@ -106,7 +144,7 @@ import { useWindowManager } from '@deskpane/adapters/vue/useWindowManager'
 
       <h3>{{ t('install.umd.h3jQuery') }}</h3>
       <pre class="code-block" v-pre>&lt;script src="https://code.jquery.com/jquery-3.7.1.min.js"&gt;&lt;/script&gt;
-&lt;script src="dist/deskpane.umd.js"&gt;&lt;/script&gt;
+&lt;script src="https://unpkg.com/deskpane/dist/deskpane.umd.min.js"&gt;&lt;/script&gt;
 &lt;script&gt;
   var wm = new window.DeskPane.WindowManager({ container: document.body })
 
@@ -343,6 +381,29 @@ onUnmounted(() => wm?.destroy())
 .panel h2 { margin-top: 0; }
 .panel h3 { margin: 20px 0 6px; font-size: 14px; color: #333; }
 
+.install-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0 22px;
+}
+
+.install-card {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  padding: 14px;
+}
+
+.install-card h2 {
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.install-card p {
+  color: #536577;
+  min-height: 42px;
+}
+
 .code-block {
   background: #1e1e2e;
   color: #cdd6f4;
@@ -389,4 +450,10 @@ onUnmounted(() => wm?.destroy())
 .btn:hover { background: var(--color-primary-hover); }
 .btn-alt { background: #27ae60; }
 .btn-alt:hover { background: #219150; }
+
+@media (max-width: 760px) {
+  .install-cards {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

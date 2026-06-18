@@ -15,6 +15,7 @@ export const en: Record<string, string> = {
   'nav.overview': 'Overview',
   'nav.installation': 'Installation',
   'nav.quickStart': 'Quick Start',
+  'nav.troubleshooting': 'Troubleshooting',
   'nav.openClose': 'open / close',
   'nav.minMax': 'minimize / maximize',
   'nav.events': 'Events',

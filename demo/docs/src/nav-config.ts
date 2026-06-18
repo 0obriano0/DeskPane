@@ -16,6 +16,7 @@ export function getNavConfig(t: (key: string) => string): NavCategory[] {
         { id: 'overview',     label: t('nav.overview') },
         { id: 'installation', label: t('nav.installation') },
         { id: 'quick-start',  label: t('nav.quickStart') },
+        { id: 'troubleshooting', label: t('nav.troubleshooting') },
       ],
     },
     {

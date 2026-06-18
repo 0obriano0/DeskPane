@@ -91,6 +91,7 @@ const PAGE_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   'overview':       defineAsyncComponent(() => import('./pages/Overview.vue')),
   'installation':   defineAsyncComponent(() => import('./pages/Installation.vue')),
   'quick-start':    defineAsyncComponent(() => import('./pages/QuickStart.vue')),
+  'troubleshooting': defineAsyncComponent(() => import('./pages/Troubleshooting.vue')),
   'wm-options':     defineAsyncComponent(() => import('./pages/WindowManagerOptions.vue')),
   'open-close':     defineAsyncComponent(() => import('./pages/OpenClose.vue')),
   'min-max':        defineAsyncComponent(() => import('./pages/MinMaxRestore.vue')),

@@ -15,6 +15,7 @@ export const zhTW: Record<string, string> = {
   'nav.overview': '總覽',
   'nav.installation': '安裝',
   'nav.quickStart': '快速開始',
+  'nav.troubleshooting': '疑難排查',
   'nav.openClose': '開窗 / 關窗',
   'nav.minMax': '最小 / 最大化',
   'nav.events': '事件',
