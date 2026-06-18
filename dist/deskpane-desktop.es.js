@@ -504,6 +504,7 @@ var DESKTOP_CSS = "/* ==========================================================
 // DeskPane — Runtime CSS injection helpers
 // ============================================================
 function isDeskPaneStyleNode(node) {
+    // DeskPane runtime style 都會加 data-dp-style；id fallback 是為了相容早期版本。
     if (node instanceof HTMLStyleElement) {
         if (node.dataset.dpStyle === 'true')
             return true;
@@ -511,6 +512,8 @@ function isDeskPaneStyleNode(node) {
             return true;
     }
     if (node instanceof HTMLLinkElement) {
+        // 使用者可能手動 import/link DeskPane CSS。這些 link 也視為 DeskPane style，
+        // 避免 runtime CSS 插在它們後面造成 override 順序反轉。
         const href = node.getAttribute('href') ?? '';
         return href.includes('/deskpane') || href.includes('\\deskpane') || href.includes('deskpane');
     }
@@ -520,6 +523,8 @@ function hasManualStyleLoaded(options) {
     const hrefPart = options.hrefPart.toLowerCase();
     for (const node of Array.from(document.querySelectorAll('style,link[rel~="stylesheet"]'))) {
         if (node instanceof HTMLStyleElement) {
+            // id/fingerprint 任一命中都代表已載入同一份 core CSS。
+            // fingerprint 讓 bundler raw CSS 或 SSR inline style 也能被偵測。
             if (node.id === options.id)
                 return true;
             if (node.textContent?.includes(options.fingerprint))
@@ -536,6 +541,8 @@ function hasManualStyleLoaded(options) {
 }
 function findInsertionAnchor() {
     const styleNodes = Array.from(document.head.querySelectorAll('style,link[rel~="stylesheet"]'));
+    // 插在第一個非 DeskPane style 前，讓 app stylesheet 保持較高優先順序。
+    // 這是避免 runtime inject 壓過使用者 override 的關鍵。
     return styleNodes.find(node => !isDeskPaneStyleNode(node)) ?? null;
 }
 /**
@@ -1167,9 +1174,15 @@ class Desktop {
      * - 開窗：新增 Dock item
      * - 關窗：移除 Dock item
      * - 點擊 Dock item：預設 focus 視窗（可覆寫）
+     *
+     * 這個方法只管理「同步產生」的 Dock item；使用者手動 addItem 的 launcher
+     * 不會被 cleanup 移除。若要同一個 app 只顯示一個 running item，保留
+     * `dedupeByAppId: true`；若每個視窗都要一個 Dock item，改成 false。
      */
     syncDockWithWindows(manager, options = {}) {
         this.unsyncDockWithWindows();
+        // 預設把 `app-foo` 視為 appId `foo`，方便桌面 app 用穩定 app id 去重。
+        // WorkspaceManager 會另外提供 `getAppIdFromWorkspaceWindowId()` 供跨工作區使用。
         const getAppIdFromWindowId = options.getAppIdFromWindowId ?? ((windowId) => {
             if (windowId.startsWith('app-'))
                 return windowId.slice(4);
@@ -1183,6 +1196,8 @@ class Desktop {
         const dockItemIdPrefix = options.dockItemIdPrefix ?? 'running-';
         const dedupeByAppId = options.dedupeByAppId ?? true;
         const syncExisting = options.syncExisting ?? true;
+        // runningDockIds 是本次 sync 建立的 Dock item 清單，cleanup 只移除這些。
+        // dockIdToWindowId 記錄目前 Dock item 對應的最後一個 live window。
         const runningDockIds = new Set();
         const dockIdToWindowId = new Map();
         let activeDockId = null;
@@ -1209,7 +1224,7 @@ class Desktop {
             clearTimeout(previewHideTimer);
             previewShowTimer = setTimeout(() => {
                 hideGroupPreview();
-                // 收集父視窗 + 所有子視窗
+                // 收集父視窗 + 所有子視窗。子視窗不獨立出現在 Dock，但會在群組預覽中顯示。
                 const childIds = manager.getChildIds?.(parentWindowId) ?? [];
                 const windowIds = [parentWindowId, ...childIds];
                 const onCardClick = (winId) => {
@@ -1298,7 +1313,7 @@ class Desktop {
         const addDockItemForWindow = (event) => {
             if (!event?.id)
                 return;
-            // 子視窗（有 parentId）不在 Dock 獨立顯示
+            // 子視窗（有 parentId）不在 Dock 獨立顯示；改由父視窗群組預覽呈現。
             if (event.parentId)
                 return;
             const appId = getAppIdFromWindowId(event.id);
@@ -1340,7 +1355,8 @@ class Desktop {
             // 新視窗開啟後即為 active（WindowManager 不另外 emit window:focused）
             activeDockId = dockId;
             this._dock.setActiveItem(dockId);
-            // hover 重綁由 onRender 統一處理（addItem 會觸發 _render → onRender）
+            // hover 重綁由 onRender 統一處理（addItem 會觸發 _render → onRender）。
+            // 不在這裡直接 attach，避免 Dock 重排 / render 後 listener 掛到舊 DOM。
         };
         const removeDockItemForWindow = (event) => {
             if (!event?.id)

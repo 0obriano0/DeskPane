@@ -136,6 +136,11 @@ interface WindowManagerOptions {
      * 可搭配 `getCoreCSS()` 取得預設 CSS 作為修改基礎。
      */
     injectStyles?: boolean;
+    /**
+     * 最大化視窗從標題列拖曳超過此距離後，自動解除最大化並接續拖曳。
+     * 預設 12px；設為較大值可避免輕微誤拖，設為 0 可立即觸發。
+     */
+    maximizedDragRestoreThreshold?: number;
 }
 declare class WindowManager {
     private readonly _wins;
@@ -147,6 +152,7 @@ declare class WindowManager {
     private readonly _snapEnabled;
     private readonly _snapThreshold;
     private _snapGap;
+    private readonly _maximizedDragRestoreThreshold;
     private _guideV;
     private _guideH;
     /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
@@ -160,10 +166,18 @@ declare class WindowManager {
     constructor(opts?: WindowManagerOptions);
     /**
      * 開啟視窗。若 ID 已存在，恢復並聚焦；否則建立新視窗。
+     *
+     * 維護注意：
+     * - `WindowState` 是內部可變狀態；事件一律 emit 淺拷貝，避免外部改到內部。
+     * - `parentId/modal` 必須在 DOM 建立後才掛 overlay，因為 overlay 掛在父視窗 root。
+     * - `content` 可能是使用者的 HTMLElement，也可能被 layout auto-detect 移動子節點。
      */
     open(config: WindowConfig): WindowState;
     /**
      * 關閉並銷毀視窗
+     *
+     * 關閉父視窗時會遞迴關閉子視窗；關閉子視窗時只解除父子關係與 modal overlay。
+     * 順序很重要：先移除目前視窗，再 cascade 子視窗，可避免 child close 再次碰到已移除的父 DOM。
      */
     close(id: string): void;
     /**
@@ -174,6 +188,10 @@ declare class WindowManager {
     private _normalizeZ;
     /**
      * 聚焦視窗：置頂 zIndex，設定 isActive
+     *
+     * 子視窗有兩個特殊規則：
+     * - 聚焦父視窗時，所有子視窗一起置頂，保持「子永遠高於父」。
+     * - 聚焦子視窗時，父視窗也要接近頂層，但 z-index 仍低於子視窗。
      */
     focus(id: string): void;
     /**
@@ -184,17 +202,35 @@ declare class WindowManager {
     activateTopWindow(): void;
     /**
      * 最小化（隱藏 DOM，保留狀態）
+     *
+     * 注意：minimize 會清掉 isActive。這讓使用者點 Dock restore 時，
+     * focus() 不會因為「已 active」而提早返回。
      */
     minimize(id: string): void;
     /**
      * 最大化
+     *
+     * 最大化不直接寫入 left/top/width/height，而是交給 CSS class `dp-maximized`。
+     * 原始幾何存在 `_savedGeometry`，讓 restore 可以回到最大化前的位置與大小。
      */
     maximize(id: string): void;
+    /**
+     * 從「最大化標題列拖曳」解除最大化。
+     *
+     * Windows-like 行為重點：
+     * - 用滑鼠在最大化視窗寬度中的比例 ratioX，換算還原後視窗的 x。
+     * - y 則保留滑鼠在標題列內的 offset，讓拖曳不跳手。
+     * - 移除 dp-maximized 後立即 applyGeometry，DragResizeHandler 同一輪 move 會接著更新位置。
+     */
+    private _restoreMaximizedForDrag;
     /**
      * 還原：
      * - 若視窗是「最大化狀態下被最小化」→ 僅移除最小化，保持最大化
      * - 若只是最大化 → 還原到最大化前的幾何
      * - 若只是最小化 → 還原到原始幾何
+     *
+     * 這裡不直接呼叫 focus()；呼叫端通常已經知道是否要聚焦。
+     * open(existing) 會 restore 後再 focus，以避免最小化視窗恢復但 Dock active 狀態不同步。
      */
     restore(id: string): void;
     /** 取得視窗目前狀態快照（唯讀副本） */
@@ -236,10 +272,13 @@ declare class WindowManager {
     /**
      * 在父視窗插入 Modal 遮罩層。
      * overlay 附同子視窗 ID 記錄，點擊時觸發對應子視窗的 shake 動畫。
+     *
+     * overlay 掛在父視窗 root，而不是全域 body。這樣在 isolated workspace、
+     * TaskView clone、Desktop 內嵌 demo 中，遮罩都只限制在父視窗範圍。
      */
     private _attachModalOverlay;
     /**
-     * 移除 parentId 上由 childId 產生的 modal 遮罩。
+     * 移除由 childId 產生的 modal 遮罩。
      */
     private _detachModalOverlay;
     private _deactivateOthers;
@@ -706,7 +745,7 @@ declare const DpWindow: vue.DefineComponent<vue.ExtractPropTypes<{
         type: BooleanConstructor;
         default: boolean;
     };
-}>, () => null, {}, {}, {}, vue.ComponentOptionsMixin, vue.ComponentOptionsMixin, ("initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored")[], "initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored", vue.PublicProps, Readonly<vue.ExtractPropTypes<{
+}>, () => null, {}, {}, {}, vue.ComponentOptionsMixin, vue.ComponentOptionsMixin, ("initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored")[], "initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored", vue.PublicProps, Readonly<vue.ExtractPropTypes<{
     id: {
         type: StringConstructor;
         required: true;
@@ -764,6 +803,7 @@ declare const DpWindow: vue.DefineComponent<vue.ExtractPropTypes<{
     onMinimized?: ((...args: any[]) => any) | undefined;
     onMaximized?: ((...args: any[]) => any) | undefined;
     onRestored?: ((...args: any[]) => any) | undefined;
+    onMaximizedDragRestored?: ((...args: any[]) => any) | undefined;
 }>, {
     label: string;
     icon: string;

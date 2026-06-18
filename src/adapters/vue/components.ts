@@ -47,6 +47,7 @@ interface VueWindowRegistration {
   onMinimized(state: WindowState): void;
   onMaximized(state: WindowState): void;
   onRestored(state: WindowState): void;
+  onMaximizedDragRestored(state: WindowState): void;
 }
 
 interface VueWindowManagerContext {
@@ -337,6 +338,7 @@ export const DpWindowManager = defineComponent({
         wm.events.on<WindowState>('window:minimized', state => registrations.get(state.id)?.onMinimized(state)),
         wm.events.on<WindowState>('window:maximized', state => registrations.get(state.id)?.onMaximized(state)),
         wm.events.on<WindowState>('window:restored', state => registrations.get(state.id)?.onRestored(state)),
+        wm.events.on<WindowState>('window:maximized-drag-restored', state => registrations.get(state.id)?.onMaximizedDragRestored(state)),
       );
       registrations.forEach(openRegistration);
       emit('initialized', wm);
@@ -387,6 +389,7 @@ export const DpWindow = defineComponent({
     'minimized',
     'maximized',
     'restored',
+    'maximizedDragRestored',
   ],
   setup(props, { emit, slots }) {
     const manager = inject<VueWindowManagerContext | null>(WindowManagerContextKey, null);
@@ -424,6 +427,7 @@ export const DpWindow = defineComponent({
       onMinimized: state => emit('minimized', state),
       onMaximized: state => emit('maximized', state),
       onRestored: state => emit('restored', state),
+      onMaximizedDragRestored: state => emit('maximizedDragRestored', state),
     };
 
     onMounted(() => {

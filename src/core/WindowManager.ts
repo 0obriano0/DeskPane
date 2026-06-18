@@ -19,6 +19,7 @@ export type WinEvent =
   | 'window:minimized'
   | 'window:maximized'
   | 'window:restored'
+  | 'window:maximized-drag-restored'
   | 'window:moved'
   | 'window:resized'
   | 'window:child-opened'
@@ -64,6 +65,11 @@ export interface WindowManagerOptions {
    * 可搭配 `getCoreCSS()` 取得預設 CSS 作為修改基礎。
    */
   injectStyles?: boolean;
+  /**
+   * 最大化視窗從標題列拖曳超過此距離後，自動解除最大化並接續拖曳。
+   * 預設 12px；設為較大值可避免輕微誤拖，設為 0 可立即觸發。
+   */
+  maximizedDragRestoreThreshold?: number;
 }
 
 interface ManagedWindow {
@@ -85,6 +91,7 @@ export class WindowManager {
   private readonly _snapEnabled: boolean;
   private readonly _snapThreshold: number;
   private _snapGap: number;
+  private readonly _maximizedDragRestoreThreshold: number;
   private _guideV: HTMLElement | null = null;
   private _guideH: HTMLElement | null = null;
   /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
@@ -103,6 +110,7 @@ export class WindowManager {
     this._snapEnabled = opts.snap ?? true;
     this._snapThreshold = opts.snapThreshold ?? 20;
     this._snapGap = opts.snapGap ?? 0;
+    this._maximizedDragRestoreThreshold = opts.maximizedDragRestoreThreshold ?? 12;
     this.events = new EventBus();
     if (opts.injectStyles !== false) injectStyles();
     if (this._isolated) {
@@ -183,6 +191,10 @@ export class WindowManager {
         containerEl: this._isolated ? this._container : undefined,
         snapFn: this._snapEnabled ? this._buildSnapFn(state.id) : undefined,
         resizeSnapFn: this._snapEnabled ? this._buildResizeSnapFn(state.id) : undefined,
+        maximizedDragRestoreThreshold: this._maximizedDragRestoreThreshold,
+        isMaximized: () => state.isMaximized,
+        onMaximizedDragRestore: (clientX, clientY, ratioX, offsetY) =>
+          this._restoreMaximizedForDrag(state.id, clientX, clientY, ratioX, offsetY),
         onDrag: (x, y) => {
           state.x = x; state.y = y;
           this.events.emit<WindowState>('window:moved', { ...state });
@@ -414,6 +426,62 @@ export class WindowManager {
     win.elements.btnMax.setAttribute('aria-label', '還原');
     this.focus(id);
     this.events.emit<WindowState>('window:maximized', { ...win.state });
+  }
+
+  /**
+   * 從「最大化標題列拖曳」解除最大化。
+   *
+   * Windows-like 行為重點：
+   * - 用滑鼠在最大化視窗寬度中的比例 ratioX，換算還原後視窗的 x。
+   * - y 則保留滑鼠在標題列內的 offset，讓拖曳不跳手。
+   * - 移除 dp-maximized 後立即 applyGeometry，DragResizeHandler 同一輪 move 會接著更新位置。
+   */
+  private _restoreMaximizedForDrag(
+    id: string,
+    clientX: number,
+    clientY: number,
+    ratioX: number,
+    offsetY: number,
+  ): { x: number; y: number } | null {
+    const win = this._wins.get(id);
+    if (!win || !win.state.isMaximized || !win.state.resizable) return null;
+
+    const saved = win.state._savedGeometry ?? {
+      x: win.state.x,
+      y: win.state.y,
+      width: win.state.width,
+      height: win.state.height,
+    };
+    const containerRect = this._isolated
+      ? this._container.getBoundingClientRect()
+      : { left: 0, top: 0 };
+    const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+    const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+    const minVisible = 80;
+
+    const width = cw > 0 ? Math.min(saved.width, cw) : saved.width;
+    const height = ch > 0 ? Math.min(saved.height, ch) : saved.height;
+    let x = clientX - containerRect.left - width * ratioX;
+    let y = clientY - containerRect.top - offsetY;
+
+    if (cw > 0) x = Math.max(0, Math.min(x, cw - Math.min(width, minVisible)));
+    if (ch > 0) y = Math.max(0, Math.min(y, ch - Math.min(height, minVisible)));
+
+    win.state.isMaximized = false;
+    win.state.isMinimized = false;
+    win.state.x = x;
+    win.state.y = y;
+    win.state.width = width;
+    win.state.height = height;
+    delete win.state._savedGeometry;
+    win.elements.root.classList.remove('dp-maximized', 'dp-minimized');
+    win.elements.btnMax.textContent = '□';
+    win.elements.btnMax.setAttribute('aria-label', '最大化');
+    applyGeometry(win.elements.root, win.state);
+    this.events.emit<WindowState>('window:maximized-drag-restored', { ...win.state });
+    this.events.emit<WindowState>('window:restored', { ...win.state });
+
+    return { x, y };
   }
 
   /**

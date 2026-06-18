@@ -81,8 +81,11 @@ export const en: Record<string, string> = {
   'overview.event.minimized': 'A window is minimized',
   'overview.event.maximized': 'A window is maximized',
   'overview.event.restored': 'A window is restored',
+  'overview.event.maximizedDragRestored': 'A maximized window is restored by title-bar drag',
   'overview.event.moved': 'A window is dragged',
   'overview.event.resized': 'A window is resized',
+  'overview.event.childOpened': 'A child window is attached to its parent',
+  'overview.event.childClosed': 'A child window is detached from its parent',
   'overview.config.id': 'Unique window identifier',
   'overview.config.title': 'Title bar text',
   'overview.config.content': 'DOM element to render in the body',
@@ -191,8 +194,11 @@ export const en: Record<string, string> = {
   'events.minimized.when': 'Window hidden',
   'events.maximized.when': 'Window expanded to fill area',
   'events.restored.when': 'Window returned from min/max',
+  'events.maximizedDragRestored.when': 'Maximized title-bar drag crossed the restore threshold',
   'events.moved.when': 'Window dragged (throttled)',
   'events.resized.when': 'Window resized (throttled)',
+  'events.childOpened.when': 'Child window opened with a parentId',
+  'events.childClosed.when': 'Child window closed or detached',
 
   // DOM Content
   'dom.badge': 'Vanilla JS',

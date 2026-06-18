@@ -354,6 +354,10 @@ declare class Desktop {
      * - 開窗：新增 Dock item
      * - 關窗：移除 Dock item
      * - 點擊 Dock item：預設 focus 視窗（可覆寫）
+     *
+     * 這個方法只管理「同步產生」的 Dock item；使用者手動 addItem 的 launcher
+     * 不會被 cleanup 移除。若要同一個 app 只顯示一個 running item，保留
+     * `dedupeByAppId: true`；若每個視窗都要一個 Dock item，改成 false。
      */
     syncDockWithWindows(manager: WindowManagerLike, options?: DockSyncOptions): () => void;
     /** 停止 Dock 與 WindowManager 同步，並移除同步產生的 Dock items。 */

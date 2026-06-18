@@ -75,20 +75,27 @@ const EVENT_DOCS = computed(() => [
   { name: 'window:minimized', when: t('events.minimized.when'), payload: 'WindowState' },
   { name: 'window:maximized', when: t('events.maximized.when'), payload: 'WindowState' },
   { name: 'window:restored',  when: t('events.restored.when'),  payload: 'WindowState' },
+  { name: 'window:maximized-drag-restored', when: t('events.maximizedDragRestored.when'), payload: 'WindowState' },
   { name: 'window:moved',     when: t('events.moved.when'),     payload: 'WindowState' },
   { name: 'window:resized',   when: t('events.resized.when'),   payload: 'WindowState' },
+  { name: 'window:child-opened', when: t('events.childOpened.when'), payload: '{ parentId, childId }' },
+  { name: 'window:child-closed', when: t('events.childClosed.when'), payload: '{ parentId, childId }' },
 ])
 
 const EVENT_COLORS: Record<string, string> = {
   'window:opened': 'green', 'window:closed': 'red', 'window:focused': 'blue',
   'window:minimized': 'orange', 'window:maximized': 'purple', 'window:restored': 'teal',
+  'window:maximized-drag-restored': 'teal',
   'window:moved': 'gray', 'window:resized': 'gray',
+  'window:child-opened': 'indigo', 'window:child-closed': 'indigo',
 }
 
 const ALL_EVENTS: WinEvent[] = [
   'window:opened', 'window:closed', 'window:focused',
   'window:minimized', 'window:maximized', 'window:restored',
+  'window:maximized-drag-restored',
   'window:moved', 'window:resized',
+  'window:child-opened', 'window:child-closed',
 ]
 
 function now() {
@@ -148,7 +155,9 @@ const ALL_EVENTS: WinEvent[] = [
   'window:opened',    'window:closed',
   'window:focused',   'window:minimized',
   'window:maximized', 'window:restored',
+  'window:maximized-drag-restored',
   'window:moved',     'window:resized',
+  'window:child-opened', 'window:child-closed',
 ]
 
 ALL_EVENTS.forEach(ev => {

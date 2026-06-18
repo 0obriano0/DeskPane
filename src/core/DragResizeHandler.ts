@@ -37,6 +37,19 @@ export interface DragResizeOptions {
    * 確保使用者仍可抓取視窗標題列。預設 60。設為 0 則不限制。
    */
   dragEdgeMargin?: number;
+  /**
+   * 從最大化狀態拖曳標題列時，滑鼠移動超過此距離就解除最大化。
+   * 預設 12px，接近 Windows 的「往下拉就還原並繼續拖」手感。
+   */
+  maximizedDragRestoreThreshold?: number;
+  /** 回傳目前視窗是否處於最大化；由 WindowManager 提供，避免 handler 直接讀 WindowState。 */
+  isMaximized?: () => boolean;
+  /**
+   * 最大化視窗被拖曳超過門檻時呼叫。
+   * 回傳還原後的 container-relative x/y，handler 會用它重新計算 drag offset，
+   * 讓同一次滑鼠拖曳可以無縫接著移動還原後的視窗。
+   */
+  onMaximizedDragRestore?: (clientX: number, clientY: number, ratioX: number, offsetY: number) => { x: number; y: number } | null;
   onDragStart?: () => void;
   onDrag?: (x: number, y: number) => void;
   onDragEnd?: () => void;
@@ -66,13 +79,25 @@ function throttle<T extends (...args: any[]) => void>(fn: T, ms: number): T {
 export class DragResizeHandler {
   private _winEl: HTMLElement;
   private _headerEl: HTMLElement;
-  private _opts: Required<Omit<DragResizeOptions, 'containerEl' | 'snapFn' | 'resizeSnapFn'>> & { containerEl?: HTMLElement; snapFn?: DragResizeOptions['snapFn']; resizeSnapFn?: DragResizeOptions['resizeSnapFn'] };
+  private _opts: Required<Omit<
+    DragResizeOptions,
+    'containerEl' | 'snapFn' | 'resizeSnapFn' | 'isMaximized' | 'onMaximizedDragRestore'
+  >> & {
+    containerEl?: HTMLElement;
+    snapFn?: DragResizeOptions['snapFn'];
+    resizeSnapFn?: DragResizeOptions['resizeSnapFn'];
+    isMaximized?: DragResizeOptions['isMaximized'];
+    onMaximizedDragRestore?: DragResizeOptions['onMaximizedDragRestore'];
+  };
 
 
   // 拖曳狀態
   private _dragging = false;
   private _dragOffX = 0;
   private _dragOffY = 0;
+  private _dragStartX = 0;
+  private _dragStartY = 0;
+  private _maximizedDragRestored = false;
 
   // 縮放狀態
   private _resizing = false;
@@ -103,6 +128,9 @@ export class DragResizeHandler {
       resizeSnapFn: opts.resizeSnapFn,
       resizable: opts.resizable ?? true,
       dragEdgeMargin: opts.dragEdgeMargin ?? 60,
+      maximizedDragRestoreThreshold: opts.maximizedDragRestoreThreshold ?? 12,
+      isMaximized: opts.isMaximized,
+      onMaximizedDragRestore: opts.onMaximizedDragRestore,
       onDragStart: opts.onDragStart ?? (() => {}),
       onDrag: opts.onDrag ?? (() => {}),
       onDragEnd: opts.onDragEnd ?? (() => {}),
@@ -153,6 +181,9 @@ export class DragResizeHandler {
     this._dragging = true;
     this._dragOffX = clientX - rect.left;
     this._dragOffY = clientY - rect.top;
+    this._dragStartX = clientX;
+    this._dragStartY = clientY;
+    this._maximizedDragRestored = false;
     this._winEl.style.userSelect = 'none';
     this._opts.onDragStart();
   }
@@ -185,6 +216,29 @@ export class DragResizeHandler {
 
   private _handleMove(e: { clientX: number; clientY: number }): void {
     if (this._dragging) {
+      if (
+        !this._maximizedDragRestored
+        && this._opts.isMaximized?.()
+        && this._opts.onMaximizedDragRestore
+      ) {
+        const dx = e.clientX - this._dragStartX;
+        const dy = e.clientY - this._dragStartY;
+        const distance = Math.hypot(dx, dy);
+        if (distance >= this._opts.maximizedDragRestoreThreshold) {
+          const rect = this._winEl.getBoundingClientRect();
+          const ratioX = rect.width > 0
+            ? Math.max(0, Math.min(1, (this._dragStartX - rect.left) / rect.width))
+            : 0.5;
+          const restored = this._opts.onMaximizedDragRestore(e.clientX, e.clientY, ratioX, this._dragOffY);
+          if (restored) {
+            const { left, top } = this._getContainerRect();
+            this._dragOffX = e.clientX - left - restored.x;
+            this._dragOffY = e.clientY - top - restored.y;
+            this._maximizedDragRestored = true;
+          }
+        }
+      }
+
       const { left, top } = this._getContainerRect();
       // clientX/Y 是 viewport 座標；isolated 模式下需轉成 container 內部座標。
       let x = e.clientX - this._dragOffX - left;

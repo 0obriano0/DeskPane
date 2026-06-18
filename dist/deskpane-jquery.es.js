@@ -44,7 +44,11 @@ class EventBus {
 // DeskPane — Drag & Resize Handler
 // 支援滑鼠與觸控，內建 Throttle 確保巨量表格不卡頓
 // ============================================================
-/** 簡易節流 */
+/**
+ * 簡易節流。
+ * 這裡不用 requestAnimationFrame，因為呼叫端可能希望固定節流間隔；
+ * 預設 16ms 約等於 60fps，對大型內容視窗比較穩。
+ */
 function throttle(fn, ms) {
     let last = 0;
     return function (...args) {
@@ -61,6 +65,9 @@ class DragResizeHandler {
         this._dragging = false;
         this._dragOffX = 0;
         this._dragOffY = 0;
+        this._dragStartX = 0;
+        this._dragStartY = 0;
+        this._maximizedDragRestored = false;
         // 縮放狀態
         this._resizing = false;
         this._resizeEdge = null;
@@ -79,6 +86,9 @@ class DragResizeHandler {
             resizeSnapFn: opts.resizeSnapFn,
             resizable: opts.resizable ?? true,
             dragEdgeMargin: opts.dragEdgeMargin ?? 60,
+            maximizedDragRestoreThreshold: opts.maximizedDragRestoreThreshold ?? 12,
+            isMaximized: opts.isMaximized,
+            onMaximizedDragRestore: opts.onMaximizedDragRestore,
             onDragStart: opts.onDragStart ?? (() => { }),
             onDrag: opts.onDrag ?? (() => { }),
             onDragEnd: opts.onDragEnd ?? (() => { }),
@@ -123,6 +133,9 @@ class DragResizeHandler {
         this._dragging = true;
         this._dragOffX = clientX - rect.left;
         this._dragOffY = clientY - rect.top;
+        this._dragStartX = clientX;
+        this._dragStartY = clientY;
+        this._maximizedDragRestored = false;
         this._winEl.style.userSelect = 'none';
         this._opts.onDragStart();
     }
@@ -154,7 +167,28 @@ class DragResizeHandler {
     }
     _handleMove(e) {
         if (this._dragging) {
+            if (!this._maximizedDragRestored
+                && this._opts.isMaximized?.()
+                && this._opts.onMaximizedDragRestore) {
+                const dx = e.clientX - this._dragStartX;
+                const dy = e.clientY - this._dragStartY;
+                const distance = Math.hypot(dx, dy);
+                if (distance >= this._opts.maximizedDragRestoreThreshold) {
+                    const rect = this._winEl.getBoundingClientRect();
+                    const ratioX = rect.width > 0
+                        ? Math.max(0, Math.min(1, (this._dragStartX - rect.left) / rect.width))
+                        : 0.5;
+                    const restored = this._opts.onMaximizedDragRestore(e.clientX, e.clientY, ratioX, this._dragOffY);
+                    if (restored) {
+                        const { left, top } = this._getContainerRect();
+                        this._dragOffX = e.clientX - left - restored.x;
+                        this._dragOffY = e.clientY - top - restored.y;
+                        this._maximizedDragRestored = true;
+                    }
+                }
+            }
             const { left, top } = this._getContainerRect();
+            // clientX/Y 是 viewport 座標；isolated 模式下需轉成 container 內部座標。
             let x = e.clientX - this._dragOffX - left;
             let y = e.clientY - this._dragOffY - top;
             if (this._opts.snapFn) {
@@ -162,7 +196,8 @@ class DragResizeHandler {
                 x = snapped.x;
                 y = snapped.y;
             }
-            // 邊界保留：確保視窗至少留 dragEdgeMargin px 在容器內，使用者仍可抓取
+            // 邊界保留：確保視窗至少留 dragEdgeMargin px 在容器內，使用者仍可抓取。
+            // 注意：此限制只在 containerEl 存在時啟用；全頁模式維持傳統視窗可拖出邊界的彈性。
             const margin = this._opts.dragEdgeMargin;
             if (margin > 0 && this._opts.containerEl) {
                 const cW = this._opts.containerEl.offsetWidth;
@@ -174,7 +209,8 @@ class DragResizeHandler {
                 const dockRight = parseFloat(cs.getPropertyValue('--dp-dock-inset-right')) || 0;
                 const dockBottom = parseFloat(cs.getPropertyValue('--dp-dock-inset-bottom')) || 0;
                 const dockLeft = parseFloat(cs.getPropertyValue('--dp-dock-inset-left')) || 0;
-                // 各方向邊界 = 使用者設定的 margin + Dock 佔用空間
+                // 各方向邊界 = 使用者設定的 margin + Dock 佔用空間。
+                // Dock inset 由 Desktop 透過 CSS 變數同步，避免 DragResizeHandler 直接依賴 Desktop。
                 const bTop = dockTop; // 頂部：不允許標題列超出（含 top-dock）
                 const bRight = margin + dockRight;
                 const bBottom = margin + dockBottom; // 底部加上 Dock 高度，視窗不沉入 Dock
@@ -209,7 +245,8 @@ class DragResizeHandler {
             newH = Math.max(minHeight, h - dy);
             newY = y + (h - newH);
         }
-        // 轉換為容器相對座標（isolated 模式下 newX/newY 是 viewport 座標）
+        // 轉換為容器相對座標（isolated 模式下 newX/newY 是 viewport 座標）。
+        // resizeSnapFn 和 WindowManager state 都使用 container-relative 座標。
         const { left: cLeft, top: cTop } = this._getContainerRect();
         let cx = newX - cLeft;
         let cy = newY - cTop;
@@ -220,7 +257,8 @@ class DragResizeHandler {
             newW = snapped.width;
             newH = snapped.height;
         }
-        // 縮放邊界保留：與拖曳使用相同的邊界規則
+        // 縮放邊界保留：與拖曳使用相同的邊界規則。
+        // N/W 邊會移動 x/y，因此需要補償 width/height；S/E 邊只限制不能反向縮到不可抓取。
         const margin = this._opts.dragEdgeMargin;
         if (margin > 0 && this._opts.containerEl) {
             const cW = this._opts.containerEl.offsetWidth;
@@ -266,6 +304,7 @@ class DragResizeHandler {
         this._opts.onResize(cx, cy, newW, newH);
     }
     _handleUp() {
+        // mouseup/touchend 可能在視窗外觸發；所有全域 listener 都在這裡收掉。
         if (this._dragging) {
             this._dragging = false;
             this._winEl.style.userSelect = '';
@@ -347,6 +386,7 @@ var BASE_CSS = "/* ============================================================\
 // DeskPane — Runtime CSS injection helpers
 // ============================================================
 function isDeskPaneStyleNode(node) {
+    // DeskPane runtime style 都會加 data-dp-style；id fallback 是為了相容早期版本。
     if (node instanceof HTMLStyleElement) {
         if (node.dataset.dpStyle === 'true')
             return true;
@@ -354,6 +394,8 @@ function isDeskPaneStyleNode(node) {
             return true;
     }
     if (node instanceof HTMLLinkElement) {
+        // 使用者可能手動 import/link DeskPane CSS。這些 link 也視為 DeskPane style，
+        // 避免 runtime CSS 插在它們後面造成 override 順序反轉。
         const href = node.getAttribute('href') ?? '';
         return href.includes('/deskpane') || href.includes('\\deskpane') || href.includes('deskpane');
     }
@@ -363,6 +405,8 @@ function hasManualStyleLoaded(options) {
     const hrefPart = options.hrefPart.toLowerCase();
     for (const node of Array.from(document.querySelectorAll('style,link[rel~="stylesheet"]'))) {
         if (node instanceof HTMLStyleElement) {
+            // id/fingerprint 任一命中都代表已載入同一份 core CSS。
+            // fingerprint 讓 bundler raw CSS 或 SSR inline style 也能被偵測。
             if (node.id === options.id)
                 return true;
             if (node.textContent?.includes(options.fingerprint))
@@ -379,6 +423,8 @@ function hasManualStyleLoaded(options) {
 }
 function findInsertionAnchor() {
     const styleNodes = Array.from(document.head.querySelectorAll('style,link[rel~="stylesheet"]'));
+    // 插在第一個非 DeskPane style 前，讓 app stylesheet 保持較高優先順序。
+    // 這是避免 runtime inject 壓過使用者 override 的關鍵。
     return styleNodes.find(node => !isDeskPaneStyleNode(node)) ?? null;
 }
 /**
@@ -1119,6 +1165,7 @@ class WindowManager {
         this._snapEnabled = opts.snap ?? true;
         this._snapThreshold = opts.snapThreshold ?? 20;
         this._snapGap = opts.snapGap ?? 0;
+        this._maximizedDragRestoreThreshold = opts.maximizedDragRestoreThreshold ?? 12;
         this.events = new EventBus();
         if (opts.injectStyles !== false)
             injectStyles();
@@ -1132,6 +1179,11 @@ class WindowManager {
     // ─────────────────────────────────────────
     /**
      * 開啟視窗。若 ID 已存在，恢復並聚焦；否則建立新視窗。
+     *
+     * 維護注意：
+     * - `WindowState` 是內部可變狀態；事件一律 emit 淺拷貝，避免外部改到內部。
+     * - `parentId/modal` 必須在 DOM 建立後才掛 overlay，因為 overlay 掛在父視窗 root。
+     * - `content` 可能是使用者的 HTMLElement，也可能被 layout auto-detect 移動子節點。
      */
     open(config) {
         const existing = this._wins.get(config.id);
@@ -1167,7 +1219,7 @@ class WindowManager {
             parentId: config.parentId,
             modal: config.modal ?? false,
         };
-        // 子視窗：z-index 必須高於父視窗
+        // 子視窗：z-index 必須高於父視窗；否則 modal overlay 或子視窗會被父視窗蓋住。
         if (state.parentId) {
             const parentWin = this._wins.get(state.parentId);
             if (parentWin) {
@@ -1185,6 +1237,9 @@ class WindowManager {
             containerEl: this._isolated ? this._container : undefined,
             snapFn: this._snapEnabled ? this._buildSnapFn(state.id) : undefined,
             resizeSnapFn: this._snapEnabled ? this._buildResizeSnapFn(state.id) : undefined,
+            maximizedDragRestoreThreshold: this._maximizedDragRestoreThreshold,
+            isMaximized: () => state.isMaximized,
+            onMaximizedDragRestore: (clientX, clientY, ratioX, offsetY) => this._restoreMaximizedForDrag(state.id, clientX, clientY, ratioX, offsetY),
             onDrag: (x, y) => {
                 state.x = x;
                 state.y = y;
@@ -1221,7 +1276,7 @@ class WindowManager {
         elements.root.addEventListener('mousedown', () => this.focus(state.id), true);
         const managed = { state, elements, dragResize };
         this._wins.set(state.id, managed);
-        // 建立父子關係
+        // 建立父子關係。這份 map 是 Dock 群組預覽、modal 阻擋、cascade close 的共同來源。
         if (state.parentId) {
             if (!this._children.has(state.parentId)) {
                 this._children.set(state.parentId, new Set());
@@ -1240,6 +1295,9 @@ class WindowManager {
     }
     /**
      * 關閉並銷毀視窗
+     *
+     * 關閉父視窗時會遞迴關閉子視窗；關閉子視窗時只解除父子關係與 modal overlay。
+     * 順序很重要：先移除目前視窗，再 cascade 子視窗，可避免 child close 再次碰到已移除的父 DOM。
      */
     close(id) {
         const win = this._wins.get(id);
@@ -1264,7 +1322,7 @@ class WindowManager {
             this._detachModalOverlay(id);
             this.events.emit('window:child-closed', { parentId, childId: id });
         }
-        // 如果這個視窗有子視窗，一并關閉（深度優先）
+        // 如果這個視窗有子視窗，一併關閉（深度優先）
         const children = this._children.get(id);
         if (children && children.size > 0) {
             [...children].forEach(childId => this.close(childId));
@@ -1292,6 +1350,10 @@ class WindowManager {
     }
     /**
      * 聚焦視窗：置頂 zIndex，設定 isActive
+     *
+     * 子視窗有兩個特殊規則：
+     * - 聚焦父視窗時，所有子視窗一起置頂，保持「子永遠高於父」。
+     * - 聚焦子視窗時，父視窗也要接近頂層，但 z-index 仍低於子視窗。
      */
     focus(id) {
         const win = this._wins.get(id);
@@ -1321,7 +1383,7 @@ class WindowManager {
                 }
             });
         }
-        // 如果此視窗是子視窗，同時經對間父視窗（父視窗 z-index 仍低於子）
+        // 如果此視窗是子視窗，同時帶起父視窗（父視窗 z-index 仍低於子）
         if (win.state.parentId) {
             const parent = this._wins.get(win.state.parentId);
             if (parent && !parent.state.isActive) {
@@ -1343,6 +1405,9 @@ class WindowManager {
     }
     /**
      * 最小化（隱藏 DOM，保留狀態）
+     *
+     * 注意：minimize 會清掉 isActive。這讓使用者點 Dock restore 時，
+     * focus() 不會因為「已 active」而提早返回。
      */
     minimize(id) {
         const win = this._wins.get(id);
@@ -1370,6 +1435,9 @@ class WindowManager {
     }
     /**
      * 最大化
+     *
+     * 最大化不直接寫入 left/top/width/height，而是交給 CSS class `dp-maximized`。
+     * 原始幾何存在 `_savedGeometry`，讓 restore 可以回到最大化前的位置與大小。
      */
     maximize(id) {
         const win = this._wins.get(id);
@@ -1396,10 +1464,60 @@ class WindowManager {
         this.events.emit('window:maximized', { ...win.state });
     }
     /**
+     * 從「最大化標題列拖曳」解除最大化。
+     *
+     * Windows-like 行為重點：
+     * - 用滑鼠在最大化視窗寬度中的比例 ratioX，換算還原後視窗的 x。
+     * - y 則保留滑鼠在標題列內的 offset，讓拖曳不跳手。
+     * - 移除 dp-maximized 後立即 applyGeometry，DragResizeHandler 同一輪 move 會接著更新位置。
+     */
+    _restoreMaximizedForDrag(id, clientX, clientY, ratioX, offsetY) {
+        const win = this._wins.get(id);
+        if (!win || !win.state.isMaximized || !win.state.resizable)
+            return null;
+        const saved = win.state._savedGeometry ?? {
+            x: win.state.x,
+            y: win.state.y,
+            width: win.state.width,
+            height: win.state.height,
+        };
+        const containerRect = this._isolated
+            ? this._container.getBoundingClientRect()
+            : { left: 0, top: 0 };
+        const cw = this._isolated ? this._container.offsetWidth : window.innerWidth;
+        const ch = this._isolated ? this._container.offsetHeight : window.innerHeight;
+        const minVisible = 80;
+        const width = cw > 0 ? Math.min(saved.width, cw) : saved.width;
+        const height = ch > 0 ? Math.min(saved.height, ch) : saved.height;
+        let x = clientX - containerRect.left - width * ratioX;
+        let y = clientY - containerRect.top - offsetY;
+        if (cw > 0)
+            x = Math.max(0, Math.min(x, cw - Math.min(width, minVisible)));
+        if (ch > 0)
+            y = Math.max(0, Math.min(y, ch - Math.min(height, minVisible)));
+        win.state.isMaximized = false;
+        win.state.isMinimized = false;
+        win.state.x = x;
+        win.state.y = y;
+        win.state.width = width;
+        win.state.height = height;
+        delete win.state._savedGeometry;
+        win.elements.root.classList.remove('dp-maximized', 'dp-minimized');
+        win.elements.btnMax.textContent = '□';
+        win.elements.btnMax.setAttribute('aria-label', '最大化');
+        applyGeometry(win.elements.root, win.state);
+        this.events.emit('window:maximized-drag-restored', { ...win.state });
+        this.events.emit('window:restored', { ...win.state });
+        return { x, y };
+    }
+    /**
      * 還原：
      * - 若視窗是「最大化狀態下被最小化」→ 僅移除最小化，保持最大化
      * - 若只是最大化 → 還原到最大化前的幾何
      * - 若只是最小化 → 還原到原始幾何
+     *
+     * 這裡不直接呼叫 focus()；呼叫端通常已經知道是否要聚焦。
+     * open(existing) 會 restore 後再 focus，以避免最小化視窗恢復但 Dock active 狀態不同步。
      */
     restore(id) {
         const win = this._wins.get(id);
@@ -1603,6 +1721,9 @@ class WindowManager {
     /**
      * 在父視窗插入 Modal 遮罩層。
      * overlay 附同子視窗 ID 記錄，點擊時觸發對應子視窗的 shake 動畫。
+     *
+     * overlay 掛在父視窗 root，而不是全域 body。這樣在 isolated workspace、
+     * TaskView clone、Desktop 內嵌 demo 中，遮罩都只限制在父視窗範圍。
      */
     _attachModalOverlay(parentId, childId) {
         const parentWin = this._wins.get(parentId);
@@ -1628,7 +1749,7 @@ class WindowManager {
         this._modalOverlays.set(childId, overlay);
     }
     /**
-     * 移除 parentId 上由 childId 產生的 modal 遮罩。
+     * 移除由 childId 產生的 modal 遮罩。
      */
     _detachModalOverlay(childId) {
         const overlay = this._modalOverlays.get(childId);
@@ -1655,8 +1776,8 @@ class WindowManager {
             }
         });
         if (topId !== null) {
-            const win = this._wins.get(topId);
-            win.state.isActive = false; // reset so focus() triggers
+            this._wins.get(topId);
+            // reset so focus() triggers even when the top window already thought it was active
             this.focus(topId);
         }
     }
@@ -2720,9 +2841,15 @@ class Desktop {
      * - 開窗：新增 Dock item
      * - 關窗：移除 Dock item
      * - 點擊 Dock item：預設 focus 視窗（可覆寫）
+     *
+     * 這個方法只管理「同步產生」的 Dock item；使用者手動 addItem 的 launcher
+     * 不會被 cleanup 移除。若要同一個 app 只顯示一個 running item，保留
+     * `dedupeByAppId: true`；若每個視窗都要一個 Dock item，改成 false。
      */
     syncDockWithWindows(manager, options = {}) {
         this.unsyncDockWithWindows();
+        // 預設把 `app-foo` 視為 appId `foo`，方便桌面 app 用穩定 app id 去重。
+        // WorkspaceManager 會另外提供 `getAppIdFromWorkspaceWindowId()` 供跨工作區使用。
         const getAppIdFromWindowId = options.getAppIdFromWindowId ?? ((windowId) => {
             if (windowId.startsWith('app-'))
                 return windowId.slice(4);
@@ -2736,6 +2863,8 @@ class Desktop {
         const dockItemIdPrefix = options.dockItemIdPrefix ?? 'running-';
         const dedupeByAppId = options.dedupeByAppId ?? true;
         const syncExisting = options.syncExisting ?? true;
+        // runningDockIds 是本次 sync 建立的 Dock item 清單，cleanup 只移除這些。
+        // dockIdToWindowId 記錄目前 Dock item 對應的最後一個 live window。
         const runningDockIds = new Set();
         const dockIdToWindowId = new Map();
         let activeDockId = null;
@@ -2762,7 +2891,7 @@ class Desktop {
             clearTimeout(previewHideTimer);
             previewShowTimer = setTimeout(() => {
                 hideGroupPreview();
-                // 收集父視窗 + 所有子視窗
+                // 收集父視窗 + 所有子視窗。子視窗不獨立出現在 Dock，但會在群組預覽中顯示。
                 const childIds = manager.getChildIds?.(parentWindowId) ?? [];
                 const windowIds = [parentWindowId, ...childIds];
                 const onCardClick = (winId) => {
@@ -2851,7 +2980,7 @@ class Desktop {
         const addDockItemForWindow = (event) => {
             if (!event?.id)
                 return;
-            // 子視窗（有 parentId）不在 Dock 獨立顯示
+            // 子視窗（有 parentId）不在 Dock 獨立顯示；改由父視窗群組預覽呈現。
             if (event.parentId)
                 return;
             const appId = getAppIdFromWindowId(event.id);
@@ -2893,7 +3022,8 @@ class Desktop {
             // 新視窗開啟後即為 active（WindowManager 不另外 emit window:focused）
             activeDockId = dockId;
             this._dock.setActiveItem(dockId);
-            // hover 重綁由 onRender 統一處理（addItem 會觸發 _render → onRender）
+            // hover 重綁由 onRender 統一處理（addItem 會觸發 _render → onRender）。
+            // 不在這裡直接 attach，避免 Dock 重排 / render 後 listener 掛到舊 DOM。
         };
         const removeDockItemForWindow = (event) => {
             if (!event?.id)
@@ -3017,12 +3147,15 @@ function injectWorkspaceStyles() {
         fingerprint: 'DeskPane — Workspace CSS',
     });
 }
-/** Build a window id that is unique across workspaces for the same app id. */
+/**
+ * Build a window id that is unique across workspaces for the same app id.
+ * 格式預設為 `workspaceId::app-appId`，讓同一個 app 可在不同工作區同時存在。
+ */
 function createWorkspaceWindowId(workspaceId, appId, options = {}) {
     const separator = options.separator ?? WORKSPACE_WINDOW_ID_SEPARATOR;
     return `${workspaceId}${separator}${appId}`;
 }
-/** Parse an id created by `createWorkspaceWindowId()`. */
+/** Parse an id created by `createWorkspaceWindowId()`; raw window id 會回傳 null。 */
 function parseWorkspaceWindowId(windowId, options = {}) {
     const separator = options.separator ?? WORKSPACE_WINDOW_ID_SEPARATOR;
     const index = windowId.indexOf(separator);
@@ -3034,7 +3167,10 @@ function parseWorkspaceWindowId(windowId, options = {}) {
         return null;
     return { workspaceId, appId };
 }
-/** Return the app id from a scoped window id, or a sensible fallback. */
+/**
+ * Return the app id from a scoped window id, or a sensible fallback.
+ * Dock sync 會用 app id 做去重；因此 workspace-scoped id 必須能拆回穩定 app id。
+ */
 function getAppIdFromWorkspaceWindowId(windowId, options = {}) {
     return parseWorkspaceWindowId(windowId, options)?.appId
         ?? (windowId.startsWith('app-') ? windowId.slice(4) : windowId);
@@ -3064,7 +3200,7 @@ class WorkspaceManager {
         this.events = new EventBus();
         if (options.injectStyles !== false)
             injectWorkspaceStyles();
-        // Wrap the container
+        // Wrap the container. 使用額外 root 而不是直接改傳入元素，可讓 destroy() 乾淨移除 DeskPane DOM。
         this._root = document.createElement('div');
         this._root.className = 'dp-workspace-root';
         // Pass animation duration as CSS variable
@@ -3088,7 +3224,8 @@ class WorkspaceManager {
         if (this._workspaces.has(config.id)) {
             throw new Error(`[WorkspaceManager] Workspace already exists: ${config.id}`);
         }
-        // Create workspace container div
+        // Create workspace container div. 每個 workspace 都有自己的 DOM 容器與 WindowManager。
+        // 切換工作區時容器不會銷毀，這讓 Vue Teleport / React Portal 的狀態可以保留。
         const wsEl = document.createElement('div');
         wsEl.className = 'dp-workspace';
         wsEl.dataset.workspaceId = config.id;
@@ -3097,7 +3234,7 @@ class WorkspaceManager {
         this._setWorkspaceVisible(wsEl, false);
         this._setWorkspaceInteractive(wsEl, false);
         this._root.appendChild(wsEl);
-        // Create dedicated WindowManager
+        // Create dedicated WindowManager. 一律 isolated，避免跨 workspace 的視窗 DOM 互相干擾。
         const wm = new WindowManager({
             ...this._wmOptions,
             container: wsEl,
@@ -3171,13 +3308,14 @@ class WorkspaceManager {
             : null;
         const nextEl = next.container;
         this._isAnimating = true;
-        // Position next workspace off-screen
+        // Position next workspace off-screen. hidden 必須先解除，否則 transform transition 不會播放。
         nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
         nextEl.classList.add(goingRight ? 'dp-workspace--enter-right' : 'dp-workspace--enter-left');
         this._setWorkspaceVisible(nextEl, true);
         // Make it visible but off-screen so transition can play
         nextEl.style.visibility = 'visible';
-        // Force reflow so the initial transform is applied before transition
+        // Force reflow so the initial transform is applied before transition.
+        // 少了這行時，某些瀏覽器會把 enter 狀態與 active 狀態合併，動畫直接跳到終點。
         nextEl.getBoundingClientRect();
         // Slide current out
         if (currentEl) {
@@ -3313,6 +3451,7 @@ class WorkspaceManager {
         this._updateIndicator();
     }
     _setWorkspaceInteractive(el, interactive) {
+        // 非 active workspace 保留 DOM 但禁止互動，避免點擊穿透或 tab focus 跑進隱藏桌面。
         el.inert = !interactive;
         if (interactive) {
             el.removeAttribute('aria-hidden');
@@ -3322,6 +3461,8 @@ class WorkspaceManager {
         }
     }
     _setWorkspaceVisible(el, visible) {
+        // hidden 控制 layout/可見性；inert/aria-hidden 控制互動與輔助技術。
+        // 兩者分開是因為動畫期間 next workspace 需要 visible 但還沒 active。
         el.hidden = !visible;
     }
     _subscribeWindowManager(workspaceId, wm) {
@@ -3335,6 +3476,8 @@ class WorkspaceManager {
         this._windowManagerCleanups.set(workspaceId, [offOpened]);
     }
     _warnDuplicateWindowId(workspaceId, windowId) {
+        // raw id 在不同 workspace 重複時，Portal/Teleport 和 Dock sync 很容易對到錯視窗。
+        // 這裡只警告不阻擋，保留低階 API 的彈性；推薦使用 openWindow({ appId })。
         if (parseWorkspaceWindowId(windowId))
             return;
         const duplicates = [];
@@ -3419,6 +3562,8 @@ class TaskView {
         this._overlayEl.appendChild(this._panelEl);
         this._opts.target.appendChild(this._overlayEl);
         // ── Dock 按鈕（可選）─────────────────────────────────────
+        // TaskView 按鈕用 addItemAt(0) 固定插在最左側，模擬作業系統的桌面切換入口。
+        // destroy() 會用同一個 buttonId 移除，避免重建 TaskView 時重複按鈕。
         if (this._opts.dock && this._opts.showButton) {
             this._opts.dock.addItemAt({
                 id: this._buttonId,
@@ -3499,6 +3644,8 @@ class TaskView {
         });
     }
     _render() {
+        // 每次 open 或 workspace 切換都重建卡片，確保縮略圖反映最新 DOM。
+        // 這裡不做長期 cache，因為視窗內容可能由 Vue/React portal 動態改變。
         this._panelEl.innerHTML = '';
         const workspaces = this._wsMgr.workspaces;
         const currentId = this._wsMgr.current?.id;
@@ -3575,6 +3722,8 @@ class TaskView {
                 `transform:scale(${scale});transform-origin:top left;` +
                 `pointer-events:none;overflow:hidden;`;
         const clone = container.cloneNode(true);
+        // 原 workspace 可能是 hidden/inert/aria-hidden；縮略圖 clone 必須解除這些狀態才看得到。
+        // pointer-events:none 則確保 clone 只是預覽，不會攔截 TaskView 的卡片點擊。
         clone.hidden = false;
         clone.inert = false;
         clone.removeAttribute('hidden');
@@ -3594,6 +3743,10 @@ const WM_DATA_KEY = 'dpWindowManager';
 const DESKTOP_DATA_KEY = 'dpDesktop';
 const WORKSPACE_DATA_KEY = 'dpWorkspaceManager';
 const TASKVIEW_DATA_KEY = 'dpTaskView';
+/**
+ * Adapter 只需要 jQuery-like 的最小能力，而不是硬綁完整 jQuery 型別。
+ * 這讓 Cash、Zepto 或測試 double 只要提供 each/data/length 也能工作。
+ */
 function isJQueryLike(value) {
     return !!value
         && typeof value === 'object'
@@ -3601,6 +3754,10 @@ function isJQueryLike(value) {
         && typeof value.data === 'function'
         && typeof value.length === 'number';
 }
+/**
+ * 不使用 `instanceof WindowManager`，因為 UMD/ESM 分包或多份 deskpane bundle
+ * 會讓 instanceof 失效。Duck typing 對 CDN 和 bundler mixed mode 比較穩。
+ */
 function isWindowManagerLike(value) {
     return !!value
         && typeof value === 'object'
@@ -3638,6 +3795,8 @@ function getManagerApiFromElement($, el) {
     return $(el).data(WM_DATA_KEY);
 }
 function resolveManager($, manager) {
+    // manager 可傳 instance、API wrapper、selector、HTMLElement 或 jQuery object。
+    // resolve 順序由最明確到最寬鬆，避免 selector 字串誤判。
     if (isWindowManagerLike(manager))
         return manager;
     if (typeof manager === 'object' && manager && 'manager' in manager) {
@@ -3742,6 +3901,7 @@ function createDesktopApi(desktop, options) {
         get dockSyncCleanup() { return dockSyncCleanup; },
         set dockSyncCleanup(cleanup) { dockSyncCleanup = cleanup; },
         getWindowManager(wmOptions = {}) {
+            // Lazy 建立 WindowManager，讓使用者可以只用 Desktop/Dock/Icon，不一定開視窗。
             if (!windowManager) {
                 windowManager = new WindowManager({
                     container: desktop.getElement(),
@@ -3753,6 +3913,7 @@ function createDesktopApi(desktop, options) {
         },
         syncDockWithWindows(manager, syncOptions = {}) {
             const wm = manager ?? api.getWindowManager();
+            // 同一個 Desktop 只保留一組 sync，避免重複監聽 WindowManager events 造成 Dock item 疊加。
             dockSyncCleanup?.();
             dockSyncCleanup = desktop.syncDockWithWindows(wm, syncOptions);
             return dockSyncCleanup;
@@ -3848,6 +4009,7 @@ function createWorkspaceManagerApi($, workspaceManager, options) {
         },
     };
     workspaceManager.events.on('workspace:switched', () => {
+        // syncDock 只同步目前 active workspace；切換桌面時需重新綁到新的 WindowManager。
         if (options.syncDock) {
             api.syncDock(options.syncDock === true ? {} : options.syncDock);
         }
@@ -3925,6 +4087,8 @@ function install($) {
         this.each(function openElementWindow(index) {
             const manager = resolveManager($, options.manager);
             const { manager: _manager, clone: _clone, ...windowOptions } = options;
+            // 預設會把原元素搬進 DeskPane window；傳 clone:true 才會複製。
+            // 這符合 jQuery plugin 常見「把目前 selection 變成 widget」的使用方式。
             const source = options.content
                 ? firstElement(options.content)
                 : options.clone
@@ -3977,6 +4141,7 @@ function install($) {
         this.each(function openWorkspaceWindow(index) {
             const workspaceApi = resolveWorkspaceApi($, options.workspace);
             const { workspace: _workspace, clone: _clone, ...windowOptions } = options;
+            // workspace 視窗優先使用 appId 產生 scoped id，避免跨 workspace raw id 重複。
             const source = options.content
                 ? firstElement(options.content)
                 : options.clone

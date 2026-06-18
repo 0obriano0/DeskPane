@@ -81,8 +81,11 @@ export const zhTW: Record<string, string> = {
   'overview.event.minimized': '視窗已最小化',
   'overview.event.maximized': '視窗已最大化',
   'overview.event.restored': '視窗已還原',
+  'overview.event.maximizedDragRestored': '最大化視窗由標題列拖曳還原',
   'overview.event.moved': '視窗已拖曳',
   'overview.event.resized': '視窗已縮放',
+  'overview.event.childOpened': '子視窗已連結到父視窗',
+  'overview.event.childClosed': '子視窗已從父視窗解除',
   'overview.config.id': '唯一視窗識別碼',
   'overview.config.title': '標題列文字',
   'overview.config.content': '渲染在 body 內的 DOM 元素',
@@ -191,8 +194,11 @@ export const zhTW: Record<string, string> = {
   'events.minimized.when': '視窗已隱藏',
   'events.maximized.when': '視窗展開至填滿區域',
   'events.restored.when': '視窗從最小/最大化還原',
+  'events.maximizedDragRestored.when': '最大化標題列拖曳超過還原門檻',
   'events.moved.when': '視窗已拖曳（節流）',
   'events.resized.when': '視窗已縮放（節流）',
+  'events.childOpened.when': '帶有 parentId 的子視窗已開啟',
+  'events.childClosed.when': '子視窗已關閉或解除連結',
 
   // DOM Content
   'dom.badge': 'Vanilla JS',

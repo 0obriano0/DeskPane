@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1 - Unreleased
+
+### Added
+
+- Added Windows-like drag restore for maximized windows: dragging a maximized title bar past `maximizedDragRestoreThreshold` restores the saved window size and continues the same drag gesture.
+- Added `window:maximized-drag-restored` so apps can distinguish drag-to-restore from regular restore actions.
+
+### Changed
+
+### Fixed
+
 ## 0.3.0 - 2026-06-18
 
 ### Added
