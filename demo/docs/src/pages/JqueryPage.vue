@@ -316,10 +316,10 @@ $form.dpWindow({
   height: 260,
 })`,
     },
-    {
-      name: 'desktop.js',
-      lang: 'javascript',
-      code: `$('#desktop').dpDesktop({
+      {
+        name: 'desktop.js',
+        lang: 'javascript',
+        code: `$('#desktop').dpDesktop({
   dock: { position: 'bottom', items: [] },
   icons: [
     {
@@ -343,6 +343,42 @@ $form.dpWindow({
     injectStyles: false,
   },
   syncDock: true,
+})`,
+    },
+    {
+      name: 'workspace-taskview.js',
+      lang: 'javascript',
+      code: `$('#desktop').dpDesktop({
+  dock: { position: 'bottom', items: [] },
+  windowManager: false,
+})
+
+$('#desktop').dpWorkspaceManager({
+  desktop: '#desktop',
+  workspaces: [
+    { id: 'ws-1', label: 'Desktop 1' },
+    { id: 'ws-2', label: 'Desktop 2' },
+  ],
+  syncDock: true,
+  windowManagerOptions: {
+    isolated: true,
+    snap: true,
+    injectStyles: false,
+  },
+})
+
+$('#desktop').dpTaskView({
+  desktop: '#desktop',
+  allowAdd: true,
+  allowDelete: true,
+})
+
+$('<div>Customers</div>').dpWorkspaceWindow({
+  workspace: '#desktop',
+  appId: 'customers',
+  title: 'Customers',
+  width: 520,
+  height: 360,
 })`,
     },
   ])

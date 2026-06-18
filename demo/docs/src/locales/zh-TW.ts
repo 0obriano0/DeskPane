@@ -277,7 +277,7 @@ export const zhTW: Record<string, string> = {
   // jQuery page
   'jquery.badge': 'jQuery',
   'jquery.h1': 'jQuery 整合',
-  'jquery.intro': 'DeskPane 提供正式 jQuery adapter（<code>deskpane/jquery</code> 或 <code>dist/deskpane-jquery.umd.js</code>）。載入後會新增 <code>$.fn.dpWindowManager</code>、<code>$.fn.dpWindow</code>、<code>$.fn.dpDesktop</code>，適合 script tag 與舊 ERP 頁面。',
+  'jquery.intro': 'DeskPane 提供正式 jQuery adapter（<code>deskpane/jquery</code> 或 <code>dist/deskpane-jquery.umd.js</code>）。載入後會新增 <code>$.fn.dpWindowManager</code>、<code>$.fn.dpWindow</code>、<code>$.fn.dpDesktop</code>、<code>$.fn.dpWorkspaceManager</code>、<code>$.fn.dpWorkspaceWindow</code>、<code>$.fn.dpTaskView</code>，適合 script tag 與舊 ERP 頁面。',
   'jquery.openForm': '📋 表單',
   'jquery.openSearch': '🔍 即時搜尋',
   'jquery.openAccordion': '🎨 摺疊面板',
@@ -296,9 +296,9 @@ export const zhTW: Record<string, string> = {
   'jquery.pat2.name': 'Element plugin',
   'jquery.pat2.when': '把既有 jQuery 元素開成視窗',
   'jquery.pat2.code': '<code>$(panel).dpWindow({ manager })</code>',
-  'jquery.pat3.name': 'Desktop plugin',
-  'jquery.pat3.when': '桌面圖示、Dock、可選 Dock sync',
-  'jquery.pat3.code': '<code>$(root).dpDesktop(...)</code>',
+  'jquery.pat3.name': 'Workspace plugins',
+  'jquery.pat3.when': '虛擬桌面、TaskView、workspace 視窗與 Dock sync',
+  'jquery.pat3.code': '<code>$(root).dpWorkspaceManager(...)</code>',
 
   // React page
   'react.badge': 'React',

@@ -1,10 +1,10 @@
 # Changelog
 
-## 0.2.4 - Unreleased
+## 0.3.0 - Unreleased
 
 ### Added
 
-- Added an official jQuery adapter exported as `deskpane/jquery`, with `dpWindowManager`, `dpWindow`, and `dpDesktop` plugins plus ESM/UMD bundles and TypeScript declarations.
+- Added an official jQuery adapter exported as `deskpane/jquery`, with `dpWindowManager`, `dpWindow`, `dpDesktop`, `dpWorkspaceManager`, `dpWorkspaceWindow`, and `dpTaskView` plugins plus ESM/UMD bundles and TypeScript declarations.
 - Added GitHub repository links to the demo landing page and all web demo entries.
 - Refactored the vanilla and jQuery demos into focused DeskPane API labs covering Desktop, Dock sync, WindowManager controls, WorkspaceManager, TaskView, child/modal windows, events, snap gap, and BorderLayout.
 - Moved floating GitHub links in desktop-style demos away from the top-right window control area so maximized windows remain fully operable.
@@ -17,6 +17,7 @@
 - Expanded the docs Installation page and README with clearer npm, CDN, manual CSS import, and `injectStyles:false` guidance.
 - Refactored the jQuery demo to use the official adapter plugin surface for `dpDesktop`, `dpWindow`, and Dock sync while retaining WorkspaceManager and TaskView integration.
 - Updated the jQuery adapter to accept WindowManager-like objects by duck typing, so UMD bundles from `deskpane-workspace` interoperate with `deskpane-jquery`.
+- Refactored the jQuery demo again as a full 0.3.0 adapter showcase using `dpDesktop`, `dpWorkspaceManager`, `dpTaskView`, and `dpWorkspaceWindow`.
 
 ## 0.2.3 - 2026-06-17
 

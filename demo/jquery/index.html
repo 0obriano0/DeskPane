@@ -79,7 +79,6 @@
   <script src="../../dist/deskpane-jquery.umd.js"></script>
   <script>
     const { BorderLayout, setTheme } = DeskPane;
-    const { WorkspaceManager, TaskView } = DeskPaneWorkspace;
 
     const $desktopRoot = $('#desktop-root');
     $desktopRoot.dpDesktop({
@@ -95,24 +94,28 @@
       ],
     });
     const desktopApi = $desktopRoot.dpDesktop('instance');
-    const desktop = desktopApi.desktop;
 
-    const workspaces = new WorkspaceManager(desktop.getElement(), {
+    $desktopRoot.dpWorkspaceManager({
+      desktop: $desktopRoot,
       animationMs: 220,
+      workspaces: [{ id: 'ws-1', label: '桌面 1' }],
+      syncDock: true,
       windowManagerOptions: { isolated: true, snap: true },
     });
-    workspaces.addWorkspace({ id: 'ws-1', label: '桌面 1' });
-    $desktopRoot.dpDesktop('syncDockWithWindows', workspaces.getWindowManager('ws-1'));
-    workspaces.events.on('workspace:switched', ({ to }) => {
-      $desktopRoot.dpDesktop('syncDockWithWindows', workspaces.getWindowManager(to));
+
+    $desktopRoot.dpTaskView({
+      desktop: $desktopRoot,
+      allowAdd: true,
+      allowDelete: true,
+    });
+
+    const workspaceApi = $desktopRoot.dpWorkspaceManager('instance');
+    workspaceApi.workspaceManager.events.on('workspace:switched', () => {
       currentWm().activateTopWindow();
     });
-    const taskView = new TaskView(workspaces, { dock: desktop.getDock() });
 
     function currentWm() {
-      const current = workspaces.current;
-      if (!current) throw new Error('No active workspace');
-      return workspaces.getWindowManager(current.id);
+      return $desktopRoot.dpWorkspaceManager('currentWindowManager');
     }
 
     function panel(title, $body) {
@@ -127,9 +130,10 @@
       const def = apps[id];
       if (!def) return;
       const content = def.make();
-      $(content).dpWindow({
-        manager: currentWm(),
+      $(content).dpWorkspaceWindow({
+        workspace: $desktopRoot,
         id: 'app-' + id,
+        appId: id,
         title: def.title,
         icon: def.icon,
         label: def.label,
@@ -145,23 +149,30 @@
     function makeOverview() {
       const $grid = $('<div class="grid">').append(
         card('Adapter bundle', 'deskpane-jquery.umd.js installs $.fn.dpWindowManager, $.fn.dpWindow, and $.fn.dpDesktop.'),
-        card('dpWindow content', 'Window contents are built with jQuery and opened through $(content).dpWindow(...).'),
+        card('dpWorkspaceWindow content', 'Workspace windows are built with jQuery and opened through $(content).dpWorkspaceWindow(...).'),
         card('dpDesktop + Dock', 'Desktop icons are initialized with $(root).dpDesktop(...), and Dock sync uses the plugin command API.'),
-        card('WorkspaceManager', 'Task View can add and switch virtual desktops without framework state.'),
+        card('dpWorkspaceManager', 'Workspaces are initialized with $(root).dpWorkspaceManager(...), with automatic Dock sync.'),
+        card('dpTaskView', 'TaskView is initialized with $(root).dpTaskView(...), and gets its Dock button from dpDesktop.'),
         card('Child windows', 'parentId and modal behavior work with jQuery-created content.'),
         card('BorderLayout', 'DeskPane layout components can be mounted inside jQuery-built DOM.'),
       );
       const $code = $('<pre>').text(`$('#desktop-root').dpDesktop({ icons, dock: { position: 'bottom' } })
 
-$(content).dpWindow({
-  manager: workspaceManager.getWindowManager('ws-1'),
+$(content).dpWorkspaceWindow({
+  workspace: '#desktop-root',
   id: 'app-overview',
   title: 'jQuery content'
 })
 
-$('#desktop-root').dpDesktop('syncDockWithWindows', wm)`);
+$('#desktop-root').dpWorkspaceManager({
+  desktop: '#desktop-root',
+  workspaces: [{ id: 'ws-1', label: '桌面 1' }],
+  syncDock: true
+})
+
+$('#desktop-root').dpTaskView({ desktop: '#desktop-root' })`);
       const $body = $('<div>').append(
-        $('<p class="muted">').text('This demo uses the official jQuery adapter for desktop initialization and element-to-window opening. WorkspaceManager and TaskView remain regular DeskPane modules, because they coordinate multiple WindowManager instances.'),
+        $('<p class="muted">').text('This demo uses the official jQuery adapter for desktop initialization, workspace management, TaskView, Dock sync, and element-to-window opening.'),
         $('<h3>').text('What is active here'),
         $grid,
         $('<h3>').text('jQuery integration shape'),
@@ -190,9 +201,10 @@ $('#desktop-root').dpDesktop('syncDockWithWindows', wm)`);
     }
 
     function openFloatingProbe() {
-      $(panel('Snap probe', $('<p class="muted">').text('Drag this window near another window to see snap alignment and gap behavior.'))).dpWindow({
-        manager: currentWm(),
+      $(panel('Snap probe', $('<p class="muted">').text('Drag this window near another window to see snap alignment and gap behavior.'))).dpWorkspaceWindow({
+        workspace: $desktopRoot,
         id: 'snap-probe-' + Date.now(),
+        appId: 'snap-probe',
         title: 'Snap probe',
         width: 260,
         height: 150,
@@ -280,7 +292,7 @@ $('#desktop-root').dpDesktop('syncDockWithWindows', wm)`);
         $('<p class="muted">').text('Open, focus, minimize, maximize, restore, and close windows to see WindowManager events.'),
         $('<div class="btn-row">').append(
           $('<button class="btn primary">').text('Open probe window').on('click', openFloatingProbe),
-          $('<button class="btn">').text('Open Task View').on('click', () => taskView.open()),
+          $('<button class="btn">').text('Open Task View').on('click', () => $desktopRoot.dpTaskView('open')),
         ),
         $log,
       );

@@ -579,6 +579,229 @@ declare class Desktop {
     destroy(): void;
 }
 
+/** 建立工作區時的設定 */
+interface WorkspaceConfig {
+    /** 唯一識別碼（必填） */
+    id: string;
+    /** 顯示名稱，用於指示器 / aria-label */
+    label?: string;
+    /** 工作區圖示（emoji 或圖片 URL） */
+    icon?: string;
+}
+/** 工作區的執行時狀態 */
+interface WorkspaceState {
+    id: string;
+    label: string;
+    icon?: string;
+    /** 工作區的 DOM 容器（已掛載到 WorkspaceManager 根容器內） */
+    container: HTMLElement;
+}
+/**
+ * Window config for `WorkspaceManager.openWindow()`.
+ * Use `appId` to let DeskPane generate a workspace-scoped window id.
+ */
+interface WorkspaceOpenWindowConfig extends Omit<WindowConfig, 'id'> {
+    /**
+     * Logical application id. When provided, DeskPane opens the window with a
+     * workspace-scoped id such as `ws-2::app-counter`.
+     */
+    appId?: string;
+    /**
+     * Explicit window id. If omitted, `appId` is required and a scoped id is
+     * generated automatically.
+     */
+    id?: string;
+    /** Target workspace. Defaults to the current workspace. */
+    workspaceId?: string;
+}
+/** Dock 最小介面（duck typing，避免 workspace 直接依賴 desktop bundle） */
+interface DockLike {
+    addItem(item: {
+        id: string;
+        label: string;
+        icon: string;
+        action: () => void;
+    }): void;
+    /** 在指定索引插入按鈕（0 = 最左/最上）。超出範圍自動夾緊。 */
+    addItemAt(item: {
+        id: string;
+        label: string;
+        icon: string;
+        action: () => void;
+    }, index: number): void;
+    removeItem(id: string): void;
+}
+/** TaskView 建構選項 */
+interface TaskViewOptions {
+    /**
+     * 覆蓋層掛載的 DOM 目標，預設 document.body。
+     */
+    target?: HTMLElement;
+    /**
+     * 是否顯示「新增桌面」按鈕，預設 true。
+     */
+    allowAdd?: boolean;
+    /**
+     * 是否顯示「刪除桌面」按鈕，預設 true。
+     */
+    allowDelete?: boolean;
+    /**
+     * 是否監聽 Escape 鍵關閉 Task View，預設 true。
+     */
+    keyboard?: boolean;
+    /**
+     * 點擊遮罩背景時是否關閉，預設 true。
+     */
+    closeOnBackdrop?: boolean;
+    /**
+     * 新增工作區時的設定產生器。
+     * 若不提供，預設自動產生 id='ws-N'、label='桌面 N'。
+     */
+    onCreateWorkspace?: () => WorkspaceConfig;
+    /**
+     * 是否自動注入 TaskView CSS，預設 true。
+     */
+    injectStyles?: boolean;
+    /**
+     * Dock 實例。提供後 TaskView 可自動管理「虛擬桌面」按鈕。
+     */
+    dock?: DockLike;
+    /**
+     * 是否在 Dock 顯示「虛擬桌面」按鈕，預設 true。
+     * 設為 false 時按鈕不會加入 Dock，但 `open()` / `toggle()` 仍可呼叫。
+     */
+    showButton?: boolean;
+    /**
+     * Dock 按鈕標籤文字，預設「虛擬桌面」。
+     */
+    buttonLabel?: string;
+    /**
+     * Dock 按鈕圖示（emoji 或 URL），預設「⧉」。
+     */
+    buttonIcon?: string;
+    /**
+     * Dock 按鈕的唯一 ID，預設「dp-tv-button」。
+     */
+    buttonId?: string;
+}
+/** WorkspaceManager 建構選項 */
+interface WorkspaceManagerOptions {
+    /**
+     * 切換動畫持續時間（ms），預設 250。
+     * 設為 0 則直接切換（無動畫）。
+     */
+    animationMs?: number;
+    /**
+     * 是否自動注入 Workspace CSS，預設 true。
+     * 設為 false 時也會套用到內部建立的 WindowManager，
+     * 除非 windowManagerOptions.injectStyles 明確指定其他值。
+     */
+    injectStyles?: boolean;
+    /**
+     * 傳給每個 WindowManager 的選項（snap、throttle 等）。
+     * 每個工作區的 WindowManager 都套用相同選項。
+     */
+    windowManagerOptions?: WindowManagerOptions;
+    /**
+     * Warn when the same raw window id exists in more than one workspace.
+     * This helps catch Dock/Portal/Teleport identity bugs early.
+     * Default: true.
+     */
+    warnOnDuplicateWindowIds?: boolean;
+}
+
+declare class WorkspaceManager {
+    private readonly _root;
+    private readonly _animationMs;
+    private readonly _wmOptions;
+    private readonly _warnOnDuplicateWindowIds;
+    private readonly _workspaces;
+    private readonly _windowManagers;
+    private readonly _windowManagerCleanups;
+    private _currentId;
+    private _isAnimating;
+    private _indicatorEl;
+    readonly events: EventBus;
+    constructor(container: HTMLElement | string, options?: WorkspaceManagerOptions);
+    /** 所有工作區的唯讀清單 */
+    get workspaces(): WorkspaceState[];
+    /** 目前活躍的工作區，若尚無工作區則為 null */
+    get current(): WorkspaceState | null;
+    /**
+     * 新增工作區。
+     * 若目前沒有活躍工作區，自動切換到新建的工作區。
+     */
+    addWorkspace(config: WorkspaceConfig): WorkspaceState;
+    /**
+     * 移除工作區（同時銷毀其 WindowManager）。
+     * 若移除的是目前工作區，自動切換到前一個（或後一個）。
+     */
+    removeWorkspace(id: string): void;
+    /**
+     * 切換到指定工作區，附帶左右滑入動畫。
+     * 若目前正在切換動畫中，忽略此次呼叫。
+     */
+    switchTo(id: string): void;
+    /**
+     * 取得指定工作區的 WindowManager。
+     * 用於直接呼叫 wm.open() / wm.close() 等操作。
+     */
+    getWindowManager(workspaceId: string): WindowManager;
+    /**
+     * Build a workspace-scoped window id for an app.
+     * Defaults to the current workspace when `workspaceId` is omitted.
+     */
+    createWindowId(appId: string, workspaceId?: string | null): string;
+    /**
+     * Open a window in a workspace.
+     * Prefer `appId` over manually reusing raw ids across workspaces; DeskPane
+     * will generate a scoped id such as `ws-2::app-counter`.
+     */
+    openWindow(config: WorkspaceOpenWindowConfig): WindowState;
+    /**
+     * 啟用工作區指示點（小圓點）。
+     * 會在根容器底部顯示，指示當前所在工作區。
+     */
+    enableIndicator(): void;
+    disableIndicator(): void;
+    /** 銷毀所有工作區並清理資源 */
+    destroy(): void;
+    /** 無動畫直接啟用（初始化或移除當前工作區時使用） */
+    private _activateImmediate;
+    private _setWorkspaceInteractive;
+    private _setWorkspaceVisible;
+    private _subscribeWindowManager;
+    private _warnDuplicateWindowId;
+    /** 更新底部指示點 */
+    private _updateIndicator;
+}
+
+declare class TaskView {
+    private readonly _wsMgr;
+    private readonly _opts;
+    private readonly _overlayEl;
+    private readonly _panelEl;
+    private _isOpen;
+    private _wsCounter;
+    private readonly _buttonId;
+    private readonly _onKeyDown;
+    private readonly _onSwitched;
+    readonly events: EventBus;
+    constructor(wsMgr: WorkspaceManager, options?: TaskViewOptions);
+    get isOpen(): boolean;
+    open(): void;
+    close(): void;
+    toggle(): void;
+    /** 銷毀 Task View，移除 DOM 與事件監聽 */
+    destroy(): void;
+    private _syncCounter;
+    private _render;
+    /** 預設新增桌面設定：ws-N / 桌面 N */
+    private _defaultWorkspaceConfig;
+    /** DOM clone + CSS scale 縮略圖 */
+    private _buildPreview;
+}
+
 interface JQueryLike {
     length: number;
     [index: number]: HTMLElement;
@@ -628,6 +851,48 @@ interface DpDesktopOptions extends DesktopConfig {
     syncDock?: boolean | DockSyncOptions;
 }
 type DpDesktopMethod = 'instance' | 'windowManager' | 'addIcon' | 'removeIcon' | 'syncDockWithWindows' | 'destroy';
+interface DpWorkspaceManagerApi {
+    workspaceManager: WorkspaceManager;
+    taskView?: TaskView | null;
+    dockSyncCleanup?: (() => void) | null;
+    addWorkspace(config: WorkspaceConfig): WorkspaceState;
+    removeWorkspace(id: string): void;
+    switchTo(id: string): void;
+    currentWindowManager(): WindowManager;
+    windowManager(workspaceId?: string): WindowManager;
+    openWindow(config: JQueryWorkspaceWindowConfig): WindowState;
+    syncDock(options?: DockSyncOptions): () => void;
+    createTaskView(options?: DpTaskViewOptions): TaskView;
+    destroy(): void;
+}
+interface DpWorkspaceManagerOptions extends WorkspaceManagerOptions {
+    workspaces?: WorkspaceConfig[];
+    indicator?: boolean;
+    syncDock?: boolean | DockSyncOptions;
+    taskView?: boolean | DpTaskViewOptions;
+    desktop?: DpDesktopApi | JQueryLike | string | HTMLElement;
+}
+interface JQueryWorkspaceWindowConfig extends Omit<WorkspaceOpenWindowConfig, 'content'> {
+    content?: HTMLElement | JQueryLike | string | null;
+}
+interface DpWorkspaceWindowOptions extends Omit<JQueryWorkspaceWindowConfig, 'content'> {
+    workspace: WorkspaceManager | DpWorkspaceManagerApi | JQueryLike | string | HTMLElement;
+    content?: HTMLElement | JQueryLike | string | null;
+    clone?: boolean;
+}
+type DpWorkspaceManagerMethod = 'instance' | 'addWorkspace' | 'removeWorkspace' | 'switchTo' | 'current' | 'workspaces' | 'currentWindowManager' | 'windowManager' | 'openWindow' | 'syncDock' | 'taskView' | 'destroy';
+interface DpTaskViewOptions extends TaskViewOptions {
+    workspace?: WorkspaceManager | DpWorkspaceManagerApi | JQueryLike | string | HTMLElement;
+    desktop?: DpDesktopApi | JQueryLike | string | HTMLElement;
+}
+interface DpTaskViewApi {
+    taskView: TaskView;
+    open(): void;
+    close(): void;
+    toggle(): void;
+    destroy(): void;
+}
+type DpTaskViewMethod = 'instance' | 'open' | 'close' | 'toggle' | 'destroy';
 interface DeskPaneJQueryPlugin {
     install($: JQueryStaticLike): void;
 }
@@ -647,6 +912,22 @@ declare global {
         dpDesktop(method: 'removeIcon', id: string): void;
         dpDesktop(method: 'syncDockWithWindows', options?: DockSyncOptions): () => void;
         dpDesktop(method: 'destroy'): void;
+        dpWorkspaceManager(options?: DpWorkspaceManagerOptions): JQuery;
+        dpWorkspaceManager(method: 'instance'): DpWorkspaceManagerApi;
+        dpWorkspaceManager(method: 'addWorkspace', config: WorkspaceConfig): WorkspaceState;
+        dpWorkspaceManager(method: 'removeWorkspace' | 'switchTo', id: string): void;
+        dpWorkspaceManager(method: 'current'): WorkspaceState | null;
+        dpWorkspaceManager(method: 'workspaces'): WorkspaceState[];
+        dpWorkspaceManager(method: 'currentWindowManager'): WindowManager;
+        dpWorkspaceManager(method: 'windowManager', workspaceId?: string): WindowManager;
+        dpWorkspaceManager(method: 'openWindow', config: JQueryWorkspaceWindowConfig): WindowState;
+        dpWorkspaceManager(method: 'syncDock', options?: DockSyncOptions): () => void;
+        dpWorkspaceManager(method: 'taskView', options?: DpTaskViewOptions): TaskView;
+        dpWorkspaceManager(method: 'destroy'): void;
+        dpWorkspaceWindow(options: DpWorkspaceWindowOptions): WindowState | WindowState[];
+        dpTaskView(options?: DpTaskViewOptions): JQuery;
+        dpTaskView(method: 'instance'): DpTaskViewApi;
+        dpTaskView(method: 'open' | 'close' | 'toggle' | 'destroy'): void;
     }
 }
 
@@ -661,4 +942,4 @@ declare global {
 }
 
 export { DeskPaneJQuery, install };
-export type { DeskPaneJQueryPlugin, DpDesktopApi, DpDesktopMethod, DpDesktopOptions, DpWindowManagerApi, DpWindowManagerMethod, DpWindowManagerOptions, DpWindowOptions, JQueryLike, JQueryStaticLike, JQueryWindowConfig };
+export type { DeskPaneJQueryPlugin, DpDesktopApi, DpDesktopMethod, DpDesktopOptions, DpTaskViewApi, DpTaskViewMethod, DpTaskViewOptions, DpWindowManagerApi, DpWindowManagerMethod, DpWindowManagerOptions, DpWindowOptions, DpWorkspaceManagerApi, DpWorkspaceManagerMethod, DpWorkspaceManagerOptions, DpWorkspaceWindowOptions, JQueryLike, JQueryStaticLike, JQueryWindowConfig, JQueryWorkspaceWindowConfig };

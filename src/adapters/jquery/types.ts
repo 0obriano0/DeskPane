@@ -2,6 +2,15 @@ import type { WindowConfig, WindowState } from '../../core/types.js';
 import type { WindowManager, WindowManagerOptions } from '../../core/WindowManager.js';
 import type { DesktopConfig, DesktopIconConfig, DockSyncOptions } from '../../desktop/types.js';
 import type { Desktop } from '../../desktop/Desktop.js';
+import type { WorkspaceManager } from '../../workspace/WorkspaceManager.js';
+import type { TaskView } from '../../workspace/TaskView.js';
+import type {
+  TaskViewOptions,
+  WorkspaceConfig,
+  WorkspaceManagerOptions,
+  WorkspaceOpenWindowConfig,
+  WorkspaceState,
+} from '../../workspace/types.js';
 
 export interface JQueryLike {
   length: number;
@@ -78,6 +87,73 @@ export type DpDesktopMethod =
   | 'syncDockWithWindows'
   | 'destroy';
 
+export interface DpWorkspaceManagerApi {
+  workspaceManager: WorkspaceManager;
+  taskView?: TaskView | null;
+  dockSyncCleanup?: (() => void) | null;
+  addWorkspace(config: WorkspaceConfig): WorkspaceState;
+  removeWorkspace(id: string): void;
+  switchTo(id: string): void;
+  currentWindowManager(): WindowManager;
+  windowManager(workspaceId?: string): WindowManager;
+  openWindow(config: JQueryWorkspaceWindowConfig): WindowState;
+  syncDock(options?: DockSyncOptions): () => void;
+  createTaskView(options?: DpTaskViewOptions): TaskView;
+  destroy(): void;
+}
+
+export interface DpWorkspaceManagerOptions extends WorkspaceManagerOptions {
+  workspaces?: WorkspaceConfig[];
+  indicator?: boolean;
+  syncDock?: boolean | DockSyncOptions;
+  taskView?: boolean | DpTaskViewOptions;
+  desktop?: DpDesktopApi | JQueryLike | string | HTMLElement;
+}
+
+export interface JQueryWorkspaceWindowConfig extends Omit<WorkspaceOpenWindowConfig, 'content'> {
+  content?: HTMLElement | JQueryLike | string | null;
+}
+
+export interface DpWorkspaceWindowOptions extends Omit<JQueryWorkspaceWindowConfig, 'content'> {
+  workspace: WorkspaceManager | DpWorkspaceManagerApi | JQueryLike | string | HTMLElement;
+  content?: HTMLElement | JQueryLike | string | null;
+  clone?: boolean;
+}
+
+export type DpWorkspaceManagerMethod =
+  | 'instance'
+  | 'addWorkspace'
+  | 'removeWorkspace'
+  | 'switchTo'
+  | 'current'
+  | 'workspaces'
+  | 'currentWindowManager'
+  | 'windowManager'
+  | 'openWindow'
+  | 'syncDock'
+  | 'taskView'
+  | 'destroy';
+
+export interface DpTaskViewOptions extends TaskViewOptions {
+  workspace?: WorkspaceManager | DpWorkspaceManagerApi | JQueryLike | string | HTMLElement;
+  desktop?: DpDesktopApi | JQueryLike | string | HTMLElement;
+}
+
+export interface DpTaskViewApi {
+  taskView: TaskView;
+  open(): void;
+  close(): void;
+  toggle(): void;
+  destroy(): void;
+}
+
+export type DpTaskViewMethod =
+  | 'instance'
+  | 'open'
+  | 'close'
+  | 'toggle'
+  | 'destroy';
+
 export interface DeskPaneJQueryPlugin {
   install($: JQueryStaticLike): void;
 }
@@ -100,5 +176,24 @@ declare global {
     dpDesktop(method: 'removeIcon', id: string): void;
     dpDesktop(method: 'syncDockWithWindows', options?: DockSyncOptions): () => void;
     dpDesktop(method: 'destroy'): void;
+
+    dpWorkspaceManager(options?: DpWorkspaceManagerOptions): JQuery;
+    dpWorkspaceManager(method: 'instance'): DpWorkspaceManagerApi;
+    dpWorkspaceManager(method: 'addWorkspace', config: WorkspaceConfig): WorkspaceState;
+    dpWorkspaceManager(method: 'removeWorkspace' | 'switchTo', id: string): void;
+    dpWorkspaceManager(method: 'current'): WorkspaceState | null;
+    dpWorkspaceManager(method: 'workspaces'): WorkspaceState[];
+    dpWorkspaceManager(method: 'currentWindowManager'): WindowManager;
+    dpWorkspaceManager(method: 'windowManager', workspaceId?: string): WindowManager;
+    dpWorkspaceManager(method: 'openWindow', config: JQueryWorkspaceWindowConfig): WindowState;
+    dpWorkspaceManager(method: 'syncDock', options?: DockSyncOptions): () => void;
+    dpWorkspaceManager(method: 'taskView', options?: DpTaskViewOptions): TaskView;
+    dpWorkspaceManager(method: 'destroy'): void;
+
+    dpWorkspaceWindow(options: DpWorkspaceWindowOptions): WindowState | WindowState[];
+
+    dpTaskView(options?: DpTaskViewOptions): JQuery;
+    dpTaskView(method: 'instance'): DpTaskViewApi;
+    dpTaskView(method: 'open' | 'close' | 'toggle' | 'destroy'): void;
   }
 }

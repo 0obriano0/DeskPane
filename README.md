@@ -208,6 +208,46 @@ The adapter adds:
 | `$(root).dpWindowManager('open', config)` | Command-style access to `open`, `close`, `minimize`, `maximize`, `restore`, `focus`, `getBodyElement`, and `getState` |
 | `$(element).dpWindow({ manager, ...config })` | Open the selected jQuery element as a DeskPane window |
 | `$(root).dpDesktop(options)` | Create a `Desktop`, optional internal `WindowManager`, Dock, and icons |
+| `$(root).dpWorkspaceManager(options)` | Create and store a `WorkspaceManager`, optionally tied to a `dpDesktop` instance |
+| `$(element).dpWorkspaceWindow({ workspace, ...config })` | Open the selected jQuery element in the current or selected workspace |
+| `$(root).dpTaskView(options)` | Create and control a `TaskView` overlay, optionally using the desktop Dock |
+
+Workspace + TaskView example:
+
+```html
+<script>
+  $('#desktop').dpDesktop({
+    dock: { position: 'bottom', items: [] },
+    windowManager: false
+  })
+
+  $('#desktop').dpWorkspaceManager({
+    desktop: '#desktop',
+    workspaces: [
+      { id: 'ws-1', label: 'Desktop 1' },
+      { id: 'ws-2', label: 'Desktop 2' }
+    ],
+    syncDock: true,
+    windowManagerOptions: {
+      isolated: true,
+      snap: true,
+      injectStyles: false
+    }
+  })
+
+  $('#desktop').dpTaskView({
+    desktop: '#desktop',
+    allowAdd: true,
+    allowDelete: true
+  })
+
+  $('<div>Customers</div>').dpWorkspaceWindow({
+    workspace: '#desktop',
+    appId: 'customers',
+    title: 'Customers'
+  })
+</script>
+```
 
 ### Vue 3 — Composable
 

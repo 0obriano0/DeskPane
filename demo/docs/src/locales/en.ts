@@ -277,7 +277,7 @@ export const en: Record<string, string> = {
   // jQuery page
   'jquery.badge': 'jQuery',
   'jquery.h1': 'jQuery Integration',
-  'jquery.intro': 'DeskPane ships an official jQuery adapter (<code>deskpane/jquery</code> or <code>dist/deskpane-jquery.umd.js</code>). It adds <code>$.fn.dpWindowManager</code>, <code>$.fn.dpWindow</code>, and <code>$.fn.dpDesktop</code> for script-tag and legacy ERP pages.',
+  'jquery.intro': 'DeskPane ships an official jQuery adapter (<code>deskpane/jquery</code> or <code>dist/deskpane-jquery.umd.js</code>). It adds <code>$.fn.dpWindowManager</code>, <code>$.fn.dpWindow</code>, <code>$.fn.dpDesktop</code>, <code>$.fn.dpWorkspaceManager</code>, <code>$.fn.dpWorkspaceWindow</code>, and <code>$.fn.dpTaskView</code> for script-tag and legacy ERP pages.',
   'jquery.openForm': '📋 Form',
   'jquery.openSearch': '🔍 Live Search',
   'jquery.openAccordion': '🎨 Accordion',
@@ -296,9 +296,9 @@ export const en: Record<string, string> = {
   'jquery.pat2.name': 'Element plugin',
   'jquery.pat2.when': 'Open an existing jQuery element as a window',
   'jquery.pat2.code': '<code>$(panel).dpWindow({ manager })</code>',
-  'jquery.pat3.name': 'Desktop plugin',
-  'jquery.pat3.when': 'Desktop icons, Dock, and optional Dock sync',
-  'jquery.pat3.code': '<code>$(root).dpDesktop(...)</code>',
+  'jquery.pat3.name': 'Workspace plugins',
+  'jquery.pat3.when': 'Virtual desktops, TaskView, workspace windows, and Dock sync',
+  'jquery.pat3.code': '<code>$(root).dpWorkspaceManager(...)</code>',
 
   // React page
   'react.badge': 'React',

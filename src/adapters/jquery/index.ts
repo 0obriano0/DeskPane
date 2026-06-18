@@ -1,5 +1,7 @@
 import { WindowManager } from '../../core/WindowManager.js';
 import { Desktop } from '../../desktop/Desktop.js';
+import { WorkspaceManager } from '../../workspace/WorkspaceManager.js';
+import { TaskView } from '../../workspace/TaskView.js';
 import type { WindowConfig, WindowState } from '../../core/types.js';
 import type { WindowManagerOptions } from '../../core/WindowManager.js';
 import type { DesktopIconConfig, DockSyncOptions } from '../../desktop/types.js';
@@ -7,12 +9,20 @@ import type {
   DpDesktopApi,
   DpDesktopMethod,
   DpDesktopOptions,
+  DpTaskViewApi,
+  DpTaskViewMethod,
+  DpTaskViewOptions,
   DpWindowManagerApi,
   DpWindowManagerMethod,
   DpWindowManagerOptions,
   DpWindowOptions,
+  DpWorkspaceManagerApi,
+  DpWorkspaceManagerMethod,
+  DpWorkspaceManagerOptions,
+  DpWorkspaceWindowOptions,
   JQueryLike,
   JQueryStaticLike,
+  JQueryWorkspaceWindowConfig,
   JQueryWindowConfig,
 } from './types.js';
 
@@ -21,17 +31,27 @@ export type {
   DpDesktopApi,
   DpDesktopMethod,
   DpDesktopOptions,
+  DpTaskViewApi,
+  DpTaskViewMethod,
+  DpTaskViewOptions,
   DpWindowManagerApi,
   DpWindowManagerMethod,
   DpWindowManagerOptions,
   DpWindowOptions,
+  DpWorkspaceManagerApi,
+  DpWorkspaceManagerMethod,
+  DpWorkspaceManagerOptions,
+  DpWorkspaceWindowOptions,
   JQueryLike,
   JQueryStaticLike,
+  JQueryWorkspaceWindowConfig,
   JQueryWindowConfig,
 } from './types.js';
 
 const WM_DATA_KEY = 'dpWindowManager';
 const DESKTOP_DATA_KEY = 'dpDesktop';
+const WORKSPACE_DATA_KEY = 'dpWorkspaceManager';
+const TASKVIEW_DATA_KEY = 'dpTaskView';
 
 function isJQueryLike(value: unknown): value is JQueryLike {
   return !!value
@@ -47,6 +67,14 @@ function isWindowManagerLike(value: unknown): value is WindowManager {
     && typeof (value as WindowManager).open === 'function'
     && typeof (value as WindowManager).close === 'function'
     && typeof (value as WindowManager).getBodyElement === 'function';
+}
+
+function isWorkspaceManagerLike(value: unknown): value is WorkspaceManager {
+  return !!value
+    && typeof value === 'object'
+    && typeof (value as WorkspaceManager).addWorkspace === 'function'
+    && typeof (value as WorkspaceManager).switchTo === 'function'
+    && typeof (value as WorkspaceManager).getWindowManager === 'function';
 }
 
 function firstElement(value: HTMLElement | JQueryLike | string | null | undefined): HTMLElement | null {
@@ -91,6 +119,41 @@ function resolveManager($: JQueryStaticLike, manager: DpWindowOptions['manager']
     if (api) return api.manager;
   }
   throw new Error('DeskPane jQuery adapter: manager was not found.');
+}
+
+function resolveDesktopApi($: JQueryStaticLike, desktop: DpWorkspaceManagerOptions['desktop'] | DpTaskViewOptions['desktop']): DpDesktopApi | undefined {
+  if (!desktop) return undefined;
+  if (typeof desktop === 'object' && 'desktop' in desktop) return desktop as DpDesktopApi;
+  if (typeof desktop === 'string') {
+    const el = document.querySelector<HTMLElement>(desktop);
+    return el ? ($(el).data(DESKTOP_DATA_KEY) as DpDesktopApi | undefined) : undefined;
+  }
+  if (desktop instanceof HTMLElement) return $(desktop).data(DESKTOP_DATA_KEY) as DpDesktopApi | undefined;
+  if (isJQueryLike(desktop)) return desktop.data(DESKTOP_DATA_KEY) as DpDesktopApi | undefined;
+  return undefined;
+}
+
+function resolveWorkspaceApi($: JQueryStaticLike, workspace: DpWorkspaceWindowOptions['workspace'] | DpTaskViewOptions['workspace']): DpWorkspaceManagerApi {
+  if (isWorkspaceManagerLike(workspace)) {
+    return createWorkspaceManagerApi($, workspace, {});
+  }
+  if (typeof workspace === 'object' && workspace && 'workspaceManager' in workspace) {
+    return workspace as DpWorkspaceManagerApi;
+  }
+  if (typeof workspace === 'string') {
+    const el = document.querySelector<HTMLElement>(workspace);
+    const api = el ? ($(el).data(WORKSPACE_DATA_KEY) as DpWorkspaceManagerApi | undefined) : undefined;
+    if (api) return api;
+  }
+  if (workspace instanceof HTMLElement) {
+    const api = $(workspace).data(WORKSPACE_DATA_KEY) as DpWorkspaceManagerApi | undefined;
+    if (api) return api;
+  }
+  if (isJQueryLike(workspace)) {
+    const api = workspace.data(WORKSPACE_DATA_KEY) as DpWorkspaceManagerApi | undefined;
+    if (api) return api;
+  }
+  throw new Error('DeskPane jQuery adapter: workspace manager was not found.');
 }
 
 function createWindowManagerApi(manager: WindowManager): DpWindowManagerApi {
@@ -193,6 +256,126 @@ function callDesktopMethod(api: DpDesktopApi, method: DpDesktopMethod, args: unk
   }
 }
 
+function normalizeWorkspaceWindowConfig(config: JQueryWorkspaceWindowConfig, fallbackContent?: HTMLElement) {
+  const content = firstElement(config.content) ?? fallbackContent ?? document.createElement('div');
+  return {
+    ...config,
+    content,
+  };
+}
+
+function createWorkspaceManagerApi(
+  $: JQueryStaticLike,
+  workspaceManager: WorkspaceManager,
+  options: DpWorkspaceManagerOptions,
+): DpWorkspaceManagerApi {
+  const desktopApi = resolveDesktopApi($, options.desktop);
+  let dockSyncCleanup: (() => void) | null = null;
+  let taskView: TaskView | null = null;
+
+  const api: DpWorkspaceManagerApi = {
+    workspaceManager,
+    get taskView() { return taskView; },
+    set taskView(value) { taskView = value ?? null; },
+    get dockSyncCleanup() { return dockSyncCleanup; },
+    set dockSyncCleanup(cleanup) { dockSyncCleanup = cleanup; },
+    addWorkspace(config) { return workspaceManager.addWorkspace(config); },
+    removeWorkspace(id) { workspaceManager.removeWorkspace(id); },
+    switchTo(id) { workspaceManager.switchTo(id); },
+    currentWindowManager() {
+      const current = workspaceManager.current;
+      if (!current) throw new Error('DeskPane jQuery adapter: no active workspace.');
+      return workspaceManager.getWindowManager(current.id);
+    },
+    windowManager(workspaceId) {
+      return workspaceManager.getWindowManager(workspaceId ?? workspaceManager.current?.id ?? '');
+    },
+    openWindow(config) {
+      return workspaceManager.openWindow(normalizeWorkspaceWindowConfig(config));
+    },
+    syncDock(syncOptions = {}) {
+      if (!desktopApi) {
+        throw new Error('DeskPane jQuery adapter: syncDock requires a dpDesktop instance.');
+      }
+      const current = workspaceManager.current;
+      if (!current) throw new Error('DeskPane jQuery adapter: no active workspace.');
+      dockSyncCleanup?.();
+      dockSyncCleanup = desktopApi.desktop.syncDockWithWindows(workspaceManager.getWindowManager(current.id), syncOptions);
+      return dockSyncCleanup;
+    },
+    createTaskView(taskViewOptions = {}) {
+      taskView?.destroy();
+      const taskViewDesktopApi = resolveDesktopApi($, taskViewOptions.desktop) ?? desktopApi;
+      taskView = new TaskView(workspaceManager, {
+        ...taskViewOptions,
+        dock: taskViewOptions.dock ?? taskViewDesktopApi?.desktop.getDock(),
+      });
+      return taskView;
+    },
+    destroy() {
+      dockSyncCleanup?.();
+      dockSyncCleanup = null;
+      taskView?.destroy();
+      taskView = null;
+      workspaceManager.destroy();
+    },
+  };
+
+  workspaceManager.events.on('workspace:switched', () => {
+    if (options.syncDock) {
+      api.syncDock(options.syncDock === true ? {} : options.syncDock);
+    }
+  });
+
+  options.workspaces?.forEach(config => workspaceManager.addWorkspace(config));
+  if (options.indicator) workspaceManager.enableIndicator();
+  if (options.syncDock) api.syncDock(options.syncDock === true ? {} : options.syncDock);
+  if (options.taskView) api.createTaskView(options.taskView === true ? {} : options.taskView);
+
+  return api;
+}
+
+function callWorkspaceMethod(api: DpWorkspaceManagerApi, method: DpWorkspaceManagerMethod, args: unknown[]): unknown {
+  switch (method) {
+    case 'instance': return api;
+    case 'addWorkspace': return api.addWorkspace(args[0] as Parameters<DpWorkspaceManagerApi['addWorkspace']>[0]);
+    case 'removeWorkspace': return api.removeWorkspace(String(args[0]));
+    case 'switchTo': return api.switchTo(String(args[0]));
+    case 'current': return api.workspaceManager.current;
+    case 'workspaces': return api.workspaceManager.workspaces;
+    case 'currentWindowManager': return api.currentWindowManager();
+    case 'windowManager': return api.windowManager(args[0] ? String(args[0]) : undefined);
+    case 'openWindow': return api.openWindow(args[0] as JQueryWorkspaceWindowConfig);
+    case 'syncDock': return api.syncDock(args[0] as DockSyncOptions | undefined);
+    case 'taskView': return api.createTaskView(args[0] as DpTaskViewOptions | undefined);
+    case 'destroy': return api.destroy();
+    default:
+      throw new Error(`DeskPane jQuery adapter: unknown WorkspaceManager method "${method}".`);
+  }
+}
+
+function createTaskViewApi(taskView: TaskView): DpTaskViewApi {
+  return {
+    taskView,
+    open() { taskView.open(); },
+    close() { taskView.close(); },
+    toggle() { taskView.toggle(); },
+    destroy() { taskView.destroy(); },
+  };
+}
+
+function callTaskViewMethod(api: DpTaskViewApi, method: DpTaskViewMethod): unknown {
+  switch (method) {
+    case 'instance': return api;
+    case 'open': return api.open();
+    case 'close': return api.close();
+    case 'toggle': return api.toggle();
+    case 'destroy': return api.destroy();
+    default:
+      throw new Error(`DeskPane jQuery adapter: unknown TaskView method "${method}".`);
+  }
+}
+
 export function install($: JQueryStaticLike): void {
   if (!$ || !$.fn) {
     throw new Error('DeskPane jQuery adapter requires a jQuery-compatible $.fn object.');
@@ -262,6 +445,73 @@ export function install($: JQueryStaticLike): void {
       });
       const api = createDesktopApi(desktop, options);
       ($(this) as JQueryLike).data(DESKTOP_DATA_KEY, api);
+    });
+  };
+
+  $.fn.dpWorkspaceManager = function dpWorkspaceManager(
+    this: JQueryLike,
+    optionsOrMethod?: DpWorkspaceManagerOptions | DpWorkspaceManagerMethod,
+    ...args: unknown[]
+  ) {
+    if (typeof optionsOrMethod === 'string') {
+      const api = this.data(WORKSPACE_DATA_KEY) as DpWorkspaceManagerApi | undefined;
+      if (!api) throw new Error('DeskPane jQuery adapter: call dpWorkspaceManager(options) before using methods.');
+      return callWorkspaceMethod(api, optionsOrMethod, args);
+    }
+
+    return this.each(function initWorkspaceManager(this: HTMLElement) {
+      const options = optionsOrMethod ?? {};
+      const desktopApi = resolveDesktopApi($, options.desktop);
+      const container = desktopApi?.desktop.getElement() ?? this;
+      const workspaceManager = new WorkspaceManager(container, options);
+      const api = createWorkspaceManagerApi($, workspaceManager, options);
+      ($(this) as JQueryLike).data(WORKSPACE_DATA_KEY, api);
+    });
+  };
+
+  $.fn.dpWorkspaceWindow = function dpWorkspaceWindow(
+    this: JQueryLike,
+    options: DpWorkspaceWindowOptions,
+  ) {
+    const states: WindowState[] = [];
+    this.each(function openWorkspaceWindow(this: HTMLElement, index: number) {
+      const workspaceApi = resolveWorkspaceApi($, options.workspace);
+      const { workspace: _workspace, clone: _clone, ...windowOptions } = options;
+      const source = options.content
+        ? firstElement(options.content)
+        : options.clone
+          ? this.cloneNode(true) as HTMLElement
+          : this;
+      const fallbackId = this.id || undefined;
+      const fallbackAppId = this.id || `dp-window-${index + 1}`;
+      states.push(workspaceApi.openWindow({
+        ...windowOptions,
+        id: options.id ?? fallbackId,
+        appId: options.appId ?? fallbackAppId,
+        content: source,
+      }));
+    });
+    return states.length === 1 ? states[0] : states;
+  };
+
+  $.fn.dpTaskView = function dpTaskView(
+    this: JQueryLike,
+    optionsOrMethod?: DpTaskViewOptions | DpTaskViewMethod,
+  ) {
+    if (typeof optionsOrMethod === 'string') {
+      const api = this.data(TASKVIEW_DATA_KEY) as DpTaskViewApi | undefined;
+      if (!api) throw new Error('DeskPane jQuery adapter: call dpTaskView(options) before using methods.');
+      return callTaskViewMethod(api, optionsOrMethod);
+    }
+
+    return this.each(function initTaskView(this: HTMLElement) {
+      const options = optionsOrMethod ?? {};
+      const workspaceApi = options.workspace
+        ? resolveWorkspaceApi($, options.workspace)
+        : ($(this).data(WORKSPACE_DATA_KEY) as DpWorkspaceManagerApi | undefined);
+      if (!workspaceApi) throw new Error('DeskPane jQuery adapter: dpTaskView requires a dpWorkspaceManager instance.');
+      const taskView = workspaceApi.createTaskView(options);
+      ($(this) as JQueryLike).data(TASKVIEW_DATA_KEY, createTaskViewApi(taskView));
     });
   };
 }

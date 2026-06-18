@@ -3003,8 +3003,604 @@
         }
     }
 
+    var WORKSPACE_CSS = "/* ============================================================\r\n   DeskPane — Workspace Styles\r\n   工作區容器佈局 + 左右滑入動畫\r\n   ============================================================ */\r\n\r\n/* ── Root container ──────────────────────────────────────── */\r\n\r\n/**\r\n * WorkspaceManager 掛載的根容器。\r\n * position:relative + overflow:hidden 讓工作區在裡面滑動。\r\n * pointer-events:none 讓空白處事件穿透到下方的 icon-area。\r\n */\r\n.dp-workspace-root {\r\n  position: relative;\r\n  overflow: hidden;\r\n  width: 100%;\r\n  height: 100%;\r\n  pointer-events: none;\r\n}\r\n\r\n/* ── Workspace container ─────────────────────────────────── */\r\n\r\n.dp-workspace {\n  /* !important：防止 .dp-isolated { position: relative } 被後注入的 Core CSS 覆蓋 */\n  position: absolute !important;\n  inset: 0;\n  display: none;\n  width: 100%;\n  height: 100%;\n  /* 非活躍工作區：平移到可見範圍外 */\r\n  transform: translateX(100%);\r\n  /* 切換時滑入 */\r\n  transition: transform var(--dp-workspace-animation-ms, 250ms) cubic-bezier(0.4, 0, 0.2, 1);\r\n  /* 非活躍時不接受滑鼠事件，避免誤觸 */\r\n  pointer-events: none;\n  visibility: hidden;\n}\n\n.dp-workspace[hidden] {\n  display: none !important;\n  visibility: hidden !important;\n  pointer-events: none !important;\n}\n\n.dp-workspace.dp-workspace--active,\n.dp-workspace.dp-workspace--enter-right,\n.dp-workspace.dp-workspace--enter-left,\n.dp-workspace.dp-workspace--leave-left,\n.dp-workspace.dp-workspace--leave-right {\n  display: block;\n  visibility: visible;\n}\n\n.dp-workspace.dp-workspace--active {\n  transform: translateX(0);\n  pointer-events: none;\n}\n\n/* Only the active workspace may receive window interactions.\n   This matters when frameworks keep offscreen workspace DOM mounted\n   for state preservation (Vue KeepAlive / Teleport, React portals, etc.). */\n.dp-workspace .dp-window {\n  pointer-events: none;\n}\n\n.dp-workspace.dp-workspace--active .dp-window {\n  pointer-events: auto;\n}\n\n/* 從右往左：下一個工作區（切換到更大 index）初始位置在右側 */\n.dp-workspace.dp-workspace--enter-right {\n  transform: translateX(100%);\r\n}\r\n\r\n/* 從左往右：下一個工作區（切換到更小 index）初始位置在左側 */\r\n.dp-workspace.dp-workspace--enter-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向左滑出 */\r\n.dp-workspace.dp-workspace--leave-left {\r\n  transform: translateX(-100%);\r\n}\r\n\r\n/* 離開動畫：向右滑出 */\r\n.dp-workspace.dp-workspace--leave-right {\r\n  transform: translateX(100%);\r\n}\r\n\r\n/* ── Workspace indicator bar ─────────────────────────────── */\r\n\r\n.dp-workspace-indicator {\r\n  position: absolute;\r\n  bottom: 8px;\r\n  left: 50%;\r\n  transform: translateX(-50%);\r\n  display: flex;\r\n  gap: 6px;\r\n  z-index: 9990;\r\n  pointer-events: none;\r\n}\r\n\r\n.dp-workspace-dot {\r\n  width: 6px;\r\n  height: 6px;\r\n  border-radius: 50%;\r\n  background: var(--dp-workspace-dot-bg, rgba(255, 255, 255, 0.4));\r\n  transition: background 0.2s, transform 0.2s;\r\n}\r\n\r\n.dp-workspace-dot.dp-workspace-dot--active {\r\n  background: var(--dp-workspace-dot-active-bg, rgba(255, 255, 255, 0.9));\r\n  transform: scale(1.3);\r\n}\r\n";
+
+    // ============================================================
+    // DeskPane — WorkspaceManager
+    // 管理多個虛擬工作區（每個工作區有獨立的 WindowManager + 容器）
+    // 支援：
+    //   • addWorkspace / removeWorkspace / switchTo
+    //   • 左右滑入動畫（CSS transform）
+    //   • 工作區指示點（可選）
+    //   • EventBus：workspace:added / workspace:removed / workspace:switched
+    // ============================================================
+    const WORKSPACE_STYLE_ID = 'dp-workspace-styles';
+    const WORKSPACE_WINDOW_ID_SEPARATOR = '::app-';
+    function injectWorkspaceStyles() {
+        injectRuntimeCSS({
+            id: WORKSPACE_STYLE_ID,
+            css: WORKSPACE_CSS,
+            hrefPart: 'deskpane-workspace.css',
+            fingerprint: 'DeskPane — Workspace CSS',
+        });
+    }
+    /** Build a window id that is unique across workspaces for the same app id. */
+    function createWorkspaceWindowId(workspaceId, appId, options = {}) {
+        const separator = options.separator ?? WORKSPACE_WINDOW_ID_SEPARATOR;
+        return `${workspaceId}${separator}${appId}`;
+    }
+    /** Parse an id created by `createWorkspaceWindowId()`. */
+    function parseWorkspaceWindowId(windowId, options = {}) {
+        const separator = options.separator ?? WORKSPACE_WINDOW_ID_SEPARATOR;
+        const index = windowId.indexOf(separator);
+        if (index <= 0)
+            return null;
+        const workspaceId = windowId.slice(0, index);
+        const appId = windowId.slice(index + separator.length);
+        if (!workspaceId || !appId)
+            return null;
+        return { workspaceId, appId };
+    }
+    /** Return the app id from a scoped window id, or a sensible fallback. */
+    function getAppIdFromWorkspaceWindowId(windowId, options = {}) {
+        return parseWorkspaceWindowId(windowId, options)?.appId
+            ?? (windowId.startsWith('app-') ? windowId.slice(4) : windowId);
+    }
+    class WorkspaceManager {
+        constructor(container, options = {}) {
+            this._workspaces = new Map();
+            this._windowManagers = new Map();
+            this._windowManagerCleanups = new Map();
+            this._currentId = null;
+            this._isAnimating = false;
+            this._indicatorEl = null;
+            const el = typeof container === 'string'
+                ? (() => {
+                    const found = document.querySelector(container);
+                    if (!found)
+                        throw new Error(`[WorkspaceManager] Container not found: ${container}`);
+                    return found;
+                })()
+                : container;
+            this._animationMs = options.animationMs ?? 250;
+            this._wmOptions = {
+                ...(options.windowManagerOptions ?? {}),
+                injectStyles: options.windowManagerOptions?.injectStyles ?? options.injectStyles,
+            };
+            this._warnOnDuplicateWindowIds = options.warnOnDuplicateWindowIds ?? true;
+            this.events = new EventBus();
+            if (options.injectStyles !== false)
+                injectWorkspaceStyles();
+            // Wrap the container
+            this._root = document.createElement('div');
+            this._root.className = 'dp-workspace-root';
+            // Pass animation duration as CSS variable
+            this._root.style.setProperty('--dp-workspace-animation-ms', `${this._animationMs}ms`);
+            el.appendChild(this._root);
+        }
+        // ── Public API ─────────────────────────────────────────────
+        /** 所有工作區的唯讀清單 */
+        get workspaces() {
+            return [...this._workspaces.values()];
+        }
+        /** 目前活躍的工作區，若尚無工作區則為 null */
+        get current() {
+            return this._currentId ? (this._workspaces.get(this._currentId) ?? null) : null;
+        }
+        /**
+         * 新增工作區。
+         * 若目前沒有活躍工作區，自動切換到新建的工作區。
+         */
+        addWorkspace(config) {
+            if (this._workspaces.has(config.id)) {
+                throw new Error(`[WorkspaceManager] Workspace already exists: ${config.id}`);
+            }
+            // Create workspace container div
+            const wsEl = document.createElement('div');
+            wsEl.className = 'dp-workspace';
+            wsEl.dataset.workspaceId = config.id;
+            // Initially off-screen to the right
+            wsEl.classList.add('dp-workspace--enter-right');
+            this._setWorkspaceVisible(wsEl, false);
+            this._setWorkspaceInteractive(wsEl, false);
+            this._root.appendChild(wsEl);
+            // Create dedicated WindowManager
+            const wm = new WindowManager({
+                ...this._wmOptions,
+                container: wsEl,
+                isolated: true,
+            });
+            this._subscribeWindowManager(config.id, wm);
+            const state = {
+                id: config.id,
+                label: config.label ?? config.id,
+                icon: config.icon,
+                container: wsEl,
+            };
+            this._workspaces.set(config.id, state);
+            this._windowManagers.set(config.id, wm);
+            this._updateIndicator();
+            this.events.emit('workspace:added', state);
+            // Auto-activate if this is the first workspace
+            if (this._currentId === null) {
+                this._activateImmediate(config.id);
+            }
+            return state;
+        }
+        /**
+         * 移除工作區（同時銷毀其 WindowManager）。
+         * 若移除的是目前工作區，自動切換到前一個（或後一個）。
+         */
+        removeWorkspace(id) {
+            const state = this._workspaces.get(id);
+            if (!state)
+                return;
+            const wm = this._windowManagers.get(id);
+            wm?.destroy();
+            this._windowManagerCleanups.get(id)?.forEach(dispose => dispose());
+            this._windowManagerCleanups.delete(id);
+            state.container.remove();
+            this._workspaces.delete(id);
+            this._windowManagers.delete(id);
+            this._updateIndicator();
+            this.events.emit('workspace:removed', { id });
+            // If current was removed, switch to nearest remaining workspace
+            if (this._currentId === id) {
+                this._currentId = null;
+                const remaining = [...this._workspaces.keys()];
+                if (remaining.length > 0) {
+                    this._activateImmediate(remaining[0]);
+                    this.events.emit('workspace:switched', {
+                        from: id,
+                        to: remaining[0],
+                    });
+                }
+            }
+        }
+        /**
+         * 切換到指定工作區，附帶左右滑入動畫。
+         * 若目前正在切換動畫中，忽略此次呼叫。
+         */
+        switchTo(id) {
+            if (id === this._currentId)
+                return;
+            if (this._isAnimating)
+                return;
+            const next = this._workspaces.get(id);
+            if (!next)
+                throw new Error(`[WorkspaceManager] Workspace not found: ${id}`);
+            const ids = [...this._workspaces.keys()];
+            const currentIndex = this._currentId ? ids.indexOf(this._currentId) : -1;
+            const nextIndex = ids.indexOf(id);
+            const goingRight = nextIndex > currentIndex;
+            const currentEl = this._currentId
+                ? this._workspaces.get(this._currentId)?.container ?? null
+                : null;
+            const nextEl = next.container;
+            this._isAnimating = true;
+            // Position next workspace off-screen
+            nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
+            nextEl.classList.add(goingRight ? 'dp-workspace--enter-right' : 'dp-workspace--enter-left');
+            this._setWorkspaceVisible(nextEl, true);
+            // Make it visible but off-screen so transition can play
+            nextEl.style.visibility = 'visible';
+            // Force reflow so the initial transform is applied before transition
+            nextEl.getBoundingClientRect();
+            // Slide current out
+            if (currentEl) {
+                this._setWorkspaceVisible(currentEl, true);
+                currentEl.classList.add(goingRight ? 'dp-workspace--leave-left' : 'dp-workspace--leave-right');
+                currentEl.classList.remove('dp-workspace--active');
+                this._setWorkspaceInteractive(currentEl, false);
+            }
+            // Slide next in
+            nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
+            nextEl.classList.add('dp-workspace--active');
+            this._setWorkspaceInteractive(nextEl, true);
+            const prevId = this._currentId;
+            this._currentId = id;
+            this._updateIndicator();
+            const cleanup = () => {
+                this._isAnimating = false;
+                if (currentEl) {
+                    currentEl.classList.remove('dp-workspace--leave-left', 'dp-workspace--leave-right');
+                    currentEl.style.visibility = '';
+                    this._setWorkspaceInteractive(currentEl, false);
+                    this._setWorkspaceVisible(currentEl, false);
+                }
+                this.events.emit('workspace:switched', {
+                    from: prevId,
+                    to: id,
+                });
+            };
+            if (this._animationMs > 0) {
+                let cleanupCalled = false;
+                const safeCleanup = () => {
+                    if (cleanupCalled)
+                        return;
+                    cleanupCalled = true;
+                    nextEl.removeEventListener('transitionend', safeCleanup);
+                    cleanup();
+                };
+                nextEl.addEventListener('transitionend', safeCleanup, { once: true });
+                // Fallback: ensure cleanup fires even if transitionend doesn't fire
+                setTimeout(safeCleanup, this._animationMs + 50);
+            }
+            else {
+                cleanup();
+            }
+        }
+        /**
+         * 取得指定工作區的 WindowManager。
+         * 用於直接呼叫 wm.open() / wm.close() 等操作。
+         */
+        getWindowManager(workspaceId) {
+            const wm = this._windowManagers.get(workspaceId);
+            if (!wm)
+                throw new Error(`[WorkspaceManager] Workspace not found: ${workspaceId}`);
+            return wm;
+        }
+        /**
+         * Build a workspace-scoped window id for an app.
+         * Defaults to the current workspace when `workspaceId` is omitted.
+         */
+        createWindowId(appId, workspaceId = this._currentId) {
+            if (!workspaceId)
+                throw new Error('[WorkspaceManager] No active workspace');
+            return createWorkspaceWindowId(workspaceId, appId);
+        }
+        /**
+         * Open a window in a workspace.
+         * Prefer `appId` over manually reusing raw ids across workspaces; DeskPane
+         * will generate a scoped id such as `ws-2::app-counter`.
+         */
+        openWindow(config) {
+            const workspaceId = config.workspaceId ?? this._currentId;
+            if (!workspaceId)
+                throw new Error('[WorkspaceManager] No active workspace');
+            const wm = this.getWindowManager(workspaceId);
+            const { workspaceId: _workspaceId, appId, ...windowConfig } = config;
+            const id = config.id ?? (appId ? createWorkspaceWindowId(workspaceId, appId) : null);
+            if (!id) {
+                throw new Error('[WorkspaceManager] openWindow() requires either id or appId');
+            }
+            return wm.open({
+                ...windowConfig,
+                id,
+            });
+        }
+        /**
+         * 啟用工作區指示點（小圓點）。
+         * 會在根容器底部顯示，指示當前所在工作區。
+         */
+        enableIndicator() {
+            if (this._indicatorEl)
+                return;
+            const bar = document.createElement('div');
+            bar.className = 'dp-workspace-indicator';
+            this._root.appendChild(bar);
+            this._indicatorEl = bar;
+            this._updateIndicator();
+        }
+        disableIndicator() {
+            this._indicatorEl?.remove();
+            this._indicatorEl = null;
+        }
+        /** 銷毀所有工作區並清理資源 */
+        destroy() {
+            this._windowManagers.forEach(wm => wm.destroy());
+            this._windowManagers.clear();
+            this._windowManagerCleanups.forEach(cleanups => cleanups.forEach(dispose => dispose()));
+            this._windowManagerCleanups.clear();
+            this._workspaces.clear();
+            this._root.remove();
+            this._currentId = null;
+        }
+        // ── Private helpers ────────────────────────────────────────
+        /** 無動畫直接啟用（初始化或移除當前工作區時使用） */
+        _activateImmediate(id) {
+            const state = this._workspaces.get(id);
+            if (!state)
+                return;
+            // Deactivate previous
+            if (this._currentId && this._currentId !== id) {
+                const prev = this._workspaces.get(this._currentId);
+                if (prev) {
+                    prev.container.classList.remove('dp-workspace--active');
+                    prev.container.style.visibility = '';
+                    this._setWorkspaceInteractive(prev.container, false);
+                    this._setWorkspaceVisible(prev.container, false);
+                }
+            }
+            state.container.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
+            this._setWorkspaceVisible(state.container, true);
+            state.container.classList.add('dp-workspace--active');
+            this._setWorkspaceInteractive(state.container, true);
+            this._currentId = id;
+            this._updateIndicator();
+        }
+        _setWorkspaceInteractive(el, interactive) {
+            el.inert = !interactive;
+            if (interactive) {
+                el.removeAttribute('aria-hidden');
+            }
+            else {
+                el.setAttribute('aria-hidden', 'true');
+            }
+        }
+        _setWorkspaceVisible(el, visible) {
+            el.hidden = !visible;
+        }
+        _subscribeWindowManager(workspaceId, wm) {
+            if (!this._warnOnDuplicateWindowIds)
+                return;
+            const offOpened = wm.events.on('window:opened', (state) => {
+                if (!state?.id)
+                    return;
+                this._warnDuplicateWindowId(workspaceId, state.id);
+            });
+            this._windowManagerCleanups.set(workspaceId, [offOpened]);
+        }
+        _warnDuplicateWindowId(workspaceId, windowId) {
+            if (parseWorkspaceWindowId(windowId))
+                return;
+            const duplicates = [];
+            this._windowManagers.forEach((wm, otherWorkspaceId) => {
+                if (otherWorkspaceId === workspaceId)
+                    return;
+                if (wm.getState(windowId))
+                    duplicates.push(otherWorkspaceId);
+            });
+            if (duplicates.length === 0)
+                return;
+            const scopedExample = createWorkspaceWindowId(workspaceId, getAppIdFromWorkspaceWindowId(windowId));
+            console.warn(`[WorkspaceManager] Window id "${windowId}" is also open in workspace(s): ${duplicates.join(', ')}. ` +
+                `Duplicate raw ids across workspaces can confuse Dock sync and framework Portal/Teleport targets. ` +
+                `Use WorkspaceManager.openWindow({ appId: "${getAppIdFromWorkspaceWindowId(windowId)}", ... }) ` +
+                `or createWorkspaceWindowId("${workspaceId}", "${getAppIdFromWorkspaceWindowId(windowId)}") ` +
+                `for an id like "${scopedExample}".`);
+        }
+        /** 更新底部指示點 */
+        _updateIndicator() {
+            if (!this._indicatorEl)
+                return;
+            this._indicatorEl.innerHTML = '';
+            this._workspaces.forEach((_, id) => {
+                const dot = document.createElement('div');
+                dot.className = 'dp-workspace-dot' + (id === this._currentId ? ' dp-workspace-dot--active' : '');
+                this._indicatorEl.appendChild(dot);
+            });
+        }
+    }
+
+    var TASKVIEW_CSS = "/* ============================================================\r\n   DeskPane — TaskView Styles\r\n   Task View overlay for virtual desktop switching\r\n   ============================================================ */\r\n\r\n/* ── 覆蓋層 ── */\r\n.dp-task-view {\n  position: fixed;\n  inset: 0;\r\n  z-index: 99999;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  background: rgba(0, 0, 0, 0.55);\r\n  backdrop-filter: blur(8px);\r\n  -webkit-backdrop-filter: blur(8px);\r\n  opacity: 0;\r\n  pointer-events: none;\r\n  transition: opacity 0.2s;\n}\n.dp-task-view[hidden] {\n  display: none !important;\n  pointer-events: none !important;\n}\n.dp-task-view--open {\n  opacity: 1;\n  pointer-events: auto;\n}\n\r\n/* ── 面板 ── */\r\n.dp-task-view-panel {\r\n  display: flex;\r\n  align-items: flex-end;\r\n  gap: 14px;\r\n  padding: 20px 24px;\r\n  background: rgba(22, 28, 42, 0.92);\r\n  border: 1px solid rgba(255, 255, 255, 0.1);\r\n  border-radius: 16px;\r\n  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);\r\n  transform: translateY(16px);\r\n  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);\r\n  max-width: 90vw;\r\n  overflow-x: auto;\r\n}\r\n.dp-task-view--open .dp-task-view-panel {\r\n  transform: translateY(0);\r\n}\r\n\r\n/* ── 工作區卡片 ── */\r\n.dp-tv-card {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n  position: relative;\r\n}\r\n.dp-tv-preview {\r\n  width: 210px;\r\n  height: 132px;\r\n  background: rgba(255, 255, 255, 0.04);\r\n  border: 2px solid rgba(255, 255, 255, 0.14);\r\n  border-radius: 8px;\r\n  overflow: hidden;\r\n  transition: border-color 0.15s, box-shadow 0.15s;\r\n  position: relative;\r\n}\r\n.dp-tv-card:hover .dp-tv-preview {\r\n  border-color: rgba(255, 255, 255, 0.45);\r\n}\r\n.dp-tv-card--active .dp-tv-preview {\r\n  border-color: #0078d4;\r\n  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.35);\r\n}\r\n.dp-tv-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.8);\r\n  white-space: nowrap;\r\n}\r\n.dp-tv-card--active .dp-tv-label {\r\n  color: #59aeff;\r\n  font-weight: 600;\r\n}\r\n\r\n/* ── 刪除按鈕 ── */\r\n.dp-tv-delete {\r\n  position: absolute;\r\n  top: -7px;\r\n  right: -7px;\r\n  width: 20px;\r\n  height: 20px;\r\n  border-radius: 50%;\r\n  background: rgba(50, 50, 55, 0.95);\r\n  border: 1px solid rgba(255, 255, 255, 0.18);\r\n  color: rgba(255, 255, 255, 0.7);\r\n  font-size: 11px;\r\n  cursor: pointer;\r\n  display: none;\r\n  align-items: center;\r\n  justify-content: center;\r\n  z-index: 1;\r\n  transition: background 0.1s;\r\n}\r\n.dp-tv-card:hover .dp-tv-delete { display: flex; }\r\n.dp-tv-delete:hover { background: #c42b1c; color: #fff; }\r\n\r\n/* ── 新增桌面按鈕 ── */\r\n.dp-tv-add-wrap {\r\n  flex-shrink: 0;\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center;\r\n  gap: 8px;\r\n  cursor: pointer;\r\n}\r\n.dp-tv-add {\r\n  width: 210px;\r\n  height: 132px;\r\n  border: 2px dashed rgba(255, 255, 255, 0.18);\r\n  border-radius: 8px;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  font-size: 36px;\r\n  color: rgba(255, 255, 255, 0.35);\r\n  transition: border-color 0.15s, color 0.15s;\r\n}\r\n.dp-tv-add-wrap:hover .dp-tv-add {\r\n  border-color: rgba(255, 255, 255, 0.5);\r\n  color: rgba(255, 255, 255, 0.7);\r\n}\r\n.dp-tv-add-label {\r\n  font-family: system-ui, sans-serif;\r\n  font-size: 12px;\r\n  color: rgba(255, 255, 255, 0.45);\r\n}\r\n.dp-tv-add-wrap:hover .dp-tv-add-label { color: rgba(255, 255, 255, 0.7); }\r\n";
+
+    // ============================================================
+    // DeskPane — TaskView
+    // 虛擬桌面切換 Task View 覆蓋層
+    // 功能：
+    //   • 顯示所有工作區的 DOM clone 縮略圖
+    //   • 點擊卡片切換工作區
+    //   • 新增 / 刪除工作區按鈕（可透過 options 控制）
+    //   • Escape 鍵關閉（預設開）
+    //   • EventBus：taskview:open / taskview:close
+    // ============================================================
+    const TASKVIEW_STYLE_ID = 'dp-taskview-styles';
+    function injectTaskViewStyles() {
+        injectRuntimeCSS({
+            id: TASKVIEW_STYLE_ID,
+            css: TASKVIEW_CSS,
+            hrefPart: 'deskpane-taskview.css',
+            fingerprint: 'DeskPane — TaskView CSS',
+        });
+    }
+    class TaskView {
+        constructor(wsMgr, options = {}) {
+            this._isOpen = false;
+            this._wsCounter = 0;
+            this._wsMgr = wsMgr;
+            this._opts = {
+                target: options.target ?? document.body,
+                allowAdd: options.allowAdd ?? true,
+                allowDelete: options.allowDelete ?? true,
+                keyboard: options.keyboard ?? true,
+                closeOnBackdrop: options.closeOnBackdrop ?? true,
+                injectStyles: options.injectStyles ?? true,
+                showButton: options.showButton ?? true,
+                buttonLabel: options.buttonLabel ?? '虛擬桌面',
+                buttonIcon: options.buttonIcon ?? '⧉',
+                buttonId: options.buttonId ?? 'dp-tv-button',
+                onCreateWorkspace: options.onCreateWorkspace,
+                dock: options.dock,
+            };
+            this._buttonId = this._opts.buttonId;
+            if (this._opts.injectStyles)
+                injectTaskViewStyles();
+            this.events = new EventBus();
+            // ── 建立覆蓋層 DOM ──────────────────────────────────────
+            this._overlayEl = document.createElement('div');
+            this._overlayEl.className = 'dp-task-view';
+            this._overlayEl.hidden = true;
+            this._panelEl = document.createElement('div');
+            this._panelEl.className = 'dp-task-view-panel';
+            this._overlayEl.appendChild(this._panelEl);
+            this._opts.target.appendChild(this._overlayEl);
+            // ── Dock 按鈕（可選）─────────────────────────────────────
+            if (this._opts.dock && this._opts.showButton) {
+                this._opts.dock.addItemAt({
+                    id: this._buttonId,
+                    label: this._opts.buttonLabel,
+                    icon: this._opts.buttonIcon,
+                    action: () => this.toggle(),
+                }, 0);
+            }
+            // ── 綁定事件 ───────────────────────────────────────────
+            if (this._opts.closeOnBackdrop) {
+                this._overlayEl.addEventListener('click', (e) => {
+                    if (e.target === this._overlayEl)
+                        this.close();
+                });
+            }
+            this._onKeyDown = (e) => {
+                if (this._isOpen && e.key === 'Escape') {
+                    e.preventDefault();
+                    this.close();
+                }
+            };
+            if (this._opts.keyboard) {
+                document.addEventListener('keydown', this._onKeyDown);
+            }
+            // 工作區切換時若 Task View 已開啟則重新渲染
+            this._onSwitched = () => {
+                if (this._isOpen)
+                    this._render();
+            };
+            this._wsMgr.events.on('workspace:switched', this._onSwitched);
+            // 計算初始 wsCounter（讓新增的桌面編號不重複）
+            this._syncCounter();
+        }
+        // ── Public API ─────────────────────────────────────────────
+        get isOpen() { return this._isOpen; }
+        open() {
+            if (this._isOpen)
+                return;
+            this._isOpen = true;
+            this._overlayEl.hidden = false;
+            this._render();
+            this._overlayEl.classList.add('dp-task-view--open');
+            this.events.emit('taskview:open', undefined);
+        }
+        close() {
+            if (!this._isOpen) {
+                this._overlayEl.classList.remove('dp-task-view--open');
+                this._overlayEl.hidden = true;
+                return;
+            }
+            this._isOpen = false;
+            this._overlayEl.classList.remove('dp-task-view--open');
+            this._overlayEl.hidden = true;
+            this.events.emit('taskview:close', undefined);
+        }
+        toggle() {
+            this._isOpen ? this.close() : this.open();
+        }
+        /** 銷毀 Task View，移除 DOM 與事件監聽 */
+        destroy() {
+            this.close();
+            document.removeEventListener('keydown', this._onKeyDown);
+            this._wsMgr.events.off('workspace:switched', this._onSwitched);
+            if (this._opts.dock && this._opts.showButton) {
+                this._opts.dock.removeItem(this._buttonId);
+            }
+            this._overlayEl.remove();
+        }
+        // ── Private ────────────────────────────────────────────────
+        _syncCounter() {
+            this._wsMgr.workspaces.forEach(ws => {
+                const m = ws.id.match(/^ws-(\d+)$/);
+                if (m) {
+                    const n = parseInt(m[1], 10);
+                    if (n > this._wsCounter)
+                        this._wsCounter = n;
+                }
+            });
+        }
+        _render() {
+            this._panelEl.innerHTML = '';
+            const workspaces = this._wsMgr.workspaces;
+            const currentId = this._wsMgr.current?.id;
+            workspaces.forEach(ws => {
+                const card = document.createElement('div');
+                card.className = 'dp-tv-card' + (ws.id === currentId ? ' dp-tv-card--active' : '');
+                // 縮略圖（DOM clone）
+                const preview = document.createElement('div');
+                preview.className = 'dp-tv-preview';
+                this._buildPreview(preview, ws.container);
+                card.appendChild(preview);
+                // 工作區名稱
+                const lbl = document.createElement('div');
+                lbl.className = 'dp-tv-label';
+                lbl.textContent = ws.label;
+                card.appendChild(lbl);
+                // 刪除按鈕（需 allowDelete，且 > 1 個工作區才顯示）
+                if (this._opts.allowDelete && workspaces.length > 1) {
+                    const del = document.createElement('button');
+                    del.className = 'dp-tv-delete';
+                    del.textContent = '✕';
+                    del.title = '刪除此桌面';
+                    del.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this._wsMgr.removeWorkspace(ws.id);
+                        this._render();
+                    });
+                    card.appendChild(del);
+                }
+                card.addEventListener('click', () => {
+                    this._wsMgr.switchTo(ws.id);
+                    this.close();
+                });
+                this._panelEl.appendChild(card);
+            });
+            // 新增桌面按鈕
+            if (this._opts.allowAdd) {
+                const addWrap = document.createElement('div');
+                addWrap.className = 'dp-tv-add-wrap';
+                addWrap.title = '新增虛擬桌面';
+                const addBox = document.createElement('div');
+                addBox.className = 'dp-tv-add';
+                addBox.textContent = '+';
+                const addLbl = document.createElement('div');
+                addLbl.className = 'dp-tv-add-label';
+                addLbl.textContent = '新增桌面';
+                addWrap.append(addBox, addLbl);
+                addWrap.addEventListener('click', () => {
+                    const config = this._opts.onCreateWorkspace
+                        ? this._opts.onCreateWorkspace()
+                        : this._defaultWorkspaceConfig();
+                    this._wsMgr.addWorkspace(config);
+                    this._wsMgr.switchTo(config.id);
+                    this.close();
+                });
+                this._panelEl.appendChild(addWrap);
+            }
+        }
+        /** 預設新增桌面設定：ws-N / 桌面 N */
+        _defaultWorkspaceConfig() {
+            this._wsCounter++;
+            return { id: `ws-${this._wsCounter}`, label: `桌面 ${this._wsCounter}` };
+        }
+        /** DOM clone + CSS scale 縮略圖 */
+        _buildPreview(preview, container) {
+            const vw = container.offsetWidth || window.innerWidth;
+            const vh = container.offsetHeight || window.innerHeight;
+            const pw = 210;
+            const ph = 132;
+            const scale = Math.min(pw / vw, ph / vh);
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText =
+                `position:absolute;top:0;left:0;width:${vw}px;height:${vh}px;` +
+                    `transform:scale(${scale});transform-origin:top left;` +
+                    `pointer-events:none;overflow:hidden;`;
+            const clone = container.cloneNode(true);
+            clone.hidden = false;
+            clone.inert = false;
+            clone.removeAttribute('hidden');
+            clone.removeAttribute('inert');
+            clone.removeAttribute('aria-hidden');
+            clone.classList.remove('dp-workspace--enter-right', 'dp-workspace--enter-left', 'dp-workspace--leave-left', 'dp-workspace--leave-right');
+            clone.classList.add('dp-workspace--active');
+            clone.style.cssText =
+                'position:absolute;inset:0;width:100%;height:100%;' +
+                    'transform:translateX(0);visibility:visible;transition:none;pointer-events:none;';
+            wrapper.appendChild(clone);
+            preview.appendChild(wrapper);
+        }
+    }
+
     const WM_DATA_KEY = 'dpWindowManager';
     const DESKTOP_DATA_KEY = 'dpDesktop';
+    const WORKSPACE_DATA_KEY = 'dpWorkspaceManager';
+    const TASKVIEW_DATA_KEY = 'dpTaskView';
     function isJQueryLike(value) {
         return !!value
             && typeof value === 'object'
@@ -3018,6 +3614,13 @@
             && typeof value.open === 'function'
             && typeof value.close === 'function'
             && typeof value.getBodyElement === 'function';
+    }
+    function isWorkspaceManagerLike(value) {
+        return !!value
+            && typeof value === 'object'
+            && typeof value.addWorkspace === 'function'
+            && typeof value.switchTo === 'function'
+            && typeof value.getWindowManager === 'function';
     }
     function firstElement(value) {
         if (!value)
@@ -3064,6 +3667,46 @@
                 return api.manager;
         }
         throw new Error('DeskPane jQuery adapter: manager was not found.');
+    }
+    function resolveDesktopApi($, desktop) {
+        if (!desktop)
+            return undefined;
+        if (typeof desktop === 'object' && 'desktop' in desktop)
+            return desktop;
+        if (typeof desktop === 'string') {
+            const el = document.querySelector(desktop);
+            return el ? $(el).data(DESKTOP_DATA_KEY) : undefined;
+        }
+        if (desktop instanceof HTMLElement)
+            return $(desktop).data(DESKTOP_DATA_KEY);
+        if (isJQueryLike(desktop))
+            return desktop.data(DESKTOP_DATA_KEY);
+        return undefined;
+    }
+    function resolveWorkspaceApi($, workspace) {
+        if (isWorkspaceManagerLike(workspace)) {
+            return createWorkspaceManagerApi($, workspace, {});
+        }
+        if (typeof workspace === 'object' && workspace && 'workspaceManager' in workspace) {
+            return workspace;
+        }
+        if (typeof workspace === 'string') {
+            const el = document.querySelector(workspace);
+            const api = el ? $(el).data(WORKSPACE_DATA_KEY) : undefined;
+            if (api)
+                return api;
+        }
+        if (workspace instanceof HTMLElement) {
+            const api = $(workspace).data(WORKSPACE_DATA_KEY);
+            if (api)
+                return api;
+        }
+        if (isJQueryLike(workspace)) {
+            const api = workspace.data(WORKSPACE_DATA_KEY);
+            if (api)
+                return api;
+        }
+        throw new Error('DeskPane jQuery adapter: workspace manager was not found.');
     }
     function createWindowManagerApi(manager) {
         return {
@@ -3151,6 +3794,118 @@
                 throw new Error(`DeskPane jQuery adapter: unknown Desktop method "${method}".`);
         }
     }
+    function normalizeWorkspaceWindowConfig(config, fallbackContent) {
+        const content = firstElement(config.content) ?? fallbackContent ?? document.createElement('div');
+        return {
+            ...config,
+            content,
+        };
+    }
+    function createWorkspaceManagerApi($, workspaceManager, options) {
+        const desktopApi = resolveDesktopApi($, options.desktop);
+        let dockSyncCleanup = null;
+        let taskView = null;
+        const api = {
+            workspaceManager,
+            get taskView() { return taskView; },
+            set taskView(value) { taskView = value ?? null; },
+            get dockSyncCleanup() { return dockSyncCleanup; },
+            set dockSyncCleanup(cleanup) { dockSyncCleanup = cleanup; },
+            addWorkspace(config) { return workspaceManager.addWorkspace(config); },
+            removeWorkspace(id) { workspaceManager.removeWorkspace(id); },
+            switchTo(id) { workspaceManager.switchTo(id); },
+            currentWindowManager() {
+                const current = workspaceManager.current;
+                if (!current)
+                    throw new Error('DeskPane jQuery adapter: no active workspace.');
+                return workspaceManager.getWindowManager(current.id);
+            },
+            windowManager(workspaceId) {
+                return workspaceManager.getWindowManager(workspaceId ?? workspaceManager.current?.id ?? '');
+            },
+            openWindow(config) {
+                return workspaceManager.openWindow(normalizeWorkspaceWindowConfig(config));
+            },
+            syncDock(syncOptions = {}) {
+                if (!desktopApi) {
+                    throw new Error('DeskPane jQuery adapter: syncDock requires a dpDesktop instance.');
+                }
+                const current = workspaceManager.current;
+                if (!current)
+                    throw new Error('DeskPane jQuery adapter: no active workspace.');
+                dockSyncCleanup?.();
+                dockSyncCleanup = desktopApi.desktop.syncDockWithWindows(workspaceManager.getWindowManager(current.id), syncOptions);
+                return dockSyncCleanup;
+            },
+            createTaskView(taskViewOptions = {}) {
+                taskView?.destroy();
+                const taskViewDesktopApi = resolveDesktopApi($, taskViewOptions.desktop) ?? desktopApi;
+                taskView = new TaskView(workspaceManager, {
+                    ...taskViewOptions,
+                    dock: taskViewOptions.dock ?? taskViewDesktopApi?.desktop.getDock(),
+                });
+                return taskView;
+            },
+            destroy() {
+                dockSyncCleanup?.();
+                dockSyncCleanup = null;
+                taskView?.destroy();
+                taskView = null;
+                workspaceManager.destroy();
+            },
+        };
+        workspaceManager.events.on('workspace:switched', () => {
+            if (options.syncDock) {
+                api.syncDock(options.syncDock === true ? {} : options.syncDock);
+            }
+        });
+        options.workspaces?.forEach(config => workspaceManager.addWorkspace(config));
+        if (options.indicator)
+            workspaceManager.enableIndicator();
+        if (options.syncDock)
+            api.syncDock(options.syncDock === true ? {} : options.syncDock);
+        if (options.taskView)
+            api.createTaskView(options.taskView === true ? {} : options.taskView);
+        return api;
+    }
+    function callWorkspaceMethod(api, method, args) {
+        switch (method) {
+            case 'instance': return api;
+            case 'addWorkspace': return api.addWorkspace(args[0]);
+            case 'removeWorkspace': return api.removeWorkspace(String(args[0]));
+            case 'switchTo': return api.switchTo(String(args[0]));
+            case 'current': return api.workspaceManager.current;
+            case 'workspaces': return api.workspaceManager.workspaces;
+            case 'currentWindowManager': return api.currentWindowManager();
+            case 'windowManager': return api.windowManager(args[0] ? String(args[0]) : undefined);
+            case 'openWindow': return api.openWindow(args[0]);
+            case 'syncDock': return api.syncDock(args[0]);
+            case 'taskView': return api.createTaskView(args[0]);
+            case 'destroy': return api.destroy();
+            default:
+                throw new Error(`DeskPane jQuery adapter: unknown WorkspaceManager method "${method}".`);
+        }
+    }
+    function createTaskViewApi(taskView) {
+        return {
+            taskView,
+            open() { taskView.open(); },
+            close() { taskView.close(); },
+            toggle() { taskView.toggle(); },
+            destroy() { taskView.destroy(); },
+        };
+    }
+    function callTaskViewMethod(api, method) {
+        switch (method) {
+            case 'instance': return api;
+            case 'open': return api.open();
+            case 'close': return api.close();
+            case 'toggle': return api.toggle();
+            case 'destroy': return api.destroy();
+            default:
+                throw new Error(`DeskPane jQuery adapter: unknown TaskView method "${method}".`);
+        }
+    }
     function install($) {
         if (!$ || !$.fn) {
             throw new Error('DeskPane jQuery adapter requires a jQuery-compatible $.fn object.');
@@ -3206,6 +3961,61 @@
                 });
                 const api = createDesktopApi(desktop, options);
                 $(this).data(DESKTOP_DATA_KEY, api);
+            });
+        };
+        $.fn.dpWorkspaceManager = function dpWorkspaceManager(optionsOrMethod, ...args) {
+            if (typeof optionsOrMethod === 'string') {
+                const api = this.data(WORKSPACE_DATA_KEY);
+                if (!api)
+                    throw new Error('DeskPane jQuery adapter: call dpWorkspaceManager(options) before using methods.');
+                return callWorkspaceMethod(api, optionsOrMethod, args);
+            }
+            return this.each(function initWorkspaceManager() {
+                const options = optionsOrMethod ?? {};
+                const desktopApi = resolveDesktopApi($, options.desktop);
+                const container = desktopApi?.desktop.getElement() ?? this;
+                const workspaceManager = new WorkspaceManager(container, options);
+                const api = createWorkspaceManagerApi($, workspaceManager, options);
+                $(this).data(WORKSPACE_DATA_KEY, api);
+            });
+        };
+        $.fn.dpWorkspaceWindow = function dpWorkspaceWindow(options) {
+            const states = [];
+            this.each(function openWorkspaceWindow(index) {
+                const workspaceApi = resolveWorkspaceApi($, options.workspace);
+                const { workspace: _workspace, clone: _clone, ...windowOptions } = options;
+                const source = options.content
+                    ? firstElement(options.content)
+                    : options.clone
+                        ? this.cloneNode(true)
+                        : this;
+                const fallbackId = this.id || undefined;
+                const fallbackAppId = this.id || `dp-window-${index + 1}`;
+                states.push(workspaceApi.openWindow({
+                    ...windowOptions,
+                    id: options.id ?? fallbackId,
+                    appId: options.appId ?? fallbackAppId,
+                    content: source,
+                }));
+            });
+            return states.length === 1 ? states[0] : states;
+        };
+        $.fn.dpTaskView = function dpTaskView(optionsOrMethod) {
+            if (typeof optionsOrMethod === 'string') {
+                const api = this.data(TASKVIEW_DATA_KEY);
+                if (!api)
+                    throw new Error('DeskPane jQuery adapter: call dpTaskView(options) before using methods.');
+                return callTaskViewMethod(api, optionsOrMethod);
+            }
+            return this.each(function initTaskView() {
+                const options = optionsOrMethod ?? {};
+                const workspaceApi = options.workspace
+                    ? resolveWorkspaceApi($, options.workspace)
+                    : $(this).data(WORKSPACE_DATA_KEY);
+                if (!workspaceApi)
+                    throw new Error('DeskPane jQuery adapter: dpTaskView requires a dpWorkspaceManager instance.');
+                const taskView = workspaceApi.createTaskView(options);
+                $(this).data(TASKVIEW_DATA_KEY, createTaskViewApi(taskView));
             });
         };
     }
