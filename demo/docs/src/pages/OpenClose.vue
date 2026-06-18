@@ -6,15 +6,23 @@
     <h1>{{ t('openclose.h1') }}</h1>
     <p v-html="t('openclose.intro')"></p>
 
-    <DemoViewport ref="viewport" @reset="reset">
-      <template #controls>
-        <button class="btn" v-for="n in [1,2,3]" :key="n" @click="openWin(n)">
-          {{ t('openclose.openWin') }} {{ n }}
-        </button>
-        <button class="btn btn-outline" @click="openFixed">{{ t('openclose.fixedWin') }}</button>
-        <button class="btn btn-danger" @click="wm?.destroy()">{{ t('openclose.closeAll') }}</button>
-      </template>
-    </DemoViewport>
+    <DocSampleLayout>
+      <DocSampleTabs
+        v-model="activeSample"
+        :samples="samples"
+        aria-label="Open and close framework samples"
+      />
+
+      <DemoViewport ref="viewport" @reset="reset">
+        <template #controls>
+          <button class="btn" v-for="n in [1,2,3]" :key="n" @click="openWin(n)">
+            {{ t('openclose.openWin') }} {{ n }}
+          </button>
+          <button class="btn btn-outline" @click="openFixed">{{ t('openclose.fixedWin') }}</button>
+          <button class="btn btn-danger" @click="wm?.destroy()">{{ t('openclose.closeAll') }}</button>
+        </template>
+      </DemoViewport>
+    </DocSampleLayout>
 
     <h2>{{ t('openclose.h2Open') }}</h2>
     <table class="api-table">
@@ -62,9 +70,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
+import DocSampleLayout from '../components/DocSampleLayout.vue'
+import DocSampleTabs from '../components/DocSampleTabs.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
 
@@ -72,9 +82,16 @@ const { setCode } = useDocCode()
 const { t } = useLocale()
 const viewport = ref<InstanceType<typeof DemoViewport> | null>(null)
 let wm: WindowManager | null = null
+const activeSample = ref('vanilla')
 
 const TITLES = ['Sales Report', 'User Settings', 'Log Viewer']
 const ICONS  = ['📊', '⚙️', '📋']
+const samples = [
+  { id: 'vanilla', label: 'Vanilla JS', description: 'Use WindowManager directly with HTMLElement content.' },
+  { id: 'jquery', label: 'jQuery', description: 'Use dpWindowManager commands or dpWindow element helpers.' },
+  { id: 'vue', label: 'Vue 3', description: 'Open a DeskPane window, then Teleport Vue component content into the body element.' },
+  { id: 'react', label: 'React 18', description: 'Open a DeskPane window, then render React content with createPortal.' },
+] as const
 
 function initWM() {
   const container = viewport.value?.container
@@ -104,17 +121,136 @@ function openFixed() {
   wm.open({ id: 'fixed-dialog', title: '🔒 Fixed Dialog', content: body, width: 300, height: 150, resizable: false })
 }
 
-onMounted(() => {
-  initWM()
+function setCodeForSample() {
+  if (activeSample.value === 'jquery') {
+    setCode([
+      {
+        name: 'jquery.js',
+        lang: 'javascript',
+        code: `$('#desktop').dpWindowManager({
+  isolated: true,
+  injectStyles: false,
+})
+
+$('#desktop').dpWindowManager('open', {
+  id: 'report',
+  title: 'Sales Report',
+  width: 480,
+  height: 360,
+  content: $('<div class="report">Report content</div>')[0],
+})
+
+$('.confirm-dialog').dpWindow({
+  manager: '#desktop',
+  id: 'confirm',
+  title: 'Confirm',
+  width: 320,
+  height: 180,
+  resizable: false,
+})`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'vue') {
+    setCode([
+      {
+        name: 'App.vue',
+        lang: 'vue',
+        code: `<template>
+  <div ref="desktopEl" class="desktop">
+    <button @click="openReport">Open report</button>
+
+    <Teleport
+      v-for="win in windows"
+      :key="win.id"
+      :to="win.bodyEl"
+    >
+      <component :is="win.component" />
+    </Teleport>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useWindowManager } from 'deskpane/vue'
+import ReportWindow from './ReportWindow.vue'
+
+const desktopEl = ref<HTMLElement | null>(null)
+const { windows, openVueWindow, close } = useWindowManager({
+  container: desktopEl,
+  isolated: true,
+})
+
+function openReport() {
+  openVueWindow({
+    id: 'report',
+    title: 'Sales Report',
+    component: ReportWindow,
+    width: 480,
+    height: 360,
+  })
+}
+
+// close('report')
+<\/script>`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'react') {
+    setCode([
+      {
+        name: 'App.tsx',
+        lang: 'typescript',
+        code: `import { createPortal } from 'react-dom'
+import { useWindowManager } from 'deskpane/react'
+import ReportWindow from './ReportWindow'
+
+export default function App() {
+  const { windows, openReactWindow, close } = useWindowManager({
+    isolated: true,
+  })
+
+  return (
+    <div className="desktop">
+      <button onClick={() => openReactWindow({
+        id: 'report',
+        title: 'Sales Report',
+        component: ReportWindow,
+        width: 480,
+        height: 360,
+      })}>
+        Open report
+      </button>
+
+      {windows.map(win => {
+        const Component = win.component
+        return Component
+          ? createPortal(<Component />, win.bodyEl, win.id)
+          : null
+      })}
+    </div>
+  )
+}`,
+      },
+    ])
+    return
+  }
+
   setCode([
     {
-      name: 'main.ts',
+      name: 'open-window.ts',
       lang: 'typescript',
-      code: `import { WindowManager } from '@deskpane/core/WindowManager'
+      code: `import { WindowManager } from 'deskpane'
 
-const wm = new WindowManager()
+const wm = new WindowManager({
+  container: document.getElementById('desktop')!,
+  isolated: true,
+})
 
-// ── open() ────────────────────────────────────────────
 const content = document.createElement('div')
 content.textContent = 'Window content'
 
@@ -126,33 +262,25 @@ const state = wm.open({
   width: 480, height: 360,
 })
 
-// Calling open() again with the same id:
-// → restores if minimized, then focuses. No duplicate window created.
+// Calling open() again with the same id focuses the existing window.
 wm.open({ id: 'report', title: 'Sales Report', content })
-
-// ── Fixed-size window (resizable: false) ──────────────
-wm.open({
-  id: 'dialog',
-  title: 'Alert',
-  content,
-  width: 360, height: 200,
-  resizable: false,       // disables maximize button + border-drag resize
-})
-
-// ── close() ───────────────────────────────────────────
-wm.close('report')    // remove one window
-
-// ── destroy() — close all ──────────────────────────────
-wm.destroy()`,
+`,
     },
   ])
+}
+
+onMounted(() => {
+  initWM()
+  setCodeForSample()
 })
+
+watch(activeSample, setCodeForSample)
 
 onUnmounted(() => wm?.destroy())
 </script>
 
 <style scoped>
-.page { max-width: 760px; }
+.page { width: 100%; max-width: 100%; }
 .btn {
   padding: 5px 14px;
   background: var(--color-primary);

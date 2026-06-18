@@ -8,10 +8,14 @@
         <span class="brand-product">{{ t('header.sub') }}</span>
       </div>
       <nav class="header-nav">
-        <a href="../index.html" class="active">{{ t('header.demos') }}</a>
-        <a href="../vanilla/index.html" target="_blank">{{ t('header.vanillaDemo') }}</a>
-        <a href="../vue/index.html" target="_blank">{{ t('header.vueDemo') }}</a>
-        <a href="https://github.com/0obriano0/DeskPane" target="_blank" rel="noopener">GitHub</a>
+        <a
+          v-for="link in demoLinks"
+          :key="link.label"
+          :href="link.href"
+          :target="link.external ? '_blank' : undefined"
+          :rel="link.external ? 'noopener' : undefined"
+          :class="{ active: link.active }"
+        >{{ link.label }}</a>
         <button class="lang-btn" @click="locale = locale === 'en' ? 'zh-TW' : 'en'">
           {{ locale === 'en' ? '中文' : 'EN' }}
         </button>
@@ -55,10 +59,6 @@
           />
         </div>
       </main>
-
-      <aside class="docs-code">
-        <CodePanel :files="pageCode" />
-      </aside>
     </div>
   </div>
 </template>
@@ -67,7 +67,6 @@
 import { ref, computed, defineAsyncComponent } from 'vue'
 import type { Ref } from 'vue'
 import SideNav from './components/SideNav.vue'
-import CodePanel from './components/CodePanel.vue'
 import { provideDocCode } from './composables/useDocCode'
 import { provideLocale } from './composables/useLocale'
 import { getNavConfig } from './nav-config'
@@ -87,6 +86,14 @@ const currentPageId = ref('overview')
 const searchQuery = ref('')
 const sidebarOpen = ref(false)
 
+const demoLinks = computed(() => [
+  { label: t('header.demos'), href: '../../index.html' },
+  { label: 'Docs', href: './index.html', active: true },
+  { label: 'Desktop', href: '../../desktop/index.html' },
+  { label: 'Theme', href: '../../theme-editor/index.html' },
+  { label: 'GitHub', href: 'https://github.com/0obriano0/DeskPane', external: true },
+])
+
 const PAGE_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   'overview':       defineAsyncComponent(() => import('./pages/Overview.vue')),
   'installation':   defineAsyncComponent(() => import('./pages/Installation.vue')),
@@ -103,12 +110,7 @@ const PAGE_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   'workspace-manager':  defineAsyncComponent(() => import('./pages/WorkspacePage.vue')),
   'task-view':          defineAsyncComponent(() => import('./pages/TaskViewPage.vue')),
   'session-manager':    defineAsyncComponent(() => import('./pages/SessionPage.vue')),
-  'hello-world':    defineAsyncComponent(() => import('./pages/HelloWorld.vue')),
   'dom-content':    defineAsyncComponent(() => import('./pages/DomContent.vue')),
-  'jquery':         defineAsyncComponent(() => import('./pages/JqueryPage.vue')),
-  'vue-composable': defineAsyncComponent(() => import('./pages/VueComposable.vue')),
-  'vue-keepalive':  defineAsyncComponent(() => import('./pages/VueKeepAlive.vue')),
-  'react':          defineAsyncComponent(() => import('./pages/ReactPage.vue')),
 }
 
 const currentPage = computed(() => PAGE_MAP[currentPageId.value])
@@ -153,13 +155,14 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 }
 
 .docs-header {
-  height: 58px;
+  height: 64px;
   background: #2f9bb3;
   display: flex;
   align-items: center;
-  padding: 0 28px;
-  gap: 24px;
+  padding: 0 24px;
+  gap: 18px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .brand {
@@ -167,6 +170,7 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   align-items: center;
   gap: 12px;
   color: #fff;
+  flex: 0 0 auto;
   min-width: 0;
 }
 
@@ -184,6 +188,7 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 .brand-name {
   font-size: 24px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .brand-divider {
@@ -203,34 +208,52 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 8px 0;
+}
+
+.header-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .header-nav a {
-  color: rgba(255,255,255,0.92);
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  color: rgba(255,255,255,0.9);
+  font-size: 12px;
   font-weight: 700;
   text-decoration: none;
   text-transform: uppercase;
-  border-bottom: 2px solid transparent;
-  padding: 16px 0 12px;
+  white-space: nowrap;
+  letter-spacing: 0;
 }
 
 .header-nav a:hover,
 .header-nav a.active {
   color: #fff;
-  border-bottom-color: #fff;
+  border-color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.12);
 }
 
 .lang-btn {
   background: transparent;
   border: 1px solid rgba(255,255,255,0.85);
   color: #fff;
-  padding: 7px 12px;
-  font-size: 13px;
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
   cursor: pointer;
   font-weight: 700;
   border-radius: 0;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .lang-btn:hover { background: rgba(255,255,255,0.16); }
@@ -348,24 +371,10 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   min-width: 0;
 }
 
-.docs-code {
-  width: clamp(430px, 42vw, 720px);
-  flex-shrink: 0;
-  border-left: 1px solid #d4d9de;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-}
-
 @media (max-width: 1180px) {
-  .docs-body {
-    flex-direction: column;
-  }
-
   .docs-sidebar {
     position: fixed;
-    top: 103px;
+    top: 109px;
     bottom: 0;
     left: 0;
     z-index: 20;
@@ -383,26 +392,27 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   }
 
   .docs-main {
-    min-height: 50vh;
-  }
-
-  .docs-code {
-    width: 100%;
-    height: 40vh;
-    border-left: 0;
-    border-top: 1px solid #d4d9de;
+    min-height: 0;
   }
 }
 
 @media (max-width: 760px) {
   .docs-header {
-    padding: 0 14px;
+    padding: 0 12px;
+    gap: 10px;
   }
 
-  .brand-product,
-  .header-nav a:nth-child(2),
-  .header-nav a:nth-child(3) {
+  .brand-product {
     display: none;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  .brand-name {
+    font-size: 20px;
   }
 
   .docs-subbar {

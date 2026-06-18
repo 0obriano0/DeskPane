@@ -3,7 +3,7 @@
 // 核心大腦：管理所有視窗的生命週期與狀態
 // ============================================================
 
-import { WindowConfig, WindowState, EventCallback } from './types.js';
+import { WindowConfig, WindowState } from './types.js';
 import { EventBus } from './EventBus.js';
 import { DragResizeHandler, DragResizeOptions } from './DragResizeHandler.js';
 import { injectStyles, createWindowDOM, applyGeometry, createModalOverlay, WindowElements } from '../renderers/DOMRenderer.js';
@@ -257,7 +257,7 @@ export class WindowManager {
         if (siblings.size === 0) this._children.delete(parentId);
       }
       // 移除此子視窗對應的 modal overlay
-      this._detachModalOverlay(parentId, id);
+      this._detachModalOverlay(id);
       this.events.emit('window:child-closed', { parentId, childId: id });
     }
 
@@ -647,7 +647,7 @@ export class WindowManager {
   /**
    * 移除 parentId 上由 childId 產生的 modal 遮罩。
    */
-  private _detachModalOverlay(parentId: string, childId: string): void {
+  private _detachModalOverlay(childId: string): void {
     const overlay = this._modalOverlays.get(childId);
     if (overlay) {
       overlay.remove();

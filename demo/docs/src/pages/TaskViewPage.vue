@@ -6,14 +6,22 @@
     <h1>{{ t('taskview.h1') }}</h1>
     <p v-html="t('taskview.intro')"></p>
 
-    <h2>{{ t('taskview.h2Setup') }}</h2>
-    <p v-html="t('taskview.setupDesc')"></p>
+    <DocSampleLayout>
+      <DocSampleTabs
+        v-model="activeSample"
+        :samples="samples"
+        aria-label="TaskView framework samples"
+      />
 
-    <DemoViewport ref="viewport" @reset="onReset">
-      <template #controls>
-        <button class="btn" @click="openTaskView">{{ t('taskview.openBtn') }}</button>
-      </template>
-    </DemoViewport>
+      <h2>{{ t('taskview.h2Setup') }}</h2>
+      <p v-html="t('taskview.setupDesc')"></p>
+
+      <DemoViewport ref="viewport" @reset="onReset">
+        <template #controls>
+          <button class="btn" @click="openTaskView">{{ t('taskview.openBtn') }}</button>
+        </template>
+      </DemoViewport>
+    </DocSampleLayout>
 
     <h2>{{ t('taskview.h2Options') }}</h2>
     <table class="api-table">
@@ -77,9 +85,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { WorkspaceManager, TaskView } from '@deskpane/workspace'
 import DemoViewport from '../components/DemoViewport.vue'
+import DocSampleLayout from '../components/DocSampleLayout.vue'
+import DocSampleTabs from '../components/DocSampleTabs.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
 
@@ -88,6 +98,13 @@ const { t } = useLocale()
 const viewport = ref<InstanceType<typeof DemoViewport> | null>(null)
 let wsMgr: WorkspaceManager | null = null
 let tv: TaskView | null = null
+const activeSample = ref('vanilla')
+const samples = [
+  { id: 'vanilla', label: 'Vanilla JS', description: 'Connect TaskView to WorkspaceManager and control it directly.' },
+  { id: 'jquery', label: 'jQuery', description: 'Use dpTaskView with dpWorkspaceManager and optional Desktop Dock integration.' },
+  { id: 'vue', label: 'Vue 3', description: 'Create TaskView in lifecycle hooks around a Vue desktop shell.' },
+  { id: 'react', label: 'React 18', description: 'Create TaskView in an effect around a React desktop shell.' },
+] as const
 
 function initDemo() {
   const container = viewport.value?.container
@@ -116,13 +133,111 @@ function onReset() {
   initDemo()
 }
 
+function setCodeForSample() {
+  if (activeSample.value === 'jquery') {
+    setCode([
+      {
+        name: 'jquery-taskview.js',
+        lang: 'javascript',
+        code: `$('#desktop').dpDesktop({
+  dock: { position: 'bottom', items: [] },
+  windowManager: false,
+})
+
+$('#desktop').dpWorkspaceManager({
+  desktop: '#desktop',
+  workspaces: [
+    { id: 'ws-1', label: 'Desktop 1' },
+    { id: 'ws-2', label: 'Desktop 2' },
+  ],
+  taskView: true,
+})
+
+$('#desktop').dpTaskView({
+  desktop: '#desktop',
+  allowAdd: true,
+  allowDelete: true,
+})
+
+$('#desktop').dpTaskView('open')`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'vue') {
+    setCode([
+      {
+        name: 'VueTaskView.vue',
+        lang: 'vue',
+        code: `<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
+import { WorkspaceManager, TaskView } from 'deskpane/workspace'
+
+const rootEl = ref<HTMLElement | null>(null)
+let wsMgr: WorkspaceManager
+let taskView: TaskView
+
 onMounted(() => {
-  initDemo()
+  wsMgr = new WorkspaceManager(rootEl.value!)
+  wsMgr.addWorkspace({ id: 'ws-1', label: 'Desktop 1' })
+  wsMgr.addWorkspace({ id: 'ws-2', label: 'Desktop 2' })
+
+  taskView = new TaskView(wsMgr, {
+    target: rootEl.value!,
+    closeOnBackdrop: true,
+  })
+})
+
+onUnmounted(() => {
+  taskView?.destroy()
+  wsMgr?.destroy()
+})
+<\/script>`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'react') {
+    setCode([
+      {
+        name: 'ReactTaskView.tsx',
+        lang: 'typescript',
+        code: `import { useEffect, useRef } from 'react'
+import { WorkspaceManager, TaskView } from 'deskpane/workspace'
+
+export default function ReactTaskView() {
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const wsMgr = new WorkspaceManager(rootRef.current!)
+    wsMgr.addWorkspace({ id: 'ws-1', label: 'Desktop 1' })
+    wsMgr.addWorkspace({ id: 'ws-2', label: 'Desktop 2' })
+
+    const taskView = new TaskView(wsMgr, {
+      target: rootRef.current!,
+      closeOnBackdrop: true,
+    })
+
+    return () => {
+      taskView.destroy()
+      wsMgr.destroy()
+    }
+  }, [])
+
+  return <div ref={rootRef} className="desktop" />
+}`,
+      },
+    ])
+    return
+  }
+
   setCode([
     {
       name: 'basic.ts',
       lang: 'typescript',
-      code: `import { WorkspaceManager, TaskView } from '@deskpane/workspace'
+      code: `import { WorkspaceManager, TaskView } from 'deskpane/workspace'
 
 const wsMgr = new WorkspaceManager(document.getElementById('root')!)
 wsMgr.addWorkspace({ id: 'ws-1', label: 'Desktop 1' })
@@ -138,47 +253,15 @@ tv.toggle()
 // Cleanup
 tv.destroy()`,
     },
-    {
-      name: 'dock-integration.ts',
-      lang: 'typescript',
-      code: `import { Desktop } from '@deskpane/desktop'
-import { WorkspaceManager, TaskView } from '@deskpane/workspace'
-
-const desktop = new Desktop({
-  container: document.getElementById('root')!,
-  dock: { position: 'bottom', items: [] },
-})
-
-const wsMgr = new WorkspaceManager(desktop.getElement())
-wsMgr.addWorkspace({ id: 'ws-1', label: 'Desktop 1' })
-
-// Pass the Desktop's Dock → TaskView adds a toggle button automatically
-const tv = new TaskView(wsMgr, {
-  dock: desktop.dock,
-  showButton: true,
-  buttonLabel: 'Virtual Desktops',
-  buttonIcon: '⧉',
-})`,
-    },
-    {
-      name: 'custom-create.ts',
-      lang: 'typescript',
-      code: `// Customise what happens when the user clicks "Add desktop"
-let counter = 3
-const tv = new TaskView(wsMgr, {
-  onCreateWorkspace: () => ({
-    id: \`ws-\${counter}\`,
-    label: \`Desktop \${counter++}\`,
-    icon: '🖥',
-  }),
-})
-
-// React to overlay open/close
-tv.events.on('taskview:open',  () => console.log('overlay opened'))
-tv.events.on('taskview:close', () => console.log('overlay closed'))`,
-    },
   ])
+}
+
+onMounted(() => {
+  initDemo()
+  setCodeForSample()
 })
+
+watch(activeSample, setCodeForSample)
 
 onUnmounted(() => {
   tv?.destroy()
@@ -187,7 +270,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.page { max-width: 760px; }
+.page { width: 100%; max-width: 100%; }
 .btn {
   padding: 5px 14px;
   background: var(--color-primary);

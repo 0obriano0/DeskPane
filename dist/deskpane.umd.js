@@ -819,7 +819,6 @@
           const W = this.container.clientWidth;
           const H = this.container.clientHeight;
           const sp = this.splitterSize;
-          this.headerSize;
           const north = this.regions.get('north');
           const south = this.regions.get('south');
           const east = this.regions.get('east');
@@ -1278,7 +1277,7 @@
                       this._children.delete(parentId);
               }
               // 移除此子視窗對應的 modal overlay
-              this._detachModalOverlay(parentId, id);
+              this._detachModalOverlay(id);
               this.events.emit('window:child-closed', { parentId, childId: id });
           }
           // 如果這個視窗有子視窗，一并關閉（深度優先）
@@ -1647,7 +1646,7 @@
       /**
        * 移除 parentId 上由 childId 產生的 modal 遮罩。
        */
-      _detachModalOverlay(parentId, childId) {
+      _detachModalOverlay(childId) {
           const overlay = this._modalOverlays.get(childId);
           if (overlay) {
               overlay.remove();

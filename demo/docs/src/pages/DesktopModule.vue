@@ -6,14 +6,22 @@
     <h1>{{ t('desktop.h1') }}</h1>
     <p v-html="t('desktop.intro')"></p>
 
-    <h2>{{ t('desktop.h2Setup') }}</h2>
-    <p v-html="t('desktop.setupDesc')"></p>
+    <DocSampleLayout>
+      <DocSampleTabs
+        v-model="activeSample"
+        :samples="samples"
+        aria-label="Desktop framework samples"
+      />
 
-    <DemoViewport ref="viewport" @reset="onReset">
-      <template #controls>
-        <button class="btn" @click="addDemoIcon">{{ t('desktop.openIcon') }}</button>
-      </template>
-    </DemoViewport>
+      <h2>{{ t('desktop.h2Setup') }}</h2>
+      <p v-html="t('desktop.setupDesc')"></p>
+
+      <DemoViewport ref="viewport" @reset="onReset">
+        <template #controls>
+          <button class="btn" @click="addDemoIcon">{{ t('desktop.openIcon') }}</button>
+        </template>
+      </DemoViewport>
+    </DocSampleLayout>
 
     <h2>{{ t('desktop.h2Config') }}</h2>
     <table class="api-table">
@@ -91,10 +99,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Desktop } from '@deskpane/desktop'
 import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
+import DocSampleLayout from '../components/DocSampleLayout.vue'
+import DocSampleTabs from '../components/DocSampleTabs.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
 
@@ -104,8 +114,15 @@ const viewport = ref<InstanceType<typeof DemoViewport> | null>(null)
 let desktop: Desktop | null = null
 let wm: WindowManager | null = null
 let iconCount = 0
+const activeSample = ref('vanilla')
 
 const ICONS = ['📝', '🎵', '📷', '🎮', '📊', '🗂', '🌐', '⚙️']
+const samples = [
+  { id: 'vanilla', label: 'Vanilla JS', description: 'Create Desktop, icons, Dock, and a WindowManager directly.' },
+  { id: 'jquery', label: 'jQuery', description: 'Use dpDesktop to initialize Desktop, icons, WindowManager, and Dock sync.' },
+  { id: 'vue', label: 'Vue 3', description: 'Use Desktop as the shell and Teleport Vue window content into DeskPane bodies.' },
+  { id: 'react', label: 'React 18', description: 'Use Desktop as the shell and render React window content with createPortal.' },
+] as const
 
 function initDesktop() {
   const container = viewport.value?.container
@@ -127,17 +144,20 @@ function addDemoIcon() {
   const emoji = ICONS[idx]
   const id = `app-icon-${iconCount}`
   const title = `App ${iconCount + 1}`
+  const openApp = () => {
+    const div = document.createElement('div')
+    div.style.cssText = 'padding:20px;font-size:24px;text-align:center;'
+    div.innerHTML = `<div style="margin-bottom:8px">${emoji}</div><div style="font-size:14px">${title}</div>`
+    wm!.open({ id, title, icon: emoji, label: title, content: div, width: 260, height: 150 })
+  }
+
   desktop.addIcon({
     id,
     label: title,
     icon: emoji,
-    action: () => {
-      const div = document.createElement('div')
-      div.style.cssText = 'padding:20px;font-size:24px;text-align:center;'
-      div.innerHTML = `<div style="margin-bottom:8px">${emoji}</div><div style="font-size:14px">${title}</div>`
-      wm!.open({ id, title, content: div, width: 260, height: 150 })
-    },
+    action: openApp,
   })
+
   iconCount++
 }
 
@@ -146,14 +166,139 @@ function onReset() {
   desktop?.destroy?.()
   iconCount = 0
   initDesktop()
-  addDemoIcon()
-  addDemoIcon()
 }
 
+function setCodeForSample() {
+  if (activeSample.value === 'jquery') {
+    setCode([
+      {
+        name: 'jquery-desktop.js',
+        lang: 'javascript',
+        code: `$('#desktop').dpDesktop({
+  dock: { position: 'bottom', items: [] },
+  icons: [
+    {
+      id: 'notepad',
+      label: 'Notepad',
+      icon: '📝',
+      action: function () {
+        $('#desktop')
+          .dpDesktop('windowManager')
+          .open({
+            id: 'notepad',
+            title: 'Notepad',
+            content: $('<div>').text('Notes')[0],
+          })
+      },
+    },
+  ],
+  windowManager: {
+    isolated: true,
+    snap: true,
+    injectStyles: false,
+  },
+  syncDock: true,
+})`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'vue') {
+    setCode([
+      {
+        name: 'VueDesktop.vue',
+        lang: 'vue',
+        code: `<template>
+  <div ref="desktopRoot" class="desktop"></div>
+
+  <Teleport v-for="win in windows" :key="win.id" :to="win.bodyEl">
+    <component :is="win.component" />
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { Desktop } from 'deskpane/desktop'
+import { useWindowManager } from 'deskpane/vue'
+import NotepadWindow from './NotepadWindow.vue'
+
+const desktopRoot = ref<HTMLElement | null>(null)
+const { windows, openVueWindow, wm } = useWindowManager({ isolated: true })
+
 onMounted(() => {
-  initDesktop()
-  addDemoIcon()
-  addDemoIcon()
+  const desktop = new Desktop({
+    container: desktopRoot.value!,
+    dock: { position: 'bottom', items: [] },
+    icons: [{
+      id: 'notepad',
+      label: 'Notepad',
+      icon: '📝',
+      action: () => openVueWindow({
+        id: 'notepad',
+        title: 'Notepad',
+        component: NotepadWindow,
+      }),
+    }],
+  })
+
+  desktop.syncDockWithWindows(wm.value!)
+})
+<\/script>`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'react') {
+    setCode([
+      {
+        name: 'ReactDesktop.tsx',
+        lang: 'typescript',
+        code: `import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { Desktop } from 'deskpane/desktop'
+import { useWindowManager } from 'deskpane/react'
+import NotepadWindow from './NotepadWindow'
+
+export default function ReactDesktop() {
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const { windows, openReactWindow, wm } = useWindowManager({ isolated: true })
+
+  useEffect(() => {
+    const desktop = new Desktop({
+      container: rootRef.current!,
+      dock: { position: 'bottom', items: [] },
+      icons: [{
+        id: 'notepad',
+        label: 'Notepad',
+        icon: '📝',
+        action: () => openReactWindow({
+          id: 'notepad',
+          title: 'Notepad',
+          component: NotepadWindow,
+        }),
+      }],
+    })
+
+    const stopSync = desktop.syncDockWithWindows(wm!)
+    return () => { stopSync(); desktop.destroy?.() }
+  }, [])
+
+  return (
+    <div ref={rootRef} className="desktop">
+      {windows.map(win => {
+        const Component = win.component
+        return Component ? createPortal(<Component />, win.bodyEl, win.id) : null
+      })}
+    </div>
+  )
+}`,
+      },
+    ])
+    return
+  }
+
   setCode([
     {
       name: 'setup.ts',
@@ -181,65 +326,15 @@ const wm = new WindowManager({
 const stopSync = desktop.syncDockWithWindows(wm)
 // Later: stopSync() to detach`,
     },
-    {
-      name: 'icons.ts',
-      lang: 'typescript',
-      code: `// Add icons — click to open a window
-desktop.addIcon({
-  id: 'notepad',
-  label: '📝 Notepad',
-  icon: '📝',
-  action: () => {
-    wm.open({
-      id: 'notepad',
-      title: 'Notepad',
-      content: createNotepadEl(),
-      width: 480,
-      height: 360,
-    })
-  },
-})
-
-desktop.addIcon({
-  id: 'settings',
-  label: '⚙️ Settings',
-  icon: '⚙️',
-  action: () => wm.open({ id: 'settings', title: 'Settings', content: el }),
-})
-
-// Remove an icon
-desktop.removeIcon('notepad')`,
-    },
-    {
-      name: 'sync-options.ts',
-      lang: 'typescript',
-      code: `// syncDockWithWindows — full options
-const stopSync = desktop.syncDockWithWindows(wm, {
-  // Map window id → app id  (default: strip 'app-' prefix)
-  getAppIdFromWindowId: (winId) => winId.replace(/^app-/, '') || null,
-
-  // Build the Dock item display
-  getDockItem: (appId, event) => ({
-    label: event.state?.title ?? appId,
-    icon: '🪟',
-  }),
-
-  // Custom click — default: focus window
-  onDockItemClick: (appId, winId) => wm.focus(winId),
-
-  dedupeByAppId: true,   // one Dock entry per app
-  syncExisting: true,    // include already-open windows
-
-  // Hover thumbnail preview
-  showWindowPreview: true,
-  previewSize: { width: 200, height: 130 },
-})
-
-// Detach when done
-stopSync()`,
-    },
   ])
+}
+
+onMounted(() => {
+  initDesktop()
+  setCodeForSample()
 })
+
+watch(activeSample, setCodeForSample)
 
 onUnmounted(() => {
   wm?.destroy()
@@ -247,7 +342,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.page { max-width: 760px; }
+.page { width: 100%; max-width: 100%; }
 .btn {
   padding: 5px 14px;
   background: var(--color-primary);

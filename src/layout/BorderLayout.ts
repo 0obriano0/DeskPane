@@ -220,8 +220,6 @@ export class BorderLayout {
     const W   = this.container.clientWidth;
     const H   = this.container.clientHeight;
     const sp  = this.splitterSize;
-    const hdr = this.headerSize;
-
     const north  = this.regions.get('north');
     const south  = this.regions.get('south');
     const east   = this.regions.get('east');

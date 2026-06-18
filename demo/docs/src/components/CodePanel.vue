@@ -81,6 +81,7 @@ async function copyCode() {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
   background: #fff;
   color: #1f2937;
 }
@@ -103,6 +104,7 @@ async function copyCode() {
   border-bottom: 1px solid #d4d9de;
   flex-shrink: 0;
   min-height: 57px;
+  min-width: 0;
 }
 
 .code-tabs {
@@ -113,8 +115,8 @@ async function copyCode() {
 }
 
 .code-tab {
-  min-width: 118px;
-  padding: 0 20px;
+  min-width: 96px;
+  padding: 0 14px;
   background: transparent;
   border: 0;
   border-right: 1px solid #d4d9de;
@@ -135,8 +137,8 @@ async function copyCode() {
 
 .copy-btn {
   margin-left: auto;
-  margin-right: 14px;
-  padding: 8px 18px;
+  margin-right: 10px;
+  padding: 7px 14px;
   background: #fff;
   border: 2px solid #008aa8;
   border-radius: 4px;
@@ -169,7 +171,7 @@ async function copyCode() {
 
 .hljs-pre code.hljs {
   background: transparent !important;
-  padding: 18px 22px;
+  padding: 16px 18px;
   font-size: inherit;
   color: #1f2937;
 }

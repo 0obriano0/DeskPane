@@ -24,6 +24,7 @@ export function getNavConfig(t: (key: string) => string): NavCategory[] {
       items: [
         { id: 'wm-options', label: t('nav.wmOptions') },
         { id: 'open-close', label: t('nav.openClose') },
+        { id: 'dom-content', label: t('nav.domContent') },
         { id: 'min-max',    label: t('nav.minMax') },
         { id: 'snap',       label: t('nav.snap') },
         { id: 'events',     label: t('nav.events') },
@@ -48,27 +49,6 @@ export function getNavConfig(t: (key: string) => string): NavCategory[] {
         { id: 'workspace-manager', label: t('nav.workspaceManager') },
         { id: 'task-view',         label: t('nav.taskView') },
         { id: 'session-manager',   label: t('nav.sessionManager') },
-      ],
-    },
-    {
-      label: t('nav.vanillaJs'),
-      items: [
-        { id: 'hello-world', label: t('nav.helloWorld') },
-        { id: 'dom-content', label: t('nav.domContent') },
-        { id: 'jquery',      label: t('nav.jquery') },
-      ],
-    },
-    {
-      label: t('nav.vue3'),
-      items: [
-        { id: 'vue-composable', label: t('nav.vueComposable') },
-        { id: 'vue-keepalive',  label: t('nav.vueKeepAlive') },
-      ],
-    },
-    {
-      label: t('nav.react'),
-      items: [
-        { id: 'react', label: t('nav.reactComposable') },
       ],
     },
   ]

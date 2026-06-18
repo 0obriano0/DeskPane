@@ -1,4 +1,5 @@
 import { ref, provide, inject } from 'vue'
+import type { Ref } from 'vue'
 
 export interface CodeFile {
   name: string
@@ -20,6 +21,7 @@ export function provideDocCode() {
 
 /** 在各 Demo 頁面呼叫，登記要顯示在右側 Code Panel 的程式碼 */
 export function useDocCode() {
+  const pageCode = inject<Ref<CodeFile[]>>(PAGE_CODE_KEY)
   const setCode = inject<(files: CodeFile[]) => void>(SET_CODE_KEY)
-  return { setCode: setCode ?? (() => {}) }
+  return { pageCode: pageCode ?? ref<CodeFile[]>([]), setCode: setCode ?? (() => {}) }
 }

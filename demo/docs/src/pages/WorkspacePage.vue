@@ -6,15 +6,23 @@
     <h1>{{ t('workspace.h1') }}</h1>
     <p v-html="t('workspace.intro')"></p>
 
-    <h2>{{ t('workspace.h2Setup') }}</h2>
-    <p v-html="t('workspace.setupDesc')"></p>
+    <DocSampleLayout>
+      <DocSampleTabs
+        v-model="activeSample"
+        :samples="samples"
+        aria-label="Workspace framework samples"
+      />
 
-    <DemoViewport ref="viewport" @reset="onReset">
-      <template #controls>
-        <button class="btn" @click="addWorkspace">{{ t('workspace.openBtn') }}</button>
-        <button class="btn btn-secondary" @click="switchNext">{{ t('workspace.switchBtn') }}{{ nextLabel }}</button>
-      </template>
-    </DemoViewport>
+      <h2>{{ t('workspace.h2Setup') }}</h2>
+      <p v-html="t('workspace.setupDesc')"></p>
+
+      <DemoViewport ref="viewport" @reset="onReset">
+        <template #controls>
+          <button class="btn" @click="addWorkspace">{{ t('workspace.openBtn') }}</button>
+          <button class="btn btn-secondary" @click="switchNext">{{ t('workspace.switchBtn') }}{{ nextLabel }}</button>
+        </template>
+      </DemoViewport>
+    </DocSampleLayout>
 
     <h2>{{ t('workspace.h2Options') }}</h2>
     <table class="api-table">
@@ -107,9 +115,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { WorkspaceManager } from '@deskpane/workspace'
 import DemoViewport from '../components/DemoViewport.vue'
+import DocSampleLayout from '../components/DocSampleLayout.vue'
+import DocSampleTabs from '../components/DocSampleTabs.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
 
@@ -118,6 +128,13 @@ const { t } = useLocale()
 const viewport = ref<InstanceType<typeof DemoViewport> | null>(null)
 let wsMgr: WorkspaceManager | null = null
 let wsCount = 2
+const activeSample = ref('vanilla')
+const samples = [
+  { id: 'vanilla', label: 'Vanilla JS', description: 'Create WorkspaceManager directly and open windows per workspace.' },
+  { id: 'jquery', label: 'jQuery', description: 'Use dpWorkspaceManager and dpWorkspaceWindow from the 0.3.0 adapter.' },
+  { id: 'vue', label: 'Vue 3', description: 'Use WorkspaceManager as the shell and Teleport Vue windows into each workspace manager.' },
+  { id: 'react', label: 'React 18', description: 'Use WorkspaceManager as the shell and render React windows with createPortal.' },
+] as const
 
 const nextLabel = computed(() => {
   if (!wsMgr) return '2'
@@ -162,13 +179,121 @@ function onReset() {
   initWorkspaces()
 }
 
+function setCodeForSample() {
+  if (activeSample.value === 'jquery') {
+    setCode([
+      {
+        name: 'jquery-workspace.js',
+        lang: 'javascript',
+        code: `$('#desktop').dpDesktop({
+  dock: { position: 'bottom', items: [] },
+  windowManager: false,
+})
+
+$('#desktop').dpWorkspaceManager({
+  desktop: '#desktop',
+  workspaces: [
+    { id: 'ws-1', label: 'Desktop 1' },
+    { id: 'ws-2', label: 'Desktop 2' },
+  ],
+  syncDock: true,
+  windowManagerOptions: {
+    isolated: true,
+    snap: true,
+    injectStyles: false,
+  },
+})
+
+$('<div>Notes</div>').dpWorkspaceWindow({
+  workspace: '#desktop',
+  appId: 'notes',
+  title: 'Notes',
+  width: 280,
+  height: 220,
+})`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'vue') {
+    setCode([
+      {
+        name: 'VueWorkspace.vue',
+        lang: 'vue',
+        code: `<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { WorkspaceManager } from 'deskpane/workspace'
+import { useWindowManager } from 'deskpane/vue'
+import NotesWindow from './NotesWindow.vue'
+
+const rootEl = ref<HTMLElement | null>(null)
+const { windows, openVueWindow } = useWindowManager({ isolated: true })
+let wsMgr: WorkspaceManager
+
 onMounted(() => {
-  initWorkspaces()
+  wsMgr = new WorkspaceManager(rootEl.value!, {
+    windowManagerOptions: { isolated: true, injectStyles: false },
+  })
+  wsMgr.addWorkspace({ id: 'ws-1', label: 'Desktop 1' })
+  wsMgr.addWorkspace({ id: 'ws-2', label: 'Desktop 2' })
+  wsMgr.enableIndicator()
+
+  openVueWindow({
+    id: 'notes',
+    title: 'Notes',
+    component: NotesWindow,
+  })
+})
+<\/script>`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'react') {
+    setCode([
+      {
+        name: 'ReactWorkspace.tsx',
+        lang: 'typescript',
+        code: `import { useEffect, useRef } from 'react'
+import { WorkspaceManager } from 'deskpane/workspace'
+import { useWindowManager } from 'deskpane/react'
+import NotesWindow from './NotesWindow'
+
+export default function ReactWorkspace() {
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const { openReactWindow } = useWindowManager({ isolated: true })
+
+  useEffect(() => {
+    const wsMgr = new WorkspaceManager(rootRef.current!, {
+      windowManagerOptions: { isolated: true, injectStyles: false },
+    })
+    wsMgr.addWorkspace({ id: 'ws-1', label: 'Desktop 1' })
+    wsMgr.addWorkspace({ id: 'ws-2', label: 'Desktop 2' })
+    wsMgr.enableIndicator()
+
+    openReactWindow({
+      id: 'notes',
+      title: 'Notes',
+      component: NotesWindow,
+    })
+
+    return () => wsMgr.destroy()
+  }, [])
+
+  return <div ref={rootRef} className="desktop" />
+}`,
+      },
+    ])
+    return
+  }
+
   setCode([
     {
       name: 'setup.ts',
       lang: 'typescript',
-      code: `import { WorkspaceManager } from '@deskpane/workspace'
+      code: `import { WorkspaceManager } from 'deskpane/workspace'
 
 const wsMgr = new WorkspaceManager(
   document.getElementById('root')!,
@@ -185,40 +310,15 @@ wsMgr.enableIndicator()
 // Switch between workspaces
 wsMgr.switchTo('ws-2')`,
     },
-    {
-      name: 'windows.ts',
-      lang: 'typescript',
-      code: `// Each workspace has its own isolated WindowManager
-const wm1 = wsMgr.getWindowManager('ws-1')
-const wm2 = wsMgr.getWindowManager('ws-2')
-
-wm1.open({ id: 'notepad', title: 'Notepad', content: el, width: 400, height: 300 })
-wm2.open({ id: 'calc',    title: 'Calculator', content: el2 })
-
-// Remove a workspace (and all its windows)
-wsMgr.removeWorkspace('ws-2')`,
-    },
-    {
-      name: 'events.ts',
-      lang: 'typescript',
-      code: `// Listen to workspace lifecycle events
-wsMgr.events.on('workspace:added', (ws) => {
-  console.log('added:', ws.id, ws.label)
-})
-
-wsMgr.events.on('workspace:switched', ({ from, to }) => {
-  console.log(\`switched \${from} → \${to}\`)
-})
-
-wsMgr.events.on('workspace:removed', ({ id }) => {
-  console.log('removed:', id)
-})
-
-// Cleanup
-wsMgr.destroy()`,
-    },
   ])
+}
+
+onMounted(() => {
+  initWorkspaces()
+  setCodeForSample()
 })
+
+watch(activeSample, setCodeForSample)
 
 onUnmounted(() => {
   wsMgr?.destroy()
@@ -226,7 +326,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.page { max-width: 760px; }
+.page { width: 100%; max-width: 100%; }
 .btn {
   padding: 5px 14px;
   background: var(--color-primary);

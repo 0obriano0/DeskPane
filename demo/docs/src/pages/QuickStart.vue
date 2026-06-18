@@ -6,30 +6,20 @@
     <h1>{{ t('quickstart.h1') }}</h1>
     <p v-html="t('quickstart.intro')"></p>
 
-    <div class="sample-tabs" role="tablist" aria-label="Quick start framework">
-      <button
-        v-for="sample in samples"
-        :key="sample.id"
-        type="button"
-        class="sample-tab"
-        :class="{ active: activeSample === sample.id }"
-        @click="activeSample = sample.id"
-      >
-        {{ sample.label }}
-      </button>
-    </div>
+    <DocSampleLayout>
+      <DocSampleTabs
+        v-model="activeSample"
+        :samples="samples"
+        aria-label="Quick start framework"
+      />
 
-    <DemoViewport ref="viewport" @reset="reset">
-      <template #controls>
-        <button class="btn" @click="openWindow">{{ t('quickstart.openWindow') }}</button>
-        <button class="btn" @click="openWindow2">{{ t('quickstart.openAnother') }}</button>
-      </template>
-    </DemoViewport>
-
-    <div class="sample-note">
-      <strong>{{ currentSample.label }}</strong>
-      <span>{{ currentSample.description }}</span>
-    </div>
+      <DemoViewport ref="viewport" @reset="reset">
+        <template #controls>
+          <button class="btn" @click="openWindow">{{ t('quickstart.openWindow') }}</button>
+          <button class="btn" @click="openWindow2">{{ t('quickstart.openAnother') }}</button>
+        </template>
+      </DemoViewport>
+    </DocSampleLayout>
 
     <p v-html="t('quickstart.dedup')"></p>
 
@@ -43,9 +33,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
+import DocSampleLayout from '../components/DocSampleLayout.vue'
+import DocSampleTabs from '../components/DocSampleTabs.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
 
@@ -77,10 +69,6 @@ const samples = [
     description: 'Use ReactDOM.createPortal to render component content into the DeskPane window body.',
   },
 ] as const
-
-const currentSample = computed(() =>
-  samples.find(sample => sample.id === activeSample.value) ?? samples[0]
-)
 
 function initWM() {
   const container = viewport.value?.container
@@ -357,7 +345,7 @@ wm.open({
 </script>
 
 <style scoped>
-.page { max-width: 760px; }
+.page { width: 100%; max-width: 100%; }
 .btn {
   padding: 5px 14px;
   background: var(--color-primary);
@@ -371,51 +359,4 @@ wm.open({
 .btn:hover { background: var(--color-primary-hover); }
 ol li { margin-bottom: 6px; }
 
-.sample-tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 2px solid #d4d9de;
-  margin: 18px 0 0;
-}
-
-.sample-tab {
-  border: 0;
-  border-right: 1px solid #d4d9de;
-  background: #f7f9fb;
-  color: #536577;
-  padding: 9px 20px;
-  font: inherit;
-  cursor: pointer;
-}
-
-.sample-tab:hover {
-  color: #087c98;
-  background: #eef8fa;
-}
-
-.sample-tab.active {
-  background: #fff;
-  color: #111827;
-  box-shadow: inset 0 -3px 0 #2f9bb3;
-}
-
-.sample-note {
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-  padding: 10px 12px;
-  border: 1px solid #d4d9de;
-  background: #f7f9fb;
-  margin: 0 0 16px;
-  font-size: 13px;
-}
-
-.sample-note strong {
-  color: #087c98;
-  white-space: nowrap;
-}
-
-.sample-note span {
-  color: #536577;
-}
 </style>

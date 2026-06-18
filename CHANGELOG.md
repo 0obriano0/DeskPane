@@ -14,6 +14,11 @@
 ### Changed
 
 - Refactored the docs Quick Start page with Wijmo-like framework tabs for Vanilla JS, jQuery, Vue 3, and React code samples.
+- Refactored key docs feature pages to show Vanilla JS, jQuery, Vue 3, and React code samples inside each feature page instead of splitting jQuery into a standalone docs route.
+- Removed standalone Vanilla/Vue/React/jQuery docs routes from the main docs navigation so frameworks are presented as per-feature code tabs instead of separate sections.
+- Moved docs code samples into the live-demo section so code panels sit beside the related demo instead of occupying a global right rail.
+- Simplified the docs top navigation to the main demo landing page, docs, Desktop demo, Theme editor, and GitHub.
+- Updated the Desktop docs live demo so the Dock starts empty and only reflects currently open windows.
 - Expanded the docs Installation page and README with clearer npm, CDN, manual CSS import, and `injectStyles:false` guidance.
 - Refactored the jQuery demo to use the official adapter plugin surface for `dpDesktop`, `dpWindow`, and Dock sync while retaining WorkspaceManager and TaskView integration.
 - Updated the jQuery adapter to accept WindowManager-like objects by duck typing, so UMD bundles from `deskpane-workspace` interoperate with `deskpane-jquery`.

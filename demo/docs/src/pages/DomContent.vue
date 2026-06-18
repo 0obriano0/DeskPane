@@ -6,14 +6,22 @@
     <h1>{{ t('dom.h1') }}</h1>
     <p v-html="t('dom.intro')"></p>
 
-    <DemoViewport ref="viewport" @reset="reset">
-      <template #controls>
-        <button class="btn" @click="openText">{{ t('dom.btnText') }}</button>
-        <button class="btn" @click="openForm">{{ t('dom.btnForm') }}</button>
-        <button class="btn" @click="openTable">{{ t('dom.btnTable') }}</button>
-        <button class="btn" @click="openProgress">{{ t('dom.btnProgress') }}</button>
-      </template>
-    </DemoViewport>
+    <DocSampleLayout>
+      <DocSampleTabs
+        v-model="activeSample"
+        :samples="samples"
+        aria-label="DOM content framework samples"
+      />
+
+      <DemoViewport ref="viewport" @reset="reset">
+        <template #controls>
+          <button class="btn" @click="openText">{{ t('dom.btnText') }}</button>
+          <button class="btn" @click="openForm">{{ t('dom.btnForm') }}</button>
+          <button class="btn" @click="openTable">{{ t('dom.btnTable') }}</button>
+          <button class="btn" @click="openProgress">{{ t('dom.btnProgress') }}</button>
+        </template>
+      </DemoViewport>
+    </DocSampleLayout>
 
     <h2>{{ t('dom.h2GetBody') }}</h2>
     <p v-html="t('dom.getBodyDesc')"></p>
@@ -34,9 +42,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
+import DocSampleLayout from '../components/DocSampleLayout.vue'
+import DocSampleTabs from '../components/DocSampleTabs.vue'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
 
@@ -45,6 +55,13 @@ const { t } = useLocale()
 const viewport = ref<InstanceType<typeof DemoViewport> | null>(null)
 let wm: WindowManager | null = null
 let winCount = 0
+const activeSample = ref('vanilla')
+const samples = [
+  { id: 'vanilla', label: 'Vanilla JS', description: 'Pass HTMLElement content directly or mount into getBodyElement().' },
+  { id: 'jquery', label: 'jQuery', description: 'Build DOM with jQuery and open it with dpWindow.' },
+  { id: 'vue', label: 'Vue 3', description: 'Use Teleport to mount Vue components into DeskPane body elements.' },
+  { id: 'react', label: 'React 18', description: 'Use createPortal to mount React components into DeskPane body elements.' },
+] as const
 
 function initWM() {
   const container = viewport.value?.container
@@ -141,53 +158,168 @@ function openProgress() {
   }, 120)
 }
 
-onMounted(() => {
-  initWM()
+function setCodeForSample() {
+  if (activeSample.value === 'jquery') {
+    setCode([
+      {
+        name: 'jquery.js',
+        lang: 'javascript',
+        code: `$('#desktop').dpWindowManager({
+  isolated: true,
+  injectStyles: false,
+})
+
+const $form = $(\`
+  <form class="customer-form">
+    <label>Customer <input name="customer"></label>
+    <button type="button">Save</button>
+  </form>
+\`)
+
+$form.on('click', 'button', function () {
+  alert('Saved: ' + $form.find('[name="customer"]').val())
+})
+
+$form.dpWindow({
+  manager: '#desktop',
+  id: 'customer-form',
+  title: 'Customer Form',
+  width: 360,
+  height: 220,
+})`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'vue') {
+    setCode([
+      {
+        name: 'App.vue',
+        lang: 'vue',
+        code: `<template>
+  <div ref="desktopEl" class="desktop">
+    <button @click="openCustomer">Open customer form</button>
+
+    <Teleport
+      v-for="win in windows"
+      :key="win.id"
+      :to="win.bodyEl"
+    >
+      <component :is="win.component" />
+    </Teleport>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useWindowManager } from 'deskpane/vue'
+import CustomerForm from './CustomerForm.vue'
+
+const desktopEl = ref<HTMLElement | null>(null)
+const { windows, openVueWindow } = useWindowManager({
+  container: desktopEl,
+  isolated: true,
+})
+
+function openCustomer() {
+  openVueWindow({
+    id: 'customer-form',
+    title: 'Customer Form',
+    component: CustomerForm,
+    width: 360,
+    height: 240,
+  })
+}
+<\/script>`,
+      },
+    ])
+    return
+  }
+
+  if (activeSample.value === 'react') {
+    setCode([
+      {
+        name: 'App.tsx',
+        lang: 'typescript',
+        code: `import { createPortal } from 'react-dom'
+import { useWindowManager } from 'deskpane/react'
+import CustomerForm from './CustomerForm'
+
+export default function App() {
+  const { windows, openReactWindow } = useWindowManager({
+    isolated: true,
+  })
+
+  return (
+    <div className="desktop">
+      <button onClick={() => openReactWindow({
+        id: 'customer-form',
+        title: 'Customer Form',
+        component: CustomerForm,
+        width: 360,
+        height: 240,
+      })}>
+        Open customer form
+      </button>
+
+      {windows.map(win => {
+        const Component = win.component
+        return Component
+          ? createPortal(<Component />, win.bodyEl, win.id)
+          : null
+      })}
+    </div>
+  )
+}`,
+      },
+    ])
+    return
+  }
+
   setCode([
     {
-      name: 'main.ts',
+      name: 'vanilla.ts',
       lang: 'typescript',
-      code: `import { WindowManager } from '@deskpane/core/WindowManager'
+      code: `import { WindowManager } from 'deskpane'
 
-const wm = new WindowManager()
-
-// ── Pattern 1: Pass content at open() time ─────────────
-const form = document.createElement('form')
-form.innerHTML = \`
-  <input type="text" placeholder="Name" />
-  <button type="submit">Submit</button>
-\`
-wm.open({ id: 'form-win', title: 'Form', content: form })
-
-// ── Pattern 2: getBodyElement() — attach content after open() ──
-// Useful for 3rd-party widgets that need an already-attached DOM node
-wm.open({
-  id: 'grid-win',
-  title: 'Data Grid',
-  content: null,   // no content yet
-  slotType: 'dom',
+const wm = new WindowManager({
+  container: document.getElementById('desktop')!,
+  isolated: true,
 })
 
-const body = wm.getBodyElement('grid-win')!
+const content = document.createElement('div')
+content.innerHTML = \`
+  <h3>Plain DOM content</h3>
+  <p>Any HTMLElement can become a DeskPane window body.</p>
+\`
 
-// Attach a Wijmo FlexGrid (or any widget)
-// const grid = new FlexGrid(body, { itemsSource: data })
+wm.open({
+  id: 'plain-dom',
+  title: 'Plain DOM',
+  content,
+  width: 340,
+  height: 200,
+})
 
-// Or jQuery
-// $(body).wijgrid({ columns: [...] })
-
-// Or plain DOM
-const table = document.createElement('table')
-body.appendChild(table)`,
+const body = wm.getBodyElement('plain-dom')
+body?.append(document.createElement('hr'))`,
     },
   ])
+}
+
+onMounted(() => {
+  initWM()
+  setCodeForSample()
 })
+
+watch(activeSample, setCodeForSample)
 
 onUnmounted(() => wm?.destroy())
 </script>
 
 <style scoped>
-.page { max-width: 760px; }
+.page { width: 100%; max-width: 100%; }
 .btn {
   padding: 5px 14px;
   background: var(--color-primary);
