@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DeskPane — jQuery Demo</title>
-  <meta name="description" content="jQuery and UMD DeskPane demo focused on Desktop, Dock, WindowManager, WorkspaceManager, TaskView, child windows, modal dialogs, snap, and BorderLayout." />
+  <meta name="description" content="Official DeskPane jQuery adapter demo focused on dpDesktop, dpWindow, Dock sync, WorkspaceManager, TaskView, child windows, modal dialogs, snap, and BorderLayout." />
   <link rel="canonical" href="https://0obriano0.github.io/DeskPane/demo/jquery/" />
   <meta property="og:title" content="DeskPane jQuery Demo" />
-  <meta property="og:description" content="DeskPane UMD and jQuery demo focused on web desktop window management APIs." />
+  <meta property="og:description" content="DeskPane official jQuery adapter demo focused on web desktop window management APIs." />
   <meta property="og:url" content="https://0obriano0.github.io/DeskPane/demo/jquery/" />
   <meta name="twitter:card" content="summary" />
   <link rel="stylesheet" href="../../dist/themes/dark.css" />
@@ -76,13 +76,14 @@
   <script src="../../dist/deskpane.umd.js"></script>
   <script src="../../dist/deskpane-desktop.umd.js"></script>
   <script src="../../dist/deskpane-workspace.umd.js"></script>
+  <script src="../../dist/deskpane-jquery.umd.js"></script>
   <script>
     const { BorderLayout, setTheme } = DeskPane;
-    const { Desktop } = DeskPaneDesktop;
     const { WorkspaceManager, TaskView } = DeskPaneWorkspace;
 
-    const desktop = new Desktop({
-      container: document.getElementById('desktop-root'),
+    const $desktopRoot = $('#desktop-root');
+    $desktopRoot.dpDesktop({
+      windowManager: false,
       dragThreshold: 10,
       dock: { position: 'bottom', showLabels: true, iconSize: 44, items: [] },
       icons: [
@@ -93,15 +94,17 @@
         { id: 'icon-events', label: 'Events', icon: '📡', x: 170, y: 140, action: () => openApp('events') },
       ],
     });
+    const desktopApi = $desktopRoot.dpDesktop('instance');
+    const desktop = desktopApi.desktop;
 
     const workspaces = new WorkspaceManager(desktop.getElement(), {
       animationMs: 220,
       windowManagerOptions: { isolated: true, snap: true },
     });
     workspaces.addWorkspace({ id: 'ws-1', label: '桌面 1' });
-    desktop.syncDockWithWindows(workspaces.getWindowManager('ws-1'));
+    $desktopRoot.dpDesktop('syncDockWithWindows', workspaces.getWindowManager('ws-1'));
     workspaces.events.on('workspace:switched', ({ to }) => {
-      desktop.syncDockWithWindows(workspaces.getWindowManager(to));
+      $desktopRoot.dpDesktop('syncDockWithWindows', workspaces.getWindowManager(to));
       currentWm().activateTopWindow();
     });
     const taskView = new TaskView(workspaces, { dock: desktop.getDock() });
@@ -123,7 +126,9 @@
     function openApp(id) {
       const def = apps[id];
       if (!def) return;
-      currentWm().open({
+      const content = def.make();
+      $(content).dpWindow({
+        manager: currentWm(),
         id: 'app-' + id,
         title: def.title,
         icon: def.icon,
@@ -134,24 +139,29 @@
         y: def.y,
         resizable: def.resizable,
         slotType: 'dom',
-        content: def.make(),
       });
     }
 
     function makeOverview() {
       const $grid = $('<div class="grid">').append(
-        card('UMD modules', 'DeskPane is loaded from script tags and available on window.DeskPane.'),
-        card('jQuery content', 'Window contents are built with jQuery and passed as HTMLElement content.'),
-        card('Desktop + Dock', 'Desktop icons open windows; WindowManager events keep the Dock in sync.'),
+        card('Adapter bundle', 'deskpane-jquery.umd.js installs $.fn.dpWindowManager, $.fn.dpWindow, and $.fn.dpDesktop.'),
+        card('dpWindow content', 'Window contents are built with jQuery and opened through $(content).dpWindow(...).'),
+        card('dpDesktop + Dock', 'Desktop icons are initialized with $(root).dpDesktop(...), and Dock sync uses the plugin command API.'),
         card('WorkspaceManager', 'Task View can add and switch virtual desktops without framework state.'),
         card('Child windows', 'parentId and modal behavior work with jQuery-created content.'),
         card('BorderLayout', 'DeskPane layout components can be mounted inside jQuery-built DOM.'),
       );
-      const $code = $('<pre>').text(`const desktop = new DeskPaneDesktop.Desktop({ container, icons })
-const wm = workspaceManager.getWindowManager('ws-1')
-wm.open({ title: 'jQuery content', content: $panel[0] })`);
+      const $code = $('<pre>').text(`$('#desktop-root').dpDesktop({ icons, dock: { position: 'bottom' } })
+
+$(content).dpWindow({
+  manager: workspaceManager.getWindowManager('ws-1'),
+  id: 'app-overview',
+  title: 'jQuery content'
+})
+
+$('#desktop-root').dpDesktop('syncDockWithWindows', wm)`);
       const $body = $('<div>').append(
-        $('<p class="muted">').text('This demo intentionally focuses on DeskPane integration points. jQuery is only used to create and bind window content.'),
+        $('<p class="muted">').text('This demo uses the official jQuery adapter for desktop initialization and element-to-window opening. WorkspaceManager and TaskView remain regular DeskPane modules, because they coordinate multiple WindowManager instances.'),
         $('<h3>').text('What is active here'),
         $grid,
         $('<h3>').text('jQuery integration shape'),
@@ -163,7 +173,7 @@ wm.open({ title: 'jQuery content', content: $panel[0] })`);
     function makeWindowLab() {
       const $gap = $('<input type="number" min="0" max="48" value="0">').on('input', () => currentWm().setSnapGap(Number($gap.val()) || 0));
       const $body = $('<div>').append(
-        $('<p class="muted">').text('These jQuery buttons call WindowManager methods against this window.'),
+        $('<p class="muted">').text('This window was opened with $.fn.dpWindow. These jQuery buttons call the active workspace WindowManager returned by WorkspaceManager.'),
         $('<div class="field">').append($('<span>').text('Snap gap'), $gap),
         $('<div class="btn-row">').append(
           $('<button class="btn">').text('Minimize').on('click', () => currentWm().minimize('app-window-lab')),
@@ -180,14 +190,14 @@ wm.open({ title: 'jQuery content', content: $panel[0] })`);
     }
 
     function openFloatingProbe() {
-      currentWm().open({
+      $(panel('Snap probe', $('<p class="muted">').text('Drag this window near another window to see snap alignment and gap behavior.'))).dpWindow({
+        manager: currentWm(),
         id: 'snap-probe-' + Date.now(),
         title: 'Snap probe',
         width: 260,
         height: 150,
         x: 520,
         y: 120,
-        content: panel('Snap probe', $('<p class="muted">').text('Drag this window near another window to see snap alignment and gap behavior.')),
       });
     }
 
@@ -228,7 +238,11 @@ wm.open({ title: 'jQuery content', content: $panel[0] })`);
     }
 
     function openModalChild() {
-      currentWm().open({
+      $(panel('Modal child', $('<div>').append(
+        $('<p class="muted">').text('The parent is blocked until this modal child closes.'),
+        $('<div class="btn-row">').append($('<button class="btn primary">').text('Close modal').on('click', () => currentWm().close('child-modal'))),
+      ))).dpWindow({
+        manager: currentWm(),
         id: 'child-modal',
         title: 'Modal child',
         parentId: 'app-children',
@@ -236,22 +250,18 @@ wm.open({ title: 'jQuery content', content: $panel[0] })`);
         width: 340,
         height: 210,
         resizable: false,
-        content: panel('Modal child', $('<div>').append(
-          $('<p class="muted">').text('The parent is blocked until this modal child closes.'),
-          $('<div class="btn-row">').append($('<button class="btn primary">').text('Close modal').on('click', () => currentWm().close('child-modal'))),
-        )),
       });
     }
 
     function openNonModalChild() {
-      currentWm().open({
+      $(panel('Non-modal child', $('<p class="muted">').text('This child stays attached to the parent, but the parent remains interactive.'))).dpWindow({
+        manager: currentWm(),
         id: 'child-inspector',
         title: 'Non-modal child',
         parentId: 'app-children',
         modal: false,
         width: 320,
         height: 230,
-        content: panel('Non-modal child', $('<p class="muted">').text('This child stays attached to the parent, but the parent remains interactive.')),
       });
     }
 

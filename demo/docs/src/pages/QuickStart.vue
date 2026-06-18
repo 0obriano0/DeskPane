@@ -64,7 +64,7 @@ const samples = [
   {
     id: 'jquery',
     label: 'jQuery',
-    description: 'Use the UMD bundle with jQuery-built content. DeskPane does not require a jQuery plugin wrapper.',
+    description: 'Use the official jQuery adapter: initialize a manager with $.fn.dpWindowManager, then open jQuery-built content with $.fn.dpWindow.',
   },
   {
     id: 'vue',
@@ -191,6 +191,7 @@ function openCounter() {
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"><\/script>
   <script src="https://unpkg.com/deskpane/dist/deskpane.umd.min.js"><\/script>
+  <script src="https://unpkg.com/deskpane/dist/deskpane-jquery.umd.min.js"><\/script>
   <script src="./main.js"><\/script>
 </body>
 </html>`,
@@ -198,14 +199,13 @@ function openCounter() {
       {
         name: 'main.js',
         lang: 'javascript',
-        code: `var wm = new window.DeskPane.WindowManager({
-  container: document.getElementById('desktop'),
+        code: `$('#desktop').dpWindowManager({
   isolated: true,
   injectStyles: false,
 })
 
 function openCustomerForm() {
-  var $form = $(\`
+  $(\`
     <form class="customer-form">
       <label>
         Customer
@@ -221,15 +221,14 @@ function openCustomerForm() {
       <button type="button">Save</button>
     </form>
   \`)
-
-  $form.on('click', 'button', function () {
+  .on('click', 'button', function () {
+    var $form = $(this).closest('form')
     alert('Saved: ' + $form.find('[name="customer"]').val())
   })
-
-  wm.open({
+  .dpWindow({
+    manager: '#desktop',
     id: 'customer-form',
     title: 'Customer Form',
-    content: $form[0],
     width: 360,
     height: 240,
   })
@@ -240,18 +239,18 @@ openCustomerForm()`,
       {
         name: 'plugin-pattern.js',
         lang: 'javascript',
-        code: `// Optional: create your own tiny jQuery helper if your app wants one.
-// DeskPane itself stays framework-agnostic.
-$.fn.dpOpenWindow = function (wm, config) {
-  return this.each(function () {
-    wm.open({
-      ...config,
-      content: this,
-    })
-  })
-}
+        code: `// The adapter exposes command-style APIs.
+$('#desktop').dpWindowManager('open', {
+  id: 'plain-window',
+  title: 'Plain Window',
+  content: $('<div>').text('Opened from a jQuery command')[0],
+})
 
-$('.customer-form').dpOpenWindow(wm, {
+$('#desktop').dpWindowManager('close', 'plain-window')
+
+// Element-to-window helper.
+$('.customer-form').dpWindow({
+  manager: '#desktop',
   id: 'customer-form',
   title: 'Customer Form',
 })`,

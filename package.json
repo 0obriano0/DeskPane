@@ -34,13 +34,23 @@
       "import": "./dist/deskpane-vue.es.js",
       "default": "./dist/deskpane-vue.es.js"
     },
+    "./jquery": {
+      "types": "./dist/jquery.d.ts",
+      "import": "./dist/deskpane-jquery.es.js",
+      "require": "./dist/deskpane-jquery.umd.js",
+      "default": "./dist/deskpane-jquery.es.js"
+    },
     "./styles/*": "./dist/styles/*",
     "./themes/*": "./dist/themes/*"
   },
   "peerDependencies": {
+    "jquery": ">=3.0.0",
     "vue": ">=3.4.0"
   },
   "peerDependenciesMeta": {
+    "jquery": {
+      "optional": true
+    },
     "vue": {
       "optional": true
     }
@@ -75,6 +85,7 @@
     "resizable",
     "typescript",
     "javascript",
+    "jquery",
     "vue",
     "react",
     "ui-framework",

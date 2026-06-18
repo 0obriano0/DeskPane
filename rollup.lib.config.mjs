@@ -21,6 +21,10 @@
 //   dist/deskpane-vue.es.js      ES Module  (import { DpDesktop } from 'deskpane/vue')
 //   dist/vue.d.ts                TypeScript declaration (Vue adapter)
 //
+//   dist/deskpane-jquery.es.js   ES Module  (import 'deskpane/jquery')
+//   dist/deskpane-jquery.umd.js  UMD bundle (<script src="..."> → window.DeskPaneJQuery)
+//   dist/jquery.d.ts             TypeScript declaration (jQuery adapter)
+//
 // ⚠️  Desktop + Workspace bundles 不包含 core，使用時需先載入 deskpane.*
 
 import resolve from '@rollup/plugin-node-resolve'
@@ -46,6 +50,7 @@ const coreInput      = 'src/index.ts'
 const desktopInput   = 'src/desktop/index.ts'
 const workspaceInput = 'src/workspace/index.ts'
 const vueInput       = 'src/adapters/vue/index.ts'
+const jqueryInput    = 'src/adapters/jquery/index.ts'
 const external       = ['vue', 'react', 'react-dom']   // peer deps — not bundled
 
 export default [
@@ -289,6 +294,74 @@ export default [
     plugins: [dts({ tsconfig: './tsconfig.vue.json' })],
     output: {
       file: 'dist/vue.d.ts',
+      format: 'es',
+    },
+  },
+
+  // ════════════════════════════════════════════════════════
+  // JQUERY ADAPTER — ESM + UMD + TypeScript declarations
+  // ════════════════════════════════════════════════════════
+  {
+    input: jqueryInput,
+    external,
+    plugins: [
+      rawCss(),
+      resolve(),
+      typescript({
+        tsconfig: './tsconfig.jquery.json',
+        declaration: false,
+        declarationMap: false,
+        sourceMap: true,
+      }),
+    ],
+    output: [
+      {
+        file: 'dist/deskpane-jquery.es.js',
+        format: 'es',
+        sourcemap: true,
+      },
+      {
+        file: 'dist/deskpane-jquery.umd.js',
+        format: 'umd',
+        name: 'DeskPaneJQuery',
+        sourcemap: true,
+      },
+    ],
+  },
+  {
+    input: jqueryInput,
+    external,
+    plugins: [
+      rawCss(),
+      resolve(),
+      typescript({
+        tsconfig: './tsconfig.jquery.json',
+        declaration: false,
+        declarationMap: false,
+        sourceMap: false,
+      }),
+      terser(),
+    ],
+    output: [
+      {
+        file: 'dist/deskpane-jquery.es.min.js',
+        format: 'es',
+        sourcemap: false,
+      },
+      {
+        file: 'dist/deskpane-jquery.umd.min.js',
+        format: 'umd',
+        name: 'DeskPaneJQuery',
+        sourcemap: false,
+      },
+    ],
+  },
+  {
+    input: jqueryInput,
+    external,
+    plugins: [dts({ tsconfig: './tsconfig.jquery.json' })],
+    output: {
+      file: 'dist/jquery.d.ts',
       format: 'es',
     },
   },

@@ -13,6 +13,7 @@ export interface JQueryLike {
 }
 
 export interface JQueryStaticLike {
+  (element: HTMLElement): JQueryLike;
   fn: Record<string, unknown>;
 }
 
@@ -81,3 +82,23 @@ export interface DeskPaneJQueryPlugin {
   install($: JQueryStaticLike): void;
 }
 
+declare global {
+  interface JQuery {
+    dpWindowManager(options?: DpWindowManagerOptions): JQuery;
+    dpWindowManager(method: 'instance'): DpWindowManagerApi;
+    dpWindowManager(method: 'open', config: JQueryWindowConfig): WindowState;
+    dpWindowManager(method: 'getBodyElement', id: string): HTMLElement | undefined;
+    dpWindowManager(method: 'getState', id: string): Readonly<WindowState> | undefined;
+    dpWindowManager(method: Exclude<DpWindowManagerMethod, 'instance' | 'open' | 'getBodyElement' | 'getState'>, id?: string): void;
+
+    dpWindow(options: DpWindowOptions): WindowState | WindowState[];
+
+    dpDesktop(options?: DpDesktopOptions): JQuery;
+    dpDesktop(method: 'instance'): DpDesktopApi;
+    dpDesktop(method: 'windowManager', options?: WindowManagerOptions): WindowManager;
+    dpDesktop(method: 'addIcon', config: DesktopIconConfig): void;
+    dpDesktop(method: 'removeIcon', id: string): void;
+    dpDesktop(method: 'syncDockWithWindows', options?: DockSyncOptions): () => void;
+    dpDesktop(method: 'destroy'): void;
+  }
+}

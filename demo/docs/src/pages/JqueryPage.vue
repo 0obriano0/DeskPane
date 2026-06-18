@@ -258,55 +258,92 @@ onMounted(() => {
   initWM()
   setCode([
     {
-      name: 'index.html (UMD + jQuery setup)',
+      name: 'index.html',
       lang: 'html',
-      code: `<!-- 1. Load DeskPane UMD bundle -->
-<script src="dist/deskpane.umd.js"><\/script>
-<!-- 2. Load jQuery -->
+      code: `<!-- 1. Load jQuery first -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"><\/script>
 
-<script>
-  const { WindowManager } = DeskPane;
-  const wm = new WindowManager({ throttleMs: 16 });
+<!-- 2. Load DeskPane core styles and bundles -->
+<link rel="stylesheet" href="dist/styles/deskpane.css">
+<link rel="stylesheet" href="dist/styles/deskpane-desktop.css">
+<link rel="stylesheet" href="dist/themes/light.css">
+<script src="dist/deskpane-jquery.umd.js"><\/script>
 
-  // 3. Create window content with jQuery
-  const $form = $('<div>').css('padding', '16px').append(
-    $('<input type="text" placeholder="Name">'),
-    $('<button>Submit<\/button>').on('click', function () {
-      alert($form.find('input').val());
-    })
-  );
-
-  // 4. Open window — pass unwrapped DOM node
-  wm.open({
-    id: 'form-win',
-    title: 'jQuery Form',
-    content: $form[0],   // ← $el[0] unwraps to HTMLElement
-    width: 400,
-    height: 300
-  });
-<\/script>`,
+<div id="desktop" style="width:100vw;height:100vh;position:relative"></div>
+<script src="./main.js"><\/script>`,
     },
     {
-      name: 'getBodyElement.js (plugin init pattern)',
+      name: 'window-manager.js',
       lang: 'javascript',
-      code: `// Open window with no content first
-wm.open({ id: 'grid', title: 'Data Grid', content: null });
+      code: `$('#desktop').dpWindowManager({
+  isolated: true,
+  snap: true,
+  injectStyles: false,
+})
 
-// Get the window body element and attach a jQuery plugin
-const $body = $(wm.getBodyElement('grid'));
-$body.css('padding', '0');
+$('#desktop').dpWindowManager('open', {
+  id: 'welcome',
+  title: 'Welcome',
+  width: 420,
+  height: 260,
+  content: $('<div class="panel">')
+    .append($('<h3>').text('jQuery Adapter'))
+    .append($('<p>').text('Opened with $.fn.dpWindowManager.'))[0],
+})
 
-// Example: initialise a hypothetical jQuery grid plugin
-// $body.wijgrid({ data: myData, columns: [...] });
-// $body.DataTable({ data: rows, columns: cols });
+$('#desktop').dpWindowManager('maximize', 'welcome')
+$('#desktop').dpWindowManager('restore', 'welcome')`,
+    },
+    {
+      name: 'element-window.js',
+      lang: 'javascript',
+      code: `const $form = $(\`
+  <form class="customer-form">
+    <label>Customer <input name="customer"></label>
+    <button type="button">Save</button>
+  </form>
+\`)
 
-// Or use window:opened event for deferred init
-wm.events.on('window:opened', function ({ id }) {
-  if (id === 'my-chart') {
-    $(wm.getBodyElement(id)).myChartPlugin({ color: 'blue' });
-  }
-});`,
+$form.on('click', 'button', function () {
+  alert('Saved: ' + $form.find('[name="customer"]').val())
+})
+
+$form.dpWindow({
+  manager: '#desktop',
+  id: 'customer-form',
+  title: 'Customer Form',
+  width: 420,
+  height: 260,
+})`,
+    },
+    {
+      name: 'desktop.js',
+      lang: 'javascript',
+      code: `$('#desktop').dpDesktop({
+  dock: { position: 'bottom', items: [] },
+  icons: [
+    {
+      id: 'customers',
+      label: 'Customers',
+      icon: '👥',
+      action: function () {
+        $('#desktop')
+          .dpDesktop('windowManager')
+          .open({
+            id: 'customers',
+            title: 'Customers',
+            content: $('<div>').text('Customer list')[0],
+          })
+      },
+    },
+  ],
+  windowManager: {
+    isolated: true,
+    snap: true,
+    injectStyles: false,
+  },
+  syncDock: true,
+})`,
     },
   ])
 })

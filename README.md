@@ -128,6 +128,13 @@ jsDelivr works too:
 <script src="https://cdn.jsdelivr.net/npm/deskpane/dist/deskpane.umd.min.js"></script>
 ```
 
+For the jQuery adapter, load jQuery first, then the adapter bundle:
+
+```html
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://unpkg.com/deskpane/dist/deskpane-jquery.umd.min.js"></script>
+```
+
 ---
 
 ## Quick Start
@@ -169,6 +176,38 @@ wm.open({ id: 'hello', title: 'My Window', content: el })
   wm.open({ id: 'hello', title: 'My Window', content: el })
 </script>
 ```
+
+### jQuery Adapter
+
+```html
+<div id="desktop" style="width:100vw;height:100vh;position:relative"></div>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://unpkg.com/deskpane/dist/deskpane-jquery.umd.min.js"></script>
+<script>
+  $('#desktop').dpWindowManager({
+    isolated: true,
+    snap: true,
+    injectStyles: false
+  })
+
+  $('<div class="panel">Hello from jQuery</div>').dpWindow({
+    manager: '#desktop',
+    id: 'hello-jquery',
+    title: 'jQuery Window',
+    width: 420,
+    height: 260
+  })
+</script>
+```
+
+The adapter adds:
+
+| Plugin | Purpose |
+|--------|---------|
+| `$(root).dpWindowManager(options)` | Create and store a `WindowManager` on a container |
+| `$(root).dpWindowManager('open', config)` | Command-style access to `open`, `close`, `minimize`, `maximize`, `restore`, `focus`, `getBodyElement`, and `getState` |
+| `$(element).dpWindow({ manager, ...config })` | Open the selected jQuery element as a DeskPane window |
+| `$(root).dpDesktop(options)` | Create a `Desktop`, optional internal `WindowManager`, Dock, and icons |
 
 ### Vue 3 — Composable
 
@@ -1014,9 +1053,12 @@ When collapsed, a region shrinks to a **28px mini strip**: expand button → ico
 | `dist/deskpane-desktop.umd.js / .min.js` | UMD | — | Desktop module (`window.DeskPaneDesktop`) |
 | `dist/deskpane-workspace.es.js / .min.js` | ESM | — | Workspace + TaskView + Session module (ESM) |
 | `dist/deskpane-workspace.umd.js / .min.js` | UMD | — | Workspace module (`window.DeskPaneWorkspace`) |
+| `dist/deskpane-jquery.es.js / .min.js` | ESM | — | jQuery adapter (`import 'deskpane/jquery'`) |
+| `dist/deskpane-jquery.umd.js / .min.js` | UMD | — | jQuery adapter (`window.DeskPaneJQuery`, auto-installs into `window.jQuery`) |
 | `dist/index.d.ts` | TypeScript | — | Core type declarations |
 | `dist/desktop.d.ts` | TypeScript | — | Desktop type declarations |
 | `dist/workspace.d.ts` | TypeScript | — | Workspace + TaskView + Session type declarations |
+| `dist/jquery.d.ts` | TypeScript | — | jQuery adapter type declarations |
 | `dist/themes/light.css` | CSS | ~2 KB | Light theme (Core + Desktop) |
 | `dist/themes/dark.css` | CSS | ~2 KB | Dark theme (Core + Desktop) |
 | `dist/themes/medieval-pixel.css` | CSS | ~3 KB | Medieval pixel theme (Core + Desktop + pixel UI assets) |

@@ -41,6 +41,14 @@ function isJQueryLike(value: unknown): value is JQueryLike {
     && typeof (value as JQueryLike).length === 'number';
 }
 
+function isWindowManagerLike(value: unknown): value is WindowManager {
+  return !!value
+    && typeof value === 'object'
+    && typeof (value as WindowManager).open === 'function'
+    && typeof (value as WindowManager).close === 'function'
+    && typeof (value as WindowManager).getBodyElement === 'function';
+}
+
 function firstElement(value: HTMLElement | JQueryLike | string | null | undefined): HTMLElement | null {
   if (!value) return null;
   if (typeof value === 'string') {
@@ -60,28 +68,22 @@ function normalizeWindowConfig(config: JQueryWindowConfig, fallbackContent?: HTM
   };
 }
 
-function getManagerApiFromElement(el: HTMLElement): DpWindowManagerApi | undefined {
-  return readData(el, WM_DATA_KEY) as DpWindowManagerApi | undefined;
+function getManagerApiFromElement($: JQueryStaticLike, el: HTMLElement): DpWindowManagerApi | undefined {
+  return $(el).data(WM_DATA_KEY) as DpWindowManagerApi | undefined;
 }
 
-function readData(el: HTMLElement, key: string): unknown {
-  const maybeJQuery = (globalThis as { jQuery?: (element: HTMLElement) => JQueryLike }).jQuery;
-  if (maybeJQuery) return maybeJQuery(el).data(key);
-  return undefined;
-}
-
-function resolveManager(manager: DpWindowOptions['manager']): WindowManager {
-  if (manager instanceof WindowManager) return manager;
+function resolveManager($: JQueryStaticLike, manager: DpWindowOptions['manager']): WindowManager {
+  if (isWindowManagerLike(manager)) return manager;
   if (typeof manager === 'object' && manager && 'manager' in manager) {
     return (manager as DpWindowManagerApi).manager;
   }
   if (typeof manager === 'string') {
     const el = document.querySelector<HTMLElement>(manager);
-    const api = el ? getManagerApiFromElement(el) : undefined;
+    const api = el ? getManagerApiFromElement($, el) : undefined;
     if (api) return api.manager;
   }
   if (manager instanceof HTMLElement) {
-    const api = getManagerApiFromElement(manager);
+    const api = getManagerApiFromElement($, manager);
     if (api) return api.manager;
   }
   if (isJQueryLike(manager)) {
@@ -182,8 +184,8 @@ function callDesktopMethod(api: DpDesktopApi, method: DpDesktopMethod, args: unk
     case 'addIcon': return api.addIcon(args[0] as DesktopIconConfig);
     case 'removeIcon': return api.removeIcon(String(args[0]));
     case 'syncDockWithWindows': return api.syncDockWithWindows(
-      args[0] instanceof WindowManager ? args[0] : undefined,
-      (args[0] instanceof WindowManager ? args[1] : args[0]) as DockSyncOptions | undefined,
+      isWindowManagerLike(args[0]) ? args[0] : undefined,
+      (isWindowManagerLike(args[0]) ? args[1] : args[0]) as DockSyncOptions | undefined,
     );
     case 'destroy': return api.destroy();
     default:
@@ -222,20 +224,21 @@ export function install($: JQueryStaticLike): void {
     this: JQueryLike,
     options: DpWindowOptions,
   ) {
-    const states: WindowState[] = [];
-    this.each(function openElementWindow(this: HTMLElement, index: number) {
-      const manager = resolveManager(options.manager);
-      const source = options.content
-        ? firstElement(options.content)
-        : options.clone
+  const states: WindowState[] = [];
+  this.each(function openElementWindow(this: HTMLElement, index: number) {
+    const manager = resolveManager($, options.manager);
+    const { manager: _manager, clone: _clone, ...windowOptions } = options;
+    const source = options.content
+      ? firstElement(options.content)
+      : options.clone
           ? this.cloneNode(true) as HTMLElement
           : this;
-      const id = options.id ?? this.id ?? `dp-window-${index + 1}`;
-      states.push(manager.open(normalizeWindowConfig({
-        ...options,
-        id,
-        content: source,
-      })));
+    const id = options.id ?? this.id ?? `dp-window-${index + 1}`;
+    states.push(manager.open(normalizeWindowConfig({
+      ...windowOptions,
+      id,
+      content: source,
+    })));
     });
     return states.length === 1 ? states[0] : states;
   };
@@ -265,8 +268,13 @@ export function install($: JQueryStaticLike): void {
 
 export const DeskPaneJQuery = { install };
 
-declare const window: { jQuery?: JQueryStaticLike; $?: JQueryStaticLike } | undefined;
-const autoJQuery = typeof window !== 'undefined' ? (window.jQuery ?? window.$) : undefined;
+const browserGlobal = globalThis as typeof globalThis & {
+  jQuery?: JQueryStaticLike;
+  $?: JQueryStaticLike;
+  DeskPaneJQuery?: typeof DeskPaneJQuery;
+};
+
+const autoJQuery = browserGlobal.jQuery ?? browserGlobal.$;
 if (autoJQuery?.fn) install(autoJQuery);
 
 declare global {
@@ -275,7 +283,4 @@ declare global {
   }
 }
 
-if (typeof window !== 'undefined') {
-  window.DeskPaneJQuery = DeskPaneJQuery;
-}
-
+browserGlobal.DeskPaneJQuery = DeskPaneJQuery;

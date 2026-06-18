@@ -1,0 +1,664 @@
+/** 視窗內容的渲染策略 */
+type SlotType = 'dom' | 'vue' | 'react';
+/** 視窗完整狀態 */
+interface WindowState {
+    id: string;
+    title: string;
+    /** 視窗圖示：emoji 字元或圖片 URL，供 Dock 同步使用 */
+    icon?: string;
+    /**
+     * Dock / 工具列顯示用的短標籤。
+     * 有值時 Dock 優先顯示此欄位，否則 fallback 到 title。
+     */
+    label?: string;
+    slotType: SlotType;
+    /** 視窗內容：HTMLElement | Vue 元件定義 | React 元件 */
+    content: any;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    zIndex: number;
+    isMaximized: boolean;
+    isMinimized: boolean;
+    isActive: boolean;
+    /**
+     * 允許使用者調整視窗大小（拖曳邊框 + 最大化按鈕）。
+     * 預設 true。設為 false 時邊框不可拖曳、最大化按鈕 disabled。
+     */
+    resizable: boolean;
+    /**
+     * 父視窗 ID。設定後此視窗成為子視窗，不在 Dock 獨立顯示。
+     * 子視窗隨父視窗最小化 / restore，z-index 永遠高於父視窗。
+     */
+    parentId?: string;
+    /**
+     * 獨佔模式（Modal）。需同時設定 parentId。
+     * true = 父視窗加上半透明遮罩，必須先關閉此子視窗才能操作父視窗。
+     * 預設 false。
+     */
+    modal: boolean;
+    /** 傳遞給內部組件的初始參數 */
+    props?: Record<string, unknown>;
+    /** 最大化 / 最小化前的幾何快照，用於 restore */
+    _savedGeometry?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
+}
+/** open() 時傳入的設定（id 與 content 必填） */
+interface WindowConfig {
+    id: string;
+    title: string;
+    /** 視窗圖示：emoji 字元或圖片 URL，供 Dock 自動同步使用 */
+    icon?: string;
+    /**
+     * Dock / 工具列顯示用的短標籤。
+     * 有值時 Dock 優先顯示此欄位，否則 fallback 到 title。
+     */
+    label?: string;
+    slotType?: SlotType;
+    content: any;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    props?: Record<string, unknown>;
+    /**
+     * 允許使用者調整視窗大小（拖曳邊框 + 最大化按鈕）。
+     * 預設 true。設為 false 時邊框不可拖曳、最大化按鈕 disabled。
+     */
+    resizable?: boolean;
+    /**
+     * 父視窗 ID。設定後此視窗成為子視窗，不在 Dock 獨立顯示。
+     * 子視窗隨父視窗最小化 / restore，z-index 永遠高於父視窗。
+     */
+    parentId?: string;
+    /**
+     * 獨佔模式（Modal）。需同時設定 parentId。
+     * true = 父視窗加上半透明遮罩，必須先關閉此子視窗才能操作父視窗。
+     * 預設 false。
+     */
+    modal?: boolean;
+}
+/** 事件巴士回呼型別 */
+type EventCallback<T = unknown> = (data: T) => void;
+
+declare class EventBus {
+    private readonly _listeners;
+    /** 訂閱事件 */
+    on<T = unknown>(event: string, cb: EventCallback<T>): () => void;
+    /** 取消訂閱 */
+    off<T = unknown>(event: string, cb: EventCallback<T>): void;
+    /** 發送事件 */
+    emit<T = unknown>(event: string, data?: T): void;
+    /** 清除特定事件的所有訂閱 */
+    clear(event: string): void;
+    /** 清除全部訂閱 */
+    clearAll(): void;
+}
+
+interface WindowManagerOptions {
+    /** 視窗容器，預設為 document.body */
+    container?: HTMLElement;
+    /** 節流毫秒數，預設 16 */
+    throttleMs?: number;
+    /**
+     * Isolated 模式：視窗改用 position:absolute，限制在容器範圍內。
+     * 適合文件頁面的內嵌 demo 區塊，或頁面中的局部桌面。
+     * 啟用後容器會自動加上 dp-isolated CSS class。
+     */
+    isolated?: boolean;
+    /**
+     * 啟用視窗拖曳時的 Snap 吸附功能，預設 true。
+     * 拖曳到容器邊緣或其他視窗邊緣時，自動對齊並顯示藍色 guide 線。
+     */
+    snap?: boolean;
+    /**
+     * Snap 吸附感應距離（px），預設 20。
+     * 視窗距離吸附目標小於此值時觸發吸附。
+     */
+    snapThreshold?: number;
+    /**
+     * 視窗與視窗之間的吸附間距（px），預設 0。
+     * 大於 0 時，兩視窗對齊後會保留指定像素的空隙；容器邊緣不受影響。
+     */
+    snapGap?: number;
+    /**
+     * 是否自動注入 Core CSS 樣式，預設 true。
+     * 若已用 <link> 或 bundler import 載入 deskpane.css，runtime 會自動略過重複注入。
+     * 設為 false 時完全不注入樣式，由使用者自行控制 CSS 載入順序。
+     * 可搭配 `getCoreCSS()` 取得預設 CSS 作為修改基礎。
+     */
+    injectStyles?: boolean;
+}
+declare class WindowManager {
+    private readonly _wins;
+    private _zCounter;
+    private _cascadeCount;
+    private readonly _container;
+    private readonly _throttleMs;
+    private readonly _isolated;
+    private readonly _snapEnabled;
+    private readonly _snapThreshold;
+    private _snapGap;
+    private _guideV;
+    private _guideH;
+    /** 追蹤自動建立的 BorderLayout / Panel 實例，視窗關閉時 destroy */
+    private readonly _layouts;
+    /** 父視窗 → 子視窗 ID Set（一對多） */
+    private readonly _children;
+    /** Modal 子視窗 → 它在父視窗上的遮罩 DOM 元素 */
+    private readonly _modalOverlays;
+    private _resizeObserver;
+    readonly events: EventBus;
+    constructor(opts?: WindowManagerOptions);
+    /**
+     * 開啟視窗。若 ID 已存在，恢復並聚焦；否則建立新視窗。
+     */
+    open(config: WindowConfig): WindowState;
+    /**
+     * 關閉並銷毀視窗
+     */
+    close(id: string): void;
+    /**
+     * 當 z-index 計數器逼近上限時，將所有視窗的 z-index 正規化回
+     * [BASE_Z+1 … BASE_Z+N]，保留原本的堆疊順序。
+     * 確保視窗 z-index 永遠低於 Dock/Toolbar（9999）。
+     */
+    private _normalizeZ;
+    /**
+     * 聚焦視窗：置頂 zIndex，設定 isActive
+     */
+    focus(id: string): void;
+    /**
+     * Re-emit focus for the topmost visible window.
+     * Useful when a preserved workspace becomes active again and its previous
+     * active window needs to resync dock/focus state.
+     */
+    activateTopWindow(): void;
+    /**
+     * 最小化（隱藏 DOM，保留狀態）
+     */
+    minimize(id: string): void;
+    /**
+     * 最大化
+     */
+    maximize(id: string): void;
+    /**
+     * 還原：
+     * - 若視窗是「最大化狀態下被最小化」→ 僅移除最小化，保持最大化
+     * - 若只是最大化 → 還原到最大化前的幾何
+     * - 若只是最小化 → 還原到原始幾何
+     */
+    restore(id: string): void;
+    /** 取得視窗目前狀態快照（唯讀副本） */
+    getState(id: string): Readonly<WindowState> | undefined;
+    /** 取得視窗 Body DOM 節點，供外部 Wijmo / jQuery 附加內容 */
+    getBodyElement(id: string): HTMLElement | undefined;
+    getWindowElement(id: string): HTMLElement | undefined;
+    /** 取得所有視窗 ID 清單 */
+    getWindowIds(): string[];
+    /** 更新視窗標題 */
+    setTitle(id: string, title: string): void;
+    /**
+     * 動態更新視窗與視窗之間的吸附間距（px）。
+     * 設為 0 表示緊貼（預設行為）。
+     */
+    setSnapGap(gap: number): void;
+    /** 取得所有視窗狀態的快照陣列（供序列化使用） */
+    getAllStates(): WindowState[];
+    /** 取得特定視窗的子視窗 ID 清單 */
+    getChildIds(parentId: string): string[];
+    /** 取得某個視窗所屬的最頂層根視窗 ID */
+    getRootWindowId(id: string): string;
+    /** 讓視窗出現「搖晃」動畫，提示使用者需先關閉子視窗 */
+    shake(id: string): void;
+    /** 銷毀所有視窗，清除事件 */
+    destroy(): void;
+    /** 延遲建立 snap guide 元素（僅需要時才建立） */
+    private _ensureGuides;
+    /** 根據 SnapResult 顯示 / 隱藏 guide 線 */
+    private _updateSnapGuides;
+    /** 拖曳結束時隱藏所有 guide 線 */
+    private _hideSnapGuides;
+    /**
+     * 偵測 content 是否包含 BorderLayout 或 Panel 宣告，並自動初始化。
+     * - content 有 [data-region] 直接子元素 → BorderLayout（body 作為容器）
+     * - content 本身有 data-panel 屬性 → Panel（body 作為容器）
+     */
+    private _tryAutoLayout;
+    /**
+     * 在父視窗插入 Modal 遮罩層。
+     * overlay 附同子視窗 ID 記錄，點擊時觸發對應子視窗的 shake 動畫。
+     */
+    private _attachModalOverlay;
+    /**
+     * 移除 parentId 上由 childId 產生的 modal 遮罩。
+     */
+    private _detachModalOverlay;
+    private _deactivateOthers;
+    private _focusTopWindow;
+    /** 監聽容器尺寸變化，自動將視窗夾回可視範圍 */
+    private _setupResizeObserver;
+    /** 將所有非最大化、非最小化視窗的位置夾回容器範圍 */
+    private _clampAllWindows;
+    /** 取得可供 snap 計算用的其他視窗矩形（排除 excludeId 及最小化/最大化視窗） */
+    private _getOtherWindows;
+    /** 建立拖曳 snap 函式（用於 DragResizeHandler.snapFn） */
+    private _buildSnapFn;
+    /** 建立 resize snap 函式（用於 DragResizeHandler.resizeSnapFn） */
+    private _buildResizeSnapFn;
+}
+
+interface DesktopCollectionViewOptions<TItem extends {
+    id: string;
+}> {
+    /** Custom key getter. Defaults to `item.id`. */
+    getKey?: (item: TItem) => string;
+    /**
+     * Track added / removed / edited items when mutations go through the view.
+     * Direct sourceCollection mutations still require refresh().
+     */
+    trackChanges?: boolean;
+}
+interface DesktopCollectionMutationOptions {
+    /** Describes who initiated the change. */
+    source?: string;
+    /** Set false when the caller wants to batch or emit manually. */
+    emit?: boolean;
+}
+declare class DesktopCollectionView<TItem extends {
+    id: string;
+}> {
+    sourceCollection: TItem[];
+    items: TItem[];
+    readonly collectionChanged: EventBus;
+    readonly currentChanged: EventBus;
+    readonly trackChanges: boolean;
+    readonly addedItems: TItem[];
+    readonly removedItems: TItem[];
+    readonly editedItems: TItem[];
+    private readonly _getKey;
+    private _deferLevel;
+    private _pendingChange;
+    constructor(sourceCollection?: TItem[], options?: DesktopCollectionViewOptions<TItem>);
+    get length(): number;
+    getItem(id: string): TItem | undefined;
+    setSourceCollection(sourceCollection: TItem[], options?: DesktopCollectionMutationOptions): void;
+    refresh(options?: DesktopCollectionMutationOptions): void;
+    beginUpdate(): void;
+    endUpdate(): void;
+    deferUpdate(fn: () => void): void;
+    add(item: TItem, options?: DesktopCollectionMutationOptions): void;
+    remove(idOrItem: string | TItem, options?: DesktopCollectionMutationOptions): TItem | undefined;
+    update(idOrItem: string | TItem, patch: Partial<TItem>, options?: DesktopCollectionMutationOptions): TItem | undefined;
+    clearChanges(): void;
+    snapshot(): TItem[];
+    dispose(): void;
+    private _emit;
+}
+
+/** 桌面圖示設定 */
+interface DesktopIconConfig {
+    id: string;
+    label: string;
+    /** URL、emoji 字元、或內聯 SVG 字串 */
+    icon: string;
+    /** 初始 X 位置（px）。未指定則自動排列 */
+    x?: number;
+    /** 初始 Y 位置（px）。未指定則自動排列 */
+    y?: number;
+    /** 點擊圖示時觸發的動作 */
+    action?: () => void;
+    /**
+     * 拖曳感應距離（px）。
+     * 滑鼠按下後需移動超過此距離才進入拖曳模式；低於此值的位移視為點擊。
+     * 預設 6。
+     */
+    dragThreshold?: number;
+}
+type DesktopItemsSource = DesktopIconConfig[] | DesktopCollectionView<DesktopIconConfig>;
+/** Dock 工具列項目設定 */
+interface DockItemConfig {
+    id: string;
+    label: string;
+    /** URL、emoji 字元、或內聯 SVG 字串 */
+    icon: string;
+    action: () => void;
+}
+/** WindowManager 事件資料（最小需求） */
+interface DockSyncWindowEvent {
+    id: string;
+    title?: string;
+    /** 視窗圖示（來自 WindowConfig.icon），供 Dock 預設同步使用 */
+    icon?: string;
+    /** Dock 顯示標籤（來自 WindowConfig.label）；有值時優先於 title */
+    label?: string;
+    /**
+     * 父視窗 ID。有此欄位表示此視窗是子視窗，
+     * syncDockWithWindows 會自動跳過不加入 Dock。
+     */
+    parentId?: string;
+    /**
+     * 獨佔模式。群組預覽關閉按鈕安全判斷用。
+     */
+    modal?: boolean;
+}
+/** WindowManager 最小介面（duck typing，避免直接依賴 core bundle） */
+interface WindowManagerLike {
+    events: {
+        on<T = unknown>(event: string, cb: (data?: T) => void): () => void;
+    };
+    focus?: (id: string) => void;
+    /** 關閉視窗（子視窗關閉時會自動移除 modal overlay） */
+    close?: (id: string) => void;
+    /** 讓視窗出現搖晃動畫（提示 modal 阻擋） */
+    shake?: (id: string) => void;
+    getWindowIds?: () => string[];
+    getState?: (id: string) => DockSyncWindowEvent | undefined;
+    /** 取得視窗的完整 DOM 元素（含標題列），供 hover 預覽使用 */
+    getWindowElement?: (id: string) => HTMLElement | undefined;
+    /** 取得父視窗的所有子視窗 ID（供 Dock click 群組 restore 使用） */
+    getChildIds?: (parentId: string) => string[];
+}
+/** Dock 與 WindowManager 同步設定 */
+interface DockSyncOptions {
+    /**
+     * 由視窗 ID 解析 appId。
+     * 預設：id 以 app- 開頭時取後段，否則回傳原 id。
+     */
+    getAppIdFromWindowId?: (windowId: string) => string | null;
+    /**
+     * 依 appId / 視窗資訊產生 Dock item 外觀。
+     * 回傳 null 可跳過該視窗不加入 Dock。
+     */
+    getDockItem?: (appId: string, event: DockSyncWindowEvent) => Omit<DockItemConfig, 'id' | 'action'> | null;
+    /** 點擊 Dock item 的自訂行為；未提供時預設 focus 對應視窗。 */
+    onDockItemClick?: (appId: string, windowId: string) => void;
+    /** Dock item id 前綴，預設 running- */
+    dockItemIdPrefix?: string;
+    /** true: 同 appId 僅保留一個 Dock item（預設 true） */
+    dedupeByAppId?: boolean;
+    /** true: 綁定後同步目前已開啟視窗（預設 true） */
+    syncExisting?: boolean;
+    /**
+     * 滑鼠懸停 Dock 圖標時是否顯示視窗縮略圖預覽（預設 true）。
+     * 需要 manager 提供 `getWindowElement` 方法。
+     */
+    showWindowPreview?: boolean;
+    /**
+     * 預覽縮略圖的最大尺寸（px）。
+     * 縮略圖會按比例縮放，不超過此寬高。預設 `{ width: 160, height: 100 }`。
+     */
+    previewSize?: {
+        width: number;
+        height: number;
+    };
+    /**
+     * 群組預覽 popup 的掛載元素。
+     * 預設：自動偵測 `winEl` 最近的 `.v-application`，找不到則 fallback 到 `document.body`。
+     * 使用 Vue+Vuetify 時通常不需設定；如果你的 CSS scope root 不是 `.v-application`，
+     * 請傳入你的應用根元素（例如 `document.getElementById('app')`），以確保
+     * cloneNode 後的縮略圖仍在 CSS 作用域內（Vuetify/Scoped CSS/CSS 變數均可繼承）。
+     */
+    previewMountEl?: HTMLElement;
+}
+/** Dock 停靠位置 */
+type DockPosition = 'bottom' | 'top' | 'left' | 'right';
+/** Dock 工具列設定 */
+interface DockConfig {
+    /** 停靠位置，預設 'bottom' */
+    position?: DockPosition;
+    items?: DockItemConfig[];
+    /** 圖示大小（px），預設 44 */
+    iconSize?: number;
+    /** 是否顯示文字標籤，預設 true */
+    showLabels?: boolean;
+}
+/** 桌面主設定 */
+interface DesktopConfig {
+    /** 容器元素，預設 document.body */
+    container?: HTMLElement;
+    dock?: DockConfig;
+    icons?: DesktopIconConfig[];
+    /**
+     * Wijmo-style data source for desktop icons.
+     * Plain arrays are wrapped in DesktopCollectionView automatically.
+     */
+    itemsSource?: DesktopItemsSource;
+    /** CSS background 值，預設使用 --dp-desktop-bg */
+    background?: string;
+    /** localStorage key 前綴，用於記憶圖示位置，預設 'dp-desktop' */
+    storageKey?: string;
+    /**
+     * 全域拖曳感應距離（px），可被個別 icon 的 dragThreshold 覆寫。
+     * 滑鼠按下後需移動超過此距離才進入拖曳模式。預設 6。
+     */
+    dragThreshold?: number;
+    /**
+     * 是否啟用桌面圖示拖曳 Snap 吸附（吸附至容器邊緣與其他圖示邊緣）。
+     * 預設 true。
+     */
+    iconSnap?: boolean;
+    /**
+     * 桌面圖示 Snap 吸附感應距離（px）。預設 20。
+     */
+    iconSnapThreshold?: number;
+    /**
+     * 是否自動注入 Desktop CSS 樣式，預設 true。
+     * 若已用 <link> 或 bundler import 載入 deskpane-desktop.css，runtime 會自動略過重複注入。
+     * 設為 false 時完全不注入樣式，由使用者自行控制 CSS 載入順序。
+     * 可搭配 `getDesktopCSS()` 取得預設 CSS 作為修改基礎。
+     */
+    injectStyles?: boolean;
+}
+
+declare class Dock {
+    private readonly _el;
+    private _items;
+    private _position;
+    private readonly _iconSize;
+    private readonly _showLabels;
+    private _dragSrcIndex;
+    private _activeId;
+    private readonly _renderCallbacks;
+    constructor(config?: DockConfig);
+    private _render;
+    private _createItemEl;
+    private _clearDragover;
+    addItem(item: DockItemConfig): void;
+    /** 在指定索引位置插入 item（0 = 最左/最上）。超出範圍時自動夾緊。 */
+    addItemAt(item: DockItemConfig, index: number): void;
+    /**
+     * 設定目前 active（focused）的 item。
+     * 傳 null 清除所有高亮。
+     */
+    setActiveItem(id: string | null): void;
+    private _applyActive;
+    removeItem(id: string): void;
+    /** 取得目前排列順序的 items（含拖曳後的結果） */
+    getItems(): DockItemConfig[];
+    /** 動態變更 Dock 停靠位置 */
+    setPosition(position: DockPosition): void;
+    /** 取得特定 item 的 DOM 元素 */
+    getItemElement(id: string): HTMLElement | null;
+    /** 取得目前 Dock 停靠位置 */
+    getPosition(): DockPosition;
+    getElement(): HTMLElement;
+    /**
+     * 每次 Dock 重新渲染（addItem / addItemAt / removeItem / 拖曳排序）後觸發 cb。
+     * 回傳取消訂閱函式。
+     */
+    onRender(cb: () => void): () => void;
+    destroy(): void;
+}
+
+declare class Desktop {
+    private readonly _container;
+    private readonly _desktopEl;
+    private readonly _iconAreaEl;
+    private readonly _windowAreaEl;
+    private readonly _dock;
+    private readonly _icons;
+    private _itemsView;
+    private _itemsViewOff;
+    private readonly _storageKey;
+    private readonly _dragThreshold;
+    private readonly _iconSnapEnabled;
+    private readonly _iconSnapThreshold;
+    private _guideV;
+    private _guideH;
+    private _iconSentinel;
+    private _autoIconIndex;
+    private _dockSyncCleanup;
+    readonly events: EventBus;
+    constructor(config?: DesktopConfig);
+    /**
+     * 更新 icon 區域的 inset（避免 icon 被 Dock 遮住）。
+     * 視窗區域維持全尺寸（0,0,0,0），讓視窗可自由滑入 Dock 下方，
+     * 透過 CSS 變數 --dp-dock-inset-* 控制最大化時的邊界。
+     */
+    private _applyInset;
+    private _loadPositions;
+    private _savePositions;
+    /** 移動 sentinel 到最遠 icon 的右下角，撐開 scrollHeight/scrollWidth */
+    private _updateSentinel;
+    private _makeSnapFn;
+    private _hideSnapGuides;
+    private _emitItemsChanged;
+    private _emitItemsRefreshed;
+    private _clearIcons;
+    private _renderItems;
+    private _mountIcon;
+    private _removeIconElement;
+    private _handleIconMoved;
+    setItemsSource(source: DesktopItemsSource, options?: {
+        source?: string;
+        emit?: boolean;
+    }): void;
+    getCollectionView(): DesktopCollectionView<DesktopIconConfig> | null;
+    getItems(): DesktopIconConfig[];
+    getItem(id: string): DesktopIconConfig | undefined;
+    setItems(items: DesktopIconConfig[]): void;
+    refreshItems(): void;
+    refresh(): void;
+    updateItem(id: string, patch: Partial<DesktopIconConfig>): DesktopIconConfig | undefined;
+    /**
+     * 新增桌面圖示。
+     * 位置優先順序：config.x/y > localStorage 記憶 > 自動排列
+     */
+    addIcon(config: DesktopIconConfig): void;
+    /** 移除桌面圖示 */
+    removeIcon(id: string): void;
+    /** 取得 Dock 實例，可動態增減 Dock 項目 */
+    getDock(): Dock;
+    /**
+     * 動態變更 Dock 停靠位置（top | bottom | left | right）。
+     * 同時更新 icon 區域 inset，使 icon 不被 Dock 遮住。
+     */
+    setDockPosition(position: DockPosition): void;
+    /**
+     * 將 Dock 與 WindowManager 視窗生命週期同步。
+     * - 開窗：新增 Dock item
+     * - 關窗：移除 Dock item
+     * - 點擊 Dock item：預設 focus 視窗（可覆寫）
+     */
+    syncDockWithWindows(manager: WindowManagerLike, options?: DockSyncOptions): () => void;
+    /** 停止 Dock 與 WindowManager 同步，並移除同步產生的 Dock items。 */
+    unsyncDockWithWindows(): void;
+    /** 取得視窗區域元素（排除 Dock，供 WindowManager 使用） */
+    getElement(): HTMLElement;
+    /** 取得桌面根元素（含 Dock） */
+    getDesktopElement(): HTMLElement;
+    /** 取得圖示區域元素 */
+    getIconArea(): HTMLElement;
+    /** 銷毀桌面，清除所有 DOM */
+    destroy(): void;
+}
+
+interface JQueryLike {
+    length: number;
+    [index: number]: HTMLElement;
+    each(callback: (this: HTMLElement, index: number, element: HTMLElement) => void): JQueryLike;
+    data(key: string): unknown;
+    data(key: string, value: unknown): JQueryLike;
+    removeData(key: string): JQueryLike;
+}
+interface JQueryStaticLike {
+    (element: HTMLElement): JQueryLike;
+    fn: Record<string, unknown>;
+}
+interface DpWindowManagerApi {
+    manager: WindowManager;
+    open(config: JQueryWindowConfig): WindowState;
+    close(id: string): void;
+    minimize(id: string): void;
+    maximize(id: string): void;
+    restore(id: string): void;
+    focus(id: string): void;
+    destroy(): void;
+    getBodyElement(id: string): HTMLElement | undefined;
+    getState(id: string): Readonly<WindowState> | undefined;
+}
+type DpWindowManagerMethod = 'instance' | 'open' | 'close' | 'minimize' | 'maximize' | 'restore' | 'focus' | 'destroy' | 'getBodyElement' | 'getState';
+type DpWindowManagerOptions = WindowManagerOptions;
+interface JQueryWindowConfig extends Omit<WindowConfig, 'content'> {
+    content?: HTMLElement | JQueryLike | string | null;
+}
+interface DpWindowOptions extends Omit<JQueryWindowConfig, 'content'> {
+    manager: WindowManager | DpWindowManagerApi | JQueryLike | string | HTMLElement;
+    content?: HTMLElement | JQueryLike | string | null;
+    clone?: boolean;
+}
+interface DpDesktopApi {
+    desktop: Desktop;
+    windowManager?: WindowManager;
+    dockSyncCleanup?: (() => void) | null;
+    getWindowManager(options?: WindowManagerOptions): WindowManager;
+    syncDockWithWindows(manager?: WindowManager, options?: DockSyncOptions): () => void;
+    addIcon(config: DesktopIconConfig): void;
+    removeIcon(id: string): void;
+    destroy(): void;
+}
+interface DpDesktopOptions extends DesktopConfig {
+    windowManager?: false | WindowManagerOptions;
+    syncDock?: boolean | DockSyncOptions;
+}
+type DpDesktopMethod = 'instance' | 'windowManager' | 'addIcon' | 'removeIcon' | 'syncDockWithWindows' | 'destroy';
+interface DeskPaneJQueryPlugin {
+    install($: JQueryStaticLike): void;
+}
+declare global {
+    interface JQuery {
+        dpWindowManager(options?: DpWindowManagerOptions): JQuery;
+        dpWindowManager(method: 'instance'): DpWindowManagerApi;
+        dpWindowManager(method: 'open', config: JQueryWindowConfig): WindowState;
+        dpWindowManager(method: 'getBodyElement', id: string): HTMLElement | undefined;
+        dpWindowManager(method: 'getState', id: string): Readonly<WindowState> | undefined;
+        dpWindowManager(method: Exclude<DpWindowManagerMethod, 'instance' | 'open' | 'getBodyElement' | 'getState'>, id?: string): void;
+        dpWindow(options: DpWindowOptions): WindowState | WindowState[];
+        dpDesktop(options?: DpDesktopOptions): JQuery;
+        dpDesktop(method: 'instance'): DpDesktopApi;
+        dpDesktop(method: 'windowManager', options?: WindowManagerOptions): WindowManager;
+        dpDesktop(method: 'addIcon', config: DesktopIconConfig): void;
+        dpDesktop(method: 'removeIcon', id: string): void;
+        dpDesktop(method: 'syncDockWithWindows', options?: DockSyncOptions): () => void;
+        dpDesktop(method: 'destroy'): void;
+    }
+}
+
+declare function install($: JQueryStaticLike): void;
+declare const DeskPaneJQuery: {
+    install: typeof install;
+};
+declare global {
+    interface Window {
+        DeskPaneJQuery?: typeof DeskPaneJQuery;
+    }
+}
+
+export { DeskPaneJQuery, install };
+export type { DeskPaneJQueryPlugin, DpDesktopApi, DpDesktopMethod, DpDesktopOptions, DpWindowManagerApi, DpWindowManagerMethod, DpWindowManagerOptions, DpWindowOptions, JQueryLike, JQueryStaticLike, JQueryWindowConfig };

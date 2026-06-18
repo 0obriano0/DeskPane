@@ -11,19 +11,36 @@ const targets = [
   '.pages',
 ];
 
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function retrySync(action, retries = 10, delayMs = 250) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return action();
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) sleep(delayMs);
+    }
+  }
+  throw lastError;
+}
+
 function removeOrStash(relativePath) {
   const target = path.join(root, relativePath);
   if (!existsSync(target)) return;
 
   try {
-    rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    retrySync(() => rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }));
     return;
   } catch (error) {
     if (!existsSync(target)) return;
     const safeName = relativePath.replace(/[\\/]/g, '-').replace(/^\./, 'dot-');
     const staleTarget = path.join(root, `.pages-stale-${safeName}-${Date.now()}`);
     console.warn(`Could not remove ${relativePath}; moving old output to ${path.basename(staleTarget)}.`);
-    renameSync(target, staleTarget);
+    retrySync(() => renameSync(target, staleTarget));
   }
 }
 
