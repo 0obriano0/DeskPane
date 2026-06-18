@@ -54,9 +54,15 @@
         <tr><td><code>window:maximized</code></td><td><code>WindowState</code></td><td>{{ t('overview.event.maximized') }}</td></tr>
         <tr><td><code>window:restored</code></td><td><code>WindowState</code></td><td>{{ t('overview.event.restored') }}</td></tr>
         <tr><td><code>window:maximized-drag-restored</code></td><td><code>WindowState</code></td><td>{{ t('overview.event.maximizedDragRestored') }}</td></tr>
-        <tr><td><code>window:edge-snapped</code></td><td><code>EdgeSnapEvent</code></td><td>{{ t('overview.event.edgeSnapped') }}</td></tr>
+        <tr><td><code>window:drag-start</code></td><td><code>WindowState</code></td><td>{{ t('overview.event.dragStart') }}</td></tr>
+        <tr><td><code>window:drag-end</code></td><td><code>WindowState</code></td><td>{{ t('overview.event.dragEnd') }}</td></tr>
         <tr><td><code>window:moved</code></td><td><code>WindowState</code></td><td>{{ t('overview.event.moved') }}</td></tr>
+        <tr><td><code>window:resize-start</code></td><td><code>WindowState</code></td><td>{{ t('overview.event.resizeStart') }}</td></tr>
+        <tr><td><code>window:resize-end</code></td><td><code>WindowState</code></td><td>{{ t('overview.event.resizeEnd') }}</td></tr>
         <tr><td><code>window:resized</code></td><td><code>WindowState</code></td><td>{{ t('overview.event.resized') }}</td></tr>
+        <tr><td><code>window:edge-snap-preview</code></td><td><code>EdgeSnapPreviewEvent</code></td><td>{{ t('overview.event.edgeSnapPreview') }}</td></tr>
+        <tr><td><code>window:edge-snap-preview-clear</code></td><td><code>{ id }</code></td><td>{{ t('overview.event.edgeSnapPreviewClear') }}</td></tr>
+        <tr><td><code>window:edge-snapped</code></td><td><code>EdgeSnapEvent</code></td><td>{{ t('overview.event.edgeSnapped') }}</td></tr>
         <tr><td><code>window:child-opened</code></td><td><code>{ parentId, childId }</code></td><td>{{ t('overview.event.childOpened') }}</td></tr>
         <tr><td><code>window:child-closed</code></td><td><code>{ parentId, childId }</code></td><td>{{ t('overview.event.childClosed') }}</td></tr>
       </tbody>

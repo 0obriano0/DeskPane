@@ -483,6 +483,12 @@ wm.events.on('window:minimized',    (state) => { })
 wm.events.on('window:maximized',    (state) => { })
 wm.events.on('window:restored',     (state) => { })
 wm.events.on('window:maximized-drag-restored', (state) => { })
+wm.events.on('window:drag-start',   (state) => { })
+wm.events.on('window:drag-end',     (state) => { })
+wm.events.on('window:resize-start', (state) => { })
+wm.events.on('window:resize-end',   (state) => { })
+wm.events.on('window:edge-snap-preview', ({ id, edgeSnapTarget }) => { })
+wm.events.on('window:edge-snap-preview-clear', ({ id }) => { })
 wm.events.on('window:edge-snapped', ({ edgeSnapTarget, ...state }) => { })
 wm.events.on('window:moved',        (state) => { })
 wm.events.on('window:resized',      (state) => { })
@@ -709,6 +715,15 @@ view.refresh() // use this after direct sourceCollection mutations
 desktop.events.on('items:changed', event => {
   console.log(event.reason, event.items)
 })
+desktop.events.on('desktop:ready', event => {})
+desktop.events.on('desktop:destroyed', event => {})
+desktop.events.on('items:refreshed', event => {})
+desktop.events.on('icon:added', event => {})
+desktop.events.on('icon:removed', event => {})
+desktop.events.on('icon:moved', event => {})
+desktop.events.on('icon:activated', event => {})
+desktop.events.on('icon:selected', event => {})
+desktop.events.on('dock:position-changed', event => {})
 ```
 
 ### `desktop.syncDockWithWindows(manager, options?)`

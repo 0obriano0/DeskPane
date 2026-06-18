@@ -20,6 +20,12 @@ export type WinEvent =
   | 'window:maximized'
   | 'window:restored'
   | 'window:maximized-drag-restored'
+  | 'window:drag-start'
+  | 'window:drag-end'
+  | 'window:resize-start'
+  | 'window:resize-end'
+  | 'window:edge-snap-preview'
+  | 'window:edge-snap-preview-clear'
   | 'window:edge-snapped'
   | 'window:moved'
   | 'window:resized'
@@ -34,6 +40,7 @@ const MAX_Z = 8999;
 const CASCADE_OFFSET = 30;
 export type EdgeSnapTarget = 'maximize' | 'left' | 'right';
 export type EdgeSnapEvent = WindowState & { edgeSnapTarget: EdgeSnapTarget };
+export type EdgeSnapPreviewEvent = { id: string; edgeSnapTarget: EdgeSnapTarget };
 
 export interface WindowManagerOptions {
   /** 視窗容器，預設為 document.body */
@@ -214,6 +221,9 @@ export class WindowManager {
         isMaximized: () => state.isMaximized,
         onMaximizedDragRestore: (clientX, clientY, ratioX, offsetY) =>
           this._restoreMaximizedForDrag(state.id, clientX, clientY, ratioX, offsetY),
+        onDragStart: () => {
+          this.events.emit<WindowState>('window:drag-start', { ...state });
+        },
         onDrag: (x, y) => {
           state.x = x; state.y = y;
           this.events.emit<WindowState>('window:moved', { ...state });
@@ -222,6 +232,10 @@ export class WindowManager {
           this._applyEdgeSnap(state.id);
           this._hideSnapGuides();
           this._hideEdgeSnapPreview();
+          this.events.emit<WindowState>('window:drag-end', { ...state });
+        },
+        onResizeStart: () => {
+          this.events.emit<WindowState>('window:resize-start', { ...state });
         },
         onResize: (x, y, w, h) => {
           state.x = x; state.y = y; state.width = w; state.height = h;
@@ -229,6 +243,7 @@ export class WindowManager {
         },
         onResizeEnd: () => {
           this._hideSnapGuides();
+          this.events.emit<WindowState>('window:resize-end', { ...state });
         },
       }
     );
@@ -759,15 +774,22 @@ export class WindowManager {
     el.style.height = `${rect.height}px`;
     el.dataset.edgeSnapTarget = target;
     el.classList.add('dp-edge-snap-preview--visible');
+    if (!this._activeEdgeSnap || this._activeEdgeSnap.id !== id || this._activeEdgeSnap.target !== target) {
+      this.events.emit<EdgeSnapPreviewEvent>('window:edge-snap-preview', { id, edgeSnapTarget: target });
+    }
     this._activeEdgeSnap = { id, target };
   }
 
   private _hideEdgeSnapPreview(): void {
+    const active = this._activeEdgeSnap;
     if (this._edgeSnapPreviewEl) {
       this._edgeSnapPreviewEl.classList.remove('dp-edge-snap-preview--visible');
       delete this._edgeSnapPreviewEl.dataset.edgeSnapTarget;
     }
     this._activeEdgeSnap = null;
+    if (active) {
+      this.events.emit<{ id: string }>('window:edge-snap-preview-clear', { id: active.id });
+    }
   }
 
   /** mouseup 時套用目前 edge snap 預覽。 */
@@ -776,6 +798,7 @@ export class WindowManager {
     if (!active || active.id !== id) return;
     const target = active.target;
     this._activeEdgeSnap = null;
+    this.events.emit<{ id: string }>('window:edge-snap-preview-clear', { id });
     if (target === 'maximize') {
       this.maximize(id);
       const win = this._wins.get(id);

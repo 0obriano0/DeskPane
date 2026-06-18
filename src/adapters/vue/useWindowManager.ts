@@ -84,6 +84,7 @@ export function useWindowManager(opts?: WindowManagerOptions) {
     'window:minimized', 'window:maximized', 'window:restored',
     'window:maximized-drag-restored',
     'window:edge-snapped',
+    'window:drag-end', 'window:resize-end',
   ] as const;
   SYNC_EVENTS.forEach(ev => wm.events.on(ev, _sync));
 

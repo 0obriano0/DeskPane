@@ -1254,6 +1254,9 @@ class WindowManager {
             maximizedDragRestoreThreshold: this._maximizedDragRestoreThreshold,
             isMaximized: () => state.isMaximized,
             onMaximizedDragRestore: (clientX, clientY, ratioX, offsetY) => this._restoreMaximizedForDrag(state.id, clientX, clientY, ratioX, offsetY),
+            onDragStart: () => {
+                this.events.emit('window:drag-start', { ...state });
+            },
             onDrag: (x, y) => {
                 state.x = x;
                 state.y = y;
@@ -1263,6 +1266,10 @@ class WindowManager {
                 this._applyEdgeSnap(state.id);
                 this._hideSnapGuides();
                 this._hideEdgeSnapPreview();
+                this.events.emit('window:drag-end', { ...state });
+            },
+            onResizeStart: () => {
+                this.events.emit('window:resize-start', { ...state });
             },
             onResize: (x, y, w, h) => {
                 state.x = x;
@@ -1273,6 +1280,7 @@ class WindowManager {
             },
             onResizeEnd: () => {
                 this._hideSnapGuides();
+                this.events.emit('window:resize-end', { ...state });
             },
         });
         // 綁定標題列按鈕
@@ -1767,14 +1775,21 @@ class WindowManager {
         el.style.height = `${rect.height}px`;
         el.dataset.edgeSnapTarget = target;
         el.classList.add('dp-edge-snap-preview--visible');
+        if (!this._activeEdgeSnap || this._activeEdgeSnap.id !== id || this._activeEdgeSnap.target !== target) {
+            this.events.emit('window:edge-snap-preview', { id, edgeSnapTarget: target });
+        }
         this._activeEdgeSnap = { id, target };
     }
     _hideEdgeSnapPreview() {
+        const active = this._activeEdgeSnap;
         if (this._edgeSnapPreviewEl) {
             this._edgeSnapPreviewEl.classList.remove('dp-edge-snap-preview--visible');
             delete this._edgeSnapPreviewEl.dataset.edgeSnapTarget;
         }
         this._activeEdgeSnap = null;
+        if (active) {
+            this.events.emit('window:edge-snap-preview-clear', { id: active.id });
+        }
     }
     /** mouseup 時套用目前 edge snap 預覽。 */
     _applyEdgeSnap(id) {
@@ -1783,6 +1798,7 @@ class WindowManager {
             return;
         const target = active.target;
         this._activeEdgeSnap = null;
+        this.events.emit('window:edge-snap-preview-clear', { id });
         if (target === 'maximize') {
             this.maximize(id);
             const win = this._wins.get(id);
@@ -2029,6 +2045,7 @@ function useWindowManager(opts) {
         'window:minimized', 'window:maximized', 'window:restored',
         'window:maximized-drag-restored',
         'window:edge-snapped',
+        'window:drag-end', 'window:resize-end',
     ];
     SYNC_EVENTS.forEach(ev => wm.events.on(ev, _sync));
     /**
@@ -3590,7 +3607,7 @@ const DpWindowManager = defineComponent({
             eventCleanups.push(wm.events.on('window:closed', (payload) => {
                 removeEntry(payload.id);
                 registrations.get(payload.id)?.onClosed(payload);
-            }), wm.events.on('window:focused', state => registrations.get(state.id)?.onFocused(state)), wm.events.on('window:minimized', state => registrations.get(state.id)?.onMinimized(state)), wm.events.on('window:maximized', state => registrations.get(state.id)?.onMaximized(state)), wm.events.on('window:restored', state => registrations.get(state.id)?.onRestored(state)), wm.events.on('window:maximized-drag-restored', state => registrations.get(state.id)?.onMaximizedDragRestored(state)), wm.events.on('window:edge-snapped', state => registrations.get(state.id)?.onEdgeSnapped(state)));
+            }), wm.events.on('window:focused', state => registrations.get(state.id)?.onFocused(state)), wm.events.on('window:minimized', state => registrations.get(state.id)?.onMinimized(state)), wm.events.on('window:maximized', state => registrations.get(state.id)?.onMaximized(state)), wm.events.on('window:restored', state => registrations.get(state.id)?.onRestored(state)), wm.events.on('window:maximized-drag-restored', state => registrations.get(state.id)?.onMaximizedDragRestored(state)), wm.events.on('window:drag-start', state => registrations.get(state.id)?.onDragStart(state)), wm.events.on('window:drag-end', state => registrations.get(state.id)?.onDragEnd(state)), wm.events.on('window:resize-start', state => registrations.get(state.id)?.onResizeStart(state)), wm.events.on('window:resize-end', state => registrations.get(state.id)?.onResizeEnd(state)), wm.events.on('window:edge-snap-preview', event => registrations.get(event.id)?.onEdgeSnapPreview(event)), wm.events.on('window:edge-snap-preview-clear', event => registrations.get(event.id)?.onEdgeSnapPreviewClear(event)), wm.events.on('window:edge-snapped', state => registrations.get(state.id)?.onEdgeSnapped(state)));
             registrations.forEach(openRegistration);
             emit('initialized', wm);
             emit('ready', wm);
@@ -3638,6 +3655,12 @@ const DpWindow = defineComponent({
         'maximized',
         'restored',
         'maximizedDragRestored',
+        'dragStart',
+        'dragEnd',
+        'resizeStart',
+        'resizeEnd',
+        'edgeSnapPreview',
+        'edgeSnapPreviewClear',
         'edgeSnapped',
     ],
     setup(props, { emit, slots }) {
@@ -3676,6 +3699,12 @@ const DpWindow = defineComponent({
             onMaximized: state => emit('maximized', state),
             onRestored: state => emit('restored', state),
             onMaximizedDragRestored: state => emit('maximizedDragRestored', state),
+            onDragStart: state => emit('dragStart', state),
+            onDragEnd: state => emit('dragEnd', state),
+            onResizeStart: state => emit('resizeStart', state),
+            onResizeEnd: state => emit('resizeEnd', state),
+            onEdgeSnapPreview: event => emit('edgeSnapPreview', event),
+            onEdgeSnapPreviewClear: event => emit('edgeSnapPreviewClear', event),
             onEdgeSnapped: state => emit('edgeSnapped', state),
         };
         onMounted(() => {

@@ -769,7 +769,7 @@ declare const DpWindow: vue.DefineComponent<vue.ExtractPropTypes<{
         type: BooleanConstructor;
         default: boolean;
     };
-}>, () => null, {}, {}, {}, vue.ComponentOptionsMixin, vue.ComponentOptionsMixin, ("initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored" | "edgeSnapped")[], "initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored" | "edgeSnapped", vue.PublicProps, Readonly<vue.ExtractPropTypes<{
+}>, () => null, {}, {}, {}, vue.ComponentOptionsMixin, vue.ComponentOptionsMixin, ("initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored" | "dragStart" | "dragEnd" | "resizeStart" | "resizeEnd" | "edgeSnapPreview" | "edgeSnapPreviewClear" | "edgeSnapped")[], "initialized" | "update:open" | "opened" | "closed" | "focused" | "minimized" | "maximized" | "restored" | "maximizedDragRestored" | "dragStart" | "dragEnd" | "resizeStart" | "resizeEnd" | "edgeSnapPreview" | "edgeSnapPreviewClear" | "edgeSnapped", vue.PublicProps, Readonly<vue.ExtractPropTypes<{
     id: {
         type: StringConstructor;
         required: true;
@@ -828,6 +828,12 @@ declare const DpWindow: vue.DefineComponent<vue.ExtractPropTypes<{
     onMaximized?: ((...args: any[]) => any) | undefined;
     onRestored?: ((...args: any[]) => any) | undefined;
     onMaximizedDragRestored?: ((...args: any[]) => any) | undefined;
+    onDragStart?: ((...args: any[]) => any) | undefined;
+    onDragEnd?: ((...args: any[]) => any) | undefined;
+    onResizeStart?: ((...args: any[]) => any) | undefined;
+    onResizeEnd?: ((...args: any[]) => any) | undefined;
+    onEdgeSnapPreview?: ((...args: any[]) => any) | undefined;
+    onEdgeSnapPreviewClear?: ((...args: any[]) => any) | undefined;
     onEdgeSnapped?: ((...args: any[]) => any) | undefined;
 }>, {
     label: string;

@@ -16,7 +16,12 @@ import {
   type PropType,
   type Slots,
 } from 'vue';
-import { WindowManager, type WindowManagerOptions } from '../../core/WindowManager.js';
+import {
+  WindowManager,
+  type EdgeSnapEvent,
+  type EdgeSnapPreviewEvent,
+  type WindowManagerOptions,
+} from '../../core/WindowManager.js';
 import type { WindowConfig, WindowState } from '../../core/types.js';
 import { Desktop } from '../../desktop/Desktop.js';
 import type {
@@ -48,7 +53,13 @@ interface VueWindowRegistration {
   onMaximized(state: WindowState): void;
   onRestored(state: WindowState): void;
   onMaximizedDragRestored(state: WindowState): void;
-  onEdgeSnapped(state: WindowState): void;
+  onDragStart(state: WindowState): void;
+  onDragEnd(state: WindowState): void;
+  onResizeStart(state: WindowState): void;
+  onResizeEnd(state: WindowState): void;
+  onEdgeSnapPreview(event: EdgeSnapPreviewEvent): void;
+  onEdgeSnapPreviewClear(event: { id: string }): void;
+  onEdgeSnapped(state: EdgeSnapEvent): void;
 }
 
 interface VueWindowManagerContext {
@@ -340,7 +351,13 @@ export const DpWindowManager = defineComponent({
         wm.events.on<WindowState>('window:maximized', state => registrations.get(state.id)?.onMaximized(state)),
         wm.events.on<WindowState>('window:restored', state => registrations.get(state.id)?.onRestored(state)),
         wm.events.on<WindowState>('window:maximized-drag-restored', state => registrations.get(state.id)?.onMaximizedDragRestored(state)),
-        wm.events.on<WindowState>('window:edge-snapped', state => registrations.get(state.id)?.onEdgeSnapped(state)),
+        wm.events.on<WindowState>('window:drag-start', state => registrations.get(state.id)?.onDragStart(state)),
+        wm.events.on<WindowState>('window:drag-end', state => registrations.get(state.id)?.onDragEnd(state)),
+        wm.events.on<WindowState>('window:resize-start', state => registrations.get(state.id)?.onResizeStart(state)),
+        wm.events.on<WindowState>('window:resize-end', state => registrations.get(state.id)?.onResizeEnd(state)),
+        wm.events.on<EdgeSnapPreviewEvent>('window:edge-snap-preview', event => registrations.get(event.id)?.onEdgeSnapPreview(event)),
+        wm.events.on<{ id: string }>('window:edge-snap-preview-clear', event => registrations.get(event.id)?.onEdgeSnapPreviewClear(event)),
+        wm.events.on<EdgeSnapEvent>('window:edge-snapped', state => registrations.get(state.id)?.onEdgeSnapped(state)),
       );
       registrations.forEach(openRegistration);
       emit('initialized', wm);
@@ -392,6 +409,12 @@ export const DpWindow = defineComponent({
     'maximized',
     'restored',
     'maximizedDragRestored',
+    'dragStart',
+    'dragEnd',
+    'resizeStart',
+    'resizeEnd',
+    'edgeSnapPreview',
+    'edgeSnapPreviewClear',
     'edgeSnapped',
   ],
   setup(props, { emit, slots }) {
@@ -431,6 +454,12 @@ export const DpWindow = defineComponent({
       onMaximized: state => emit('maximized', state),
       onRestored: state => emit('restored', state),
       onMaximizedDragRestored: state => emit('maximizedDragRestored', state),
+      onDragStart: state => emit('dragStart', state),
+      onDragEnd: state => emit('dragEnd', state),
+      onResizeStart: state => emit('resizeStart', state),
+      onResizeEnd: state => emit('resizeEnd', state),
+      onEdgeSnapPreview: event => emit('edgeSnapPreview', event),
+      onEdgeSnapPreviewClear: event => emit('edgeSnapPreviewClear', event),
       onEdgeSnapped: state => emit('edgeSnapped', state),
     };
 

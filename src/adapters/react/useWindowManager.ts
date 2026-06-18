@@ -44,6 +44,8 @@ const SYNC_EVENTS = [
   'window:restored',
   'window:maximized-drag-restored',
   'window:edge-snapped',
+  'window:drag-end',
+  'window:resize-end',
 ] as const;
 
 /**

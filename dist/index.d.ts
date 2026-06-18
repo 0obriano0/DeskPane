@@ -106,9 +106,13 @@ declare class EventBus {
 declare const eventBus: EventBus;
 
 /** WindowManager 事件清單 */
-type WinEvent = 'window:opened' | 'window:closed' | 'window:focused' | 'window:minimized' | 'window:maximized' | 'window:restored' | 'window:maximized-drag-restored' | 'window:edge-snapped' | 'window:moved' | 'window:resized' | 'window:child-opened' | 'window:child-closed';
+type WinEvent = 'window:opened' | 'window:closed' | 'window:focused' | 'window:minimized' | 'window:maximized' | 'window:restored' | 'window:maximized-drag-restored' | 'window:drag-start' | 'window:drag-end' | 'window:resize-start' | 'window:resize-end' | 'window:edge-snap-preview' | 'window:edge-snap-preview-clear' | 'window:edge-snapped' | 'window:moved' | 'window:resized' | 'window:child-opened' | 'window:child-closed';
 type EdgeSnapTarget = 'maximize' | 'left' | 'right';
 type EdgeSnapEvent = WindowState & {
+    edgeSnapTarget: EdgeSnapTarget;
+};
+type EdgeSnapPreviewEvent = {
+    id: string;
     edgeSnapTarget: EdgeSnapTarget;
 };
 interface WindowManagerOptions {
@@ -484,4 +488,4 @@ declare class Panel {
 declare function getLayoutCSS(): string;
 
 export { BorderLayout, EventBus, Panel, WindowManager, eventBus, getCoreCSS, getLayoutCSS, setTheme, snapPosition };
-export type { BorderLayoutOptions, EdgeSnapEvent, EdgeSnapTarget, EventCallback, LayoutRegion, PanelOptions, RegionConfig, SetThemeOptions, SlotType, SnapGuide, SnapRect, SnapResult, WinEvent, WindowConfig, WindowManagerOptions, WindowState, WosThemePreset };
+export type { BorderLayoutOptions, EdgeSnapEvent, EdgeSnapPreviewEvent, EdgeSnapTarget, EventCallback, LayoutRegion, PanelOptions, RegionConfig, SetThemeOptions, SlotType, SnapGuide, SnapRect, SnapResult, WinEvent, WindowConfig, WindowManagerOptions, WindowState, WosThemePreset };

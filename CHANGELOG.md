@@ -8,8 +8,11 @@
 - Added `window:maximized-drag-restored` so apps can distinguish drag-to-restore from regular restore actions.
 - Added Windows-like edge snap preview: dragging a resizable window pointer to the top edge previews maximize, while left/right pointer edges preview half-screen placement and apply on release.
 - Added `edgeSnap`, `edgeSnapThreshold`, and `window:edge-snapped` with an `edgeSnapTarget` payload for apps that need to react to top/left/right snap actions.
+- Added interaction lifecycle events: `window:drag-start`, `window:drag-end`, `window:resize-start`, `window:resize-end`, `window:edge-snap-preview`, and `window:edge-snap-preview-clear`.
 
 ### Changed
+
+- Documented the full WindowManager and Desktop event surfaces in README and developer docs.
 
 ### Fixed
 

@@ -95,6 +95,29 @@
         <tr><td><code>dock.onRender(cb)</code></td><td><code>() => void</code></td><td v-html="t('desktop.dock.onRender')"></td></tr>
       </tbody>
     </table>
+
+    <h2>{{ t('desktop.h2Events') }}</h2>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('common.event') }}</th>
+          <th>{{ t('common.payload') }}</th>
+          <th>{{ t('desktop.col.desc') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>desktop:ready</code></td><td><code>DesktopItemsEvent</code></td><td>{{ t('desktop.event.ready') }}</td></tr>
+        <tr><td><code>desktop:destroyed</code></td><td><code>DesktopItemsEvent</code></td><td>{{ t('desktop.event.destroyed') }}</td></tr>
+        <tr><td><code>items:changed</code></td><td><code>DesktopItemsEvent</code></td><td>{{ t('desktop.event.itemsChanged') }}</td></tr>
+        <tr><td><code>items:refreshed</code></td><td><code>DesktopItemsEvent</code></td><td>{{ t('desktop.event.itemsRefreshed') }}</td></tr>
+        <tr><td><code>icon:added</code></td><td><code>DesktopIconEvent</code></td><td>{{ t('desktop.event.iconAdded') }}</td></tr>
+        <tr><td><code>icon:removed</code></td><td><code>DesktopIconEvent</code></td><td>{{ t('desktop.event.iconRemoved') }}</td></tr>
+        <tr><td><code>icon:moved</code></td><td><code>DesktopIconMoveEvent</code></td><td>{{ t('desktop.event.iconMoved') }}</td></tr>
+        <tr><td><code>icon:activated</code></td><td><code>DesktopIconEvent</code></td><td>{{ t('desktop.event.iconActivated') }}</td></tr>
+        <tr><td><code>icon:selected</code></td><td><code>DesktopIconEvent</code></td><td>{{ t('desktop.event.iconSelected') }}</td></tr>
+        <tr><td><code>dock:position-changed</code></td><td><code>{ position }</code></td><td>{{ t('desktop.event.dockPositionChanged') }}</td></tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
