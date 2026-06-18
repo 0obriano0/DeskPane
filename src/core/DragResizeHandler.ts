@@ -47,7 +47,11 @@ export interface DragResizeOptions {
 
 type ResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | null;
 
-/** 簡易節流 */
+/**
+ * 簡易節流。
+ * 這裡不用 requestAnimationFrame，因為呼叫端可能希望固定節流間隔；
+ * 預設 16ms 約等於 60fps，對大型內容視窗比較穩。
+ */
 function throttle<T extends (...args: any[]) => void>(fn: T, ms: number): T {
   let last = 0;
   return function (this: any, ...args: any[]) {
@@ -182,6 +186,7 @@ export class DragResizeHandler {
   private _handleMove(e: { clientX: number; clientY: number }): void {
     if (this._dragging) {
       const { left, top } = this._getContainerRect();
+      // clientX/Y 是 viewport 座標；isolated 模式下需轉成 container 內部座標。
       let x = e.clientX - this._dragOffX - left;
       let y = e.clientY - this._dragOffY - top;
       if (this._opts.snapFn) {
@@ -189,7 +194,8 @@ export class DragResizeHandler {
         x = snapped.x;
         y = snapped.y;
       }
-      // 邊界保留：確保視窗至少留 dragEdgeMargin px 在容器內，使用者仍可抓取
+      // 邊界保留：確保視窗至少留 dragEdgeMargin px 在容器內，使用者仍可抓取。
+      // 注意：此限制只在 containerEl 存在時啟用；全頁模式維持傳統視窗可拖出邊界的彈性。
       const margin = this._opts.dragEdgeMargin;
       if (margin > 0 && this._opts.containerEl) {
         const cW = this._opts.containerEl.offsetWidth;
@@ -203,7 +209,8 @@ export class DragResizeHandler {
         const dockBottom = parseFloat(cs.getPropertyValue('--dp-dock-inset-bottom')) || 0;
         const dockLeft   = parseFloat(cs.getPropertyValue('--dp-dock-inset-left'))   || 0;
 
-        // 各方向邊界 = 使用者設定的 margin + Dock 佔用空間
+        // 各方向邊界 = 使用者設定的 margin + Dock 佔用空間。
+        // Dock inset 由 Desktop 透過 CSS 變數同步，避免 DragResizeHandler 直接依賴 Desktop。
         const bTop    = dockTop;                   // 頂部：不允許標題列超出（含 top-dock）
         const bRight  = margin + dockRight;
         const bBottom = margin + dockBottom;       // 底部加上 Dock 高度，視窗不沉入 Dock
@@ -240,7 +247,8 @@ export class DragResizeHandler {
       newY = y + (h - newH);
     }
 
-    // 轉換為容器相對座標（isolated 模式下 newX/newY 是 viewport 座標）
+    // 轉換為容器相對座標（isolated 模式下 newX/newY 是 viewport 座標）。
+    // resizeSnapFn 和 WindowManager state 都使用 container-relative 座標。
     const { left: cLeft, top: cTop } = this._getContainerRect();
     let cx = newX - cLeft;
     let cy = newY - cTop;
@@ -253,7 +261,8 @@ export class DragResizeHandler {
       newH = snapped.height;
     }
 
-    // 縮放邊界保留：與拖曳使用相同的邊界規則
+    // 縮放邊界保留：與拖曳使用相同的邊界規則。
+    // N/W 邊會移動 x/y，因此需要補償 width/height；S/E 邊只限制不能反向縮到不可抓取。
     const margin = this._opts.dragEdgeMargin;
     if (margin > 0 && this._opts.containerEl) {
       const cW = this._opts.containerEl.offsetWidth;
@@ -304,6 +313,7 @@ export class DragResizeHandler {
   }
 
   private _handleUp(): void {
+    // mouseup/touchend 可能在視窗外觸發；所有全域 listener 都在這裡收掉。
     if (this._dragging) {
       this._dragging = false;
       this._winEl.style.userSelect = '';

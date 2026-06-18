@@ -67,7 +67,8 @@ const SYNC_EVENTS = [
  * ```
  */
 export function useWindowManager(opts?: WindowManagerOptions) {
-  // 使用 ref 儲存 WM 實例，確保跨 render 穩定
+  // 使用 ref 儲存 WM 實例，確保跨 render 穩定。
+  // 不要在 render 中直接 new WindowManager，否則每次 render 都會重建 DOM 與事件。
   const wmRef = useRef<WindowManager | null>(null);
   if (!wmRef.current) wmRef.current = new WindowManager(opts);
   const wm = wmRef.current;
@@ -81,6 +82,8 @@ export function useWindowManager(opts?: WindowManagerOptions) {
 
   /** 從 WindowManager 同步最新狀態到 windows state */
   const sync = useCallback(() => {
+    // bodyEl 是 createPortal 的目標。它由 WindowManager 建立與銷毀；
+    // React 只負責把 component render 進去，不直接管理視窗外框 DOM。
     setWindows(
       wm.getWindowIds()
         .map(id => {
@@ -101,6 +104,7 @@ export function useWindowManager(opts?: WindowManagerOptions) {
   }, [wm]);
 
   useEffect(() => {
+    // 訂閱一次即可；wmRef 保證 wm 穩定。cleanup 時 destroy WM，連同視窗 DOM 一起清掉。
     SYNC_EVENTS.forEach(ev => wm.events.on(ev, sync));
     return () => { wm.destroy(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,6 +123,7 @@ export function useWindowManager(opts?: WindowManagerOptions) {
       id: config.id,
       title: config.title,
       slotType: 'react',
+      // content 留 null：DOMRenderer 只建立空 body，React 後續用 createPortal 填入。
       content: null,
       x: config.x,
       y: config.y,

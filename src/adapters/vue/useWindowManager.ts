@@ -44,9 +44,14 @@ export interface VueWindowConfig {
  * ```
  */
 export function useWindowManager(opts?: WindowManagerOptions) {
+  // Composable 建立時即建立 WindowManager；若需要跟 ref container 綁定，
+  // 請在呼叫前確保 container 已存在，或使用宣告式元件版本。
   const wm = new WindowManager(opts);
 
-  /** 響應式視窗清單，觸發 Vue 重新渲染 */
+  /**
+   * 響應式視窗清單，觸發 Vue 重新渲染。
+   * shallowRef 避免 Vue 深層追蹤 WindowState/content/bodyEl，這些由 WindowManager 管理。
+   */
   const windows = shallowRef<VueWindowEntry[]>([]);
 
   /** id → { component, props } 的映射表（不放入響應式以避免深層追蹤） */
@@ -54,6 +59,8 @@ export function useWindowManager(opts?: WindowManagerOptions) {
 
   /** 從 WindowManager 同步最新狀態到 windows */
   function _sync() {
+    // 每次同步都重新組陣列，讓 Vue v-for/Teleport 能更新。
+    // bodyEl 必須來自 WindowManager，不能自己 create，否則內容會和視窗 DOM 分離。
     windows.value = wm.getWindowIds()
       .map(id => {
         const state = wm.getState(id);
@@ -88,7 +95,8 @@ export function useWindowManager(opts?: WindowManagerOptions) {
       component: markRaw(config.component),
       props: config.props,
     });
-    // 以 slotType:'vue' 開窗，renderer 會留空 body 讓 Vue Teleport 填入
+    // 以 slotType:'vue' 開窗，renderer 會留空 body 讓 Vue Teleport 填入。
+    // 最小化/工作區切換只隱藏 DOM，不移除 bodyEl，因此 Vue 元件 state 會保留。
     return wm.open({
       id: config.id,
       title: config.title,

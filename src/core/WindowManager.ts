@@ -67,8 +67,11 @@ export interface WindowManagerOptions {
 }
 
 interface ManagedWindow {
+  /** Mutable runtime state used by WindowManager and emitted as copied snapshots. */
   state: WindowState;
+  /** DOM nodes created by DOMRenderer for this window. */
   elements: WindowElements;
+  /** Owns pointer listeners for dragging/resizing; must be destroyed with the window. */
   dragResize: DragResizeHandler;
 }
 
@@ -114,6 +117,11 @@ export class WindowManager {
 
   /**
    * 開啟視窗。若 ID 已存在，恢復並聚焦；否則建立新視窗。
+   *
+   * 維護注意：
+   * - `WindowState` 是內部可變狀態；事件一律 emit 淺拷貝，避免外部改到內部。
+   * - `parentId/modal` 必須在 DOM 建立後才掛 overlay，因為 overlay 掛在父視窗 root。
+   * - `content` 可能是使用者的 HTMLElement，也可能被 layout auto-detect 移動子節點。
    */
   open(config: WindowConfig): WindowState {
     const existing = this._wins.get(config.id);
@@ -151,7 +159,7 @@ export class WindowManager {
       modal: config.modal ?? false,
     };
 
-    // 子視窗：z-index 必須高於父視窗
+    // 子視窗：z-index 必須高於父視窗；否則 modal overlay 或子視窗會被父視窗蓋住。
     if (state.parentId) {
       const parentWin = this._wins.get(state.parentId);
       if (parentWin) {
@@ -211,7 +219,7 @@ export class WindowManager {
     const managed: ManagedWindow = { state, elements, dragResize };
     this._wins.set(state.id, managed);
 
-    // 建立父子關係
+    // 建立父子關係。這份 map 是 Dock 群組預覽、modal 阻擋、cascade close 的共同來源。
     if (state.parentId) {
       if (!this._children.has(state.parentId)) {
         this._children.set(state.parentId, new Set());
@@ -235,6 +243,9 @@ export class WindowManager {
 
   /**
    * 關閉並銷毀視窗
+   *
+   * 關閉父視窗時會遞迴關閉子視窗；關閉子視窗時只解除父子關係與 modal overlay。
+   * 順序很重要：先移除目前視窗，再 cascade 子視窗，可避免 child close 再次碰到已移除的父 DOM。
    */
   close(id: string): void {
     const win = this._wins.get(id);
@@ -261,7 +272,7 @@ export class WindowManager {
       this.events.emit('window:child-closed', { parentId, childId: id });
     }
 
-    // 如果這個視窗有子視窗，一并關閉（深度優先）
+    // 如果這個視窗有子視窗，一併關閉（深度優先）
     const children = this._children.get(id);
     if (children && children.size > 0) {
       [...children].forEach(childId => this.close(childId));
@@ -291,6 +302,10 @@ export class WindowManager {
 
   /**
    * 聚焦視窗：置頂 zIndex，設定 isActive
+   *
+   * 子視窗有兩個特殊規則：
+   * - 聚焦父視窗時，所有子視窗一起置頂，保持「子永遠高於父」。
+   * - 聚焦子視窗時，父視窗也要接近頂層，但 z-index 仍低於子視窗。
    */
   focus(id: string): void {
     const win = this._wins.get(id);
@@ -319,7 +334,7 @@ export class WindowManager {
       });
     }
 
-    // 如果此視窗是子視窗，同時經對間父視窗（父視窗 z-index 仍低於子）
+    // 如果此視窗是子視窗，同時帶起父視窗（父視窗 z-index 仍低於子）
     if (win.state.parentId) {
       const parent = this._wins.get(win.state.parentId);
       if (parent && !parent.state.isActive) {
@@ -344,6 +359,9 @@ export class WindowManager {
 
   /**
    * 最小化（隱藏 DOM，保留狀態）
+   *
+   * 注意：minimize 會清掉 isActive。這讓使用者點 Dock restore 時，
+   * focus() 不會因為「已 active」而提早返回。
    */
   minimize(id: string): void {
     const win = this._wins.get(id);
@@ -371,6 +389,9 @@ export class WindowManager {
 
   /**
    * 最大化
+   *
+   * 最大化不直接寫入 left/top/width/height，而是交給 CSS class `dp-maximized`。
+   * 原始幾何存在 `_savedGeometry`，讓 restore 可以回到最大化前的位置與大小。
    */
   maximize(id: string): void {
     const win = this._wins.get(id);
@@ -400,6 +421,9 @@ export class WindowManager {
    * - 若視窗是「最大化狀態下被最小化」→ 僅移除最小化，保持最大化
    * - 若只是最大化 → 還原到最大化前的幾何
    * - 若只是最小化 → 還原到原始幾何
+   *
+   * 這裡不直接呼叫 focus()；呼叫端通常已經知道是否要聚焦。
+   * open(existing) 會 restore 後再 focus，以避免最小化視窗恢復但 Dock active 狀態不同步。
    */
   restore(id: string): void {
     const win = this._wins.get(id);
@@ -618,6 +642,9 @@ export class WindowManager {
   /**
    * 在父視窗插入 Modal 遮罩層。
    * overlay 附同子視窗 ID 記錄，點擊時觸發對應子視窗的 shake 動畫。
+   *
+   * overlay 掛在父視窗 root，而不是全域 body。這樣在 isolated workspace、
+   * TaskView clone、Desktop 內嵌 demo 中，遮罩都只限制在父視窗範圍。
    */
   private _attachModalOverlay(parentId: string, childId: string): void {
     const parentWin = this._wins.get(parentId);
@@ -645,7 +672,7 @@ export class WindowManager {
   }
 
   /**
-   * 移除 parentId 上由 childId 產生的 modal 遮罩。
+   * 移除由 childId 產生的 modal 遮罩。
    */
   private _detachModalOverlay(childId: string): void {
     const overlay = this._modalOverlays.get(childId);
@@ -675,7 +702,7 @@ export class WindowManager {
     });
     if (topId !== null) {
       const win = this._wins.get(topId)!;
-      win.state.isActive = false; // reset so focus() triggers
+      // reset so focus() triggers even when the top window already thought it was active
       this.focus(topId);
     }
   }

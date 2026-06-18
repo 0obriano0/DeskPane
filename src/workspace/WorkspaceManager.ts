@@ -39,7 +39,10 @@ export function getWorkspaceCSS(): string {
   return WORKSPACE_CSS;
 }
 
-/** Build a window id that is unique across workspaces for the same app id. */
+/**
+ * Build a window id that is unique across workspaces for the same app id.
+ * 格式預設為 `workspaceId::app-appId`，讓同一個 app 可在不同工作區同時存在。
+ */
 export function createWorkspaceWindowId(
   workspaceId: string,
   appId: string,
@@ -49,7 +52,7 @@ export function createWorkspaceWindowId(
   return `${workspaceId}${separator}${appId}`;
 }
 
-/** Parse an id created by `createWorkspaceWindowId()`. */
+/** Parse an id created by `createWorkspaceWindowId()`; raw window id 會回傳 null。 */
 export function parseWorkspaceWindowId(
   windowId: string,
   options: WorkspaceWindowIdOptions = {},
@@ -63,7 +66,10 @@ export function parseWorkspaceWindowId(
   return { workspaceId, appId };
 }
 
-/** Return the app id from a scoped window id, or a sensible fallback. */
+/**
+ * Return the app id from a scoped window id, or a sensible fallback.
+ * Dock sync 會用 app id 做去重；因此 workspace-scoped id 必須能拆回穩定 app id。
+ */
 export function getAppIdFromWorkspaceWindowId(
   windowId: string,
   options: WorkspaceWindowIdOptions = {},
@@ -110,7 +116,7 @@ export class WorkspaceManager {
 
     if (options.injectStyles !== false) injectWorkspaceStyles();
 
-    // Wrap the container
+    // Wrap the container. 使用額外 root 而不是直接改傳入元素，可讓 destroy() 乾淨移除 DeskPane DOM。
     this._root = document.createElement('div');
     this._root.className = 'dp-workspace-root';
     // Pass animation duration as CSS variable
@@ -139,7 +145,8 @@ export class WorkspaceManager {
       throw new Error(`[WorkspaceManager] Workspace already exists: ${config.id}`);
     }
 
-    // Create workspace container div
+    // Create workspace container div. 每個 workspace 都有自己的 DOM 容器與 WindowManager。
+    // 切換工作區時容器不會銷毀，這讓 Vue Teleport / React Portal 的狀態可以保留。
     const wsEl = document.createElement('div');
     wsEl.className = 'dp-workspace';
     wsEl.dataset.workspaceId = config.id;
@@ -149,7 +156,7 @@ export class WorkspaceManager {
     this._setWorkspaceInteractive(wsEl, false);
     this._root.appendChild(wsEl);
 
-    // Create dedicated WindowManager
+    // Create dedicated WindowManager. 一律 isolated，避免跨 workspace 的視窗 DOM 互相干擾。
     const wm = new WindowManager({
       ...this._wmOptions,
       container: wsEl,
@@ -233,14 +240,15 @@ export class WorkspaceManager {
 
     this._isAnimating = true;
 
-    // Position next workspace off-screen
+    // Position next workspace off-screen. hidden 必須先解除，否則 transform transition 不會播放。
     nextEl.classList.remove('dp-workspace--enter-left', 'dp-workspace--enter-right');
     nextEl.classList.add(goingRight ? 'dp-workspace--enter-right' : 'dp-workspace--enter-left');
     this._setWorkspaceVisible(nextEl, true);
     // Make it visible but off-screen so transition can play
     nextEl.style.visibility = 'visible';
 
-    // Force reflow so the initial transform is applied before transition
+    // Force reflow so the initial transform is applied before transition.
+    // 少了這行時，某些瀏覽器會把 enter 狀態與 active 狀態合併，動畫直接跳到終點。
     nextEl.getBoundingClientRect();
 
     // Slide current out
@@ -387,6 +395,7 @@ export class WorkspaceManager {
   }
 
   private _setWorkspaceInteractive(el: HTMLElement, interactive: boolean): void {
+    // 非 active workspace 保留 DOM 但禁止互動，避免點擊穿透或 tab focus 跑進隱藏桌面。
     (el as any).inert = !interactive;
     if (interactive) {
       el.removeAttribute('aria-hidden');
@@ -396,6 +405,8 @@ export class WorkspaceManager {
   }
 
   private _setWorkspaceVisible(el: HTMLElement, visible: boolean): void {
+    // hidden 控制 layout/可見性；inert/aria-hidden 控制互動與輔助技術。
+    // 兩者分開是因為動畫期間 next workspace 需要 visible 但還沒 active。
     el.hidden = !visible;
   }
 
@@ -409,6 +420,8 @@ export class WorkspaceManager {
   }
 
   private _warnDuplicateWindowId(workspaceId: string, windowId: string): void {
+    // raw id 在不同 workspace 重複時，Portal/Teleport 和 Dock sync 很容易對到錯視窗。
+    // 這裡只警告不阻擋，保留低階 API 的彈性；推薦使用 openWindow({ appId })。
     if (parseWorkspaceWindowId(windowId)) return;
     const duplicates: string[] = [];
     this._windowManagers.forEach((wm, otherWorkspaceId) => {

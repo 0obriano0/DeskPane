@@ -53,6 +53,10 @@ const DESKTOP_DATA_KEY = 'dpDesktop';
 const WORKSPACE_DATA_KEY = 'dpWorkspaceManager';
 const TASKVIEW_DATA_KEY = 'dpTaskView';
 
+/**
+ * Adapter 只需要 jQuery-like 的最小能力，而不是硬綁完整 jQuery 型別。
+ * 這讓 Cash、Zepto 或測試 double 只要提供 each/data/length 也能工作。
+ */
 function isJQueryLike(value: unknown): value is JQueryLike {
   return !!value
     && typeof value === 'object'
@@ -61,6 +65,10 @@ function isJQueryLike(value: unknown): value is JQueryLike {
     && typeof (value as JQueryLike).length === 'number';
 }
 
+/**
+ * 不使用 `instanceof WindowManager`，因為 UMD/ESM 分包或多份 deskpane bundle
+ * 會讓 instanceof 失效。Duck typing 對 CDN 和 bundler mixed mode 比較穩。
+ */
 function isWindowManagerLike(value: unknown): value is WindowManager {
   return !!value
     && typeof value === 'object'
@@ -101,6 +109,8 @@ function getManagerApiFromElement($: JQueryStaticLike, el: HTMLElement): DpWindo
 }
 
 function resolveManager($: JQueryStaticLike, manager: DpWindowOptions['manager']): WindowManager {
+  // manager 可傳 instance、API wrapper、selector、HTMLElement 或 jQuery object。
+  // resolve 順序由最明確到最寬鬆，避免 selector 字串誤判。
   if (isWindowManagerLike(manager)) return manager;
   if (typeof manager === 'object' && manager && 'manager' in manager) {
     return (manager as DpWindowManagerApi).manager;
@@ -204,6 +214,7 @@ function createDesktopApi(desktop: Desktop, options: DpDesktopOptions): DpDeskto
     get dockSyncCleanup() { return dockSyncCleanup; },
     set dockSyncCleanup(cleanup) { dockSyncCleanup = cleanup; },
     getWindowManager(wmOptions = {}) {
+      // Lazy 建立 WindowManager，讓使用者可以只用 Desktop/Dock/Icon，不一定開視窗。
       if (!windowManager) {
         windowManager = new WindowManager({
           container: desktop.getElement(),
@@ -215,6 +226,7 @@ function createDesktopApi(desktop: Desktop, options: DpDesktopOptions): DpDeskto
     },
     syncDockWithWindows(manager, syncOptions = {}) {
       const wm = manager ?? api.getWindowManager();
+      // 同一個 Desktop 只保留一組 sync，避免重複監聽 WindowManager events 造成 Dock item 疊加。
       dockSyncCleanup?.();
       dockSyncCleanup = desktop.syncDockWithWindows(wm, syncOptions);
       return dockSyncCleanup;
@@ -322,6 +334,7 @@ function createWorkspaceManagerApi(
   };
 
   workspaceManager.events.on('workspace:switched', () => {
+    // syncDock 只同步目前 active workspace；切換桌面時需重新綁到新的 WindowManager。
     if (options.syncDock) {
       api.syncDock(options.syncDock === true ? {} : options.syncDock);
     }
@@ -411,6 +424,8 @@ export function install($: JQueryStaticLike): void {
   this.each(function openElementWindow(this: HTMLElement, index: number) {
     const manager = resolveManager($, options.manager);
     const { manager: _manager, clone: _clone, ...windowOptions } = options;
+    // 預設會把原元素搬進 DeskPane window；傳 clone:true 才會複製。
+    // 這符合 jQuery plugin 常見「把目前 selection 變成 widget」的使用方式。
     const source = options.content
       ? firstElement(options.content)
       : options.clone
@@ -477,6 +492,7 @@ export function install($: JQueryStaticLike): void {
     this.each(function openWorkspaceWindow(this: HTMLElement, index: number) {
       const workspaceApi = resolveWorkspaceApi($, options.workspace);
       const { workspace: _workspace, clone: _clone, ...windowOptions } = options;
+      // workspace 視窗優先使用 appId 產生 scoped id，避免跨 workspace raw id 重複。
       const source = options.content
         ? firstElement(options.content)
         : options.clone

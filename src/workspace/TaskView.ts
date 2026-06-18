@@ -85,6 +85,8 @@ export class TaskView {
     this._opts.target.appendChild(this._overlayEl);
 
     // ── Dock 按鈕（可選）─────────────────────────────────────
+    // TaskView 按鈕用 addItemAt(0) 固定插在最左側，模擬作業系統的桌面切換入口。
+    // destroy() 會用同一個 buttonId 移除，避免重建 TaskView 時重複按鈕。
     if (this._opts.dock && this._opts.showButton) {
       this._opts.dock.addItemAt({
         id:     this._buttonId,
@@ -174,6 +176,8 @@ export class TaskView {
   }
 
   private _render(): void {
+    // 每次 open 或 workspace 切換都重建卡片，確保縮略圖反映最新 DOM。
+    // 這裡不做長期 cache，因為視窗內容可能由 Vue/React portal 動態改變。
     this._panelEl.innerHTML = '';
     const workspaces = this._wsMgr.workspaces;
     const currentId  = this._wsMgr.current?.id;
@@ -263,6 +267,8 @@ export class TaskView {
       `pointer-events:none;overflow:hidden;`;
 
     const clone = container.cloneNode(true) as HTMLElement;
+    // 原 workspace 可能是 hidden/inert/aria-hidden；縮略圖 clone 必須解除這些狀態才看得到。
+    // pointer-events:none 則確保 clone 只是預覽，不會攔截 TaskView 的卡片點擊。
     clone.hidden = false;
     (clone as any).inert = false;
     clone.removeAttribute('hidden');
