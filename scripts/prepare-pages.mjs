@@ -74,6 +74,7 @@ writeFileSync(
 Allow: /
 
 Sitemap: ${siteUrl}/sitemap.xml
+Sitemap: ${siteUrl}/sitemap.txt
 `,
 );
 
@@ -98,6 +99,11 @@ writeFileSync(
 ${sitemapUrls.map(url => `  <url><loc>${url}</loc><lastmod>${today}</lastmod></url>`).join('\n')}
 </urlset>
 `,
+);
+
+writeFileSync(
+  path.join(pagesDir, 'sitemap.txt'),
+  `${sitemapUrls.join('\n')}\n`,
 );
 
 writeFileSync(
