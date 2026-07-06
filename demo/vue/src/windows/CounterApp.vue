@@ -1,26 +1,26 @@
 <template>
   <div class="counter-app">
-    <div class="render-badge">此元件已渲染 {{ renderCount }} 次</div>
+    <div class="render-badge">{{ t('counter.renderBadge', { count: renderCount }) }}</div>
     <div class="count-display" :class="{ positive: count > 0, negative: count < 0 }">{{ count }}</div>
     <div class="btn-row">
       <button class="btn btn-dec" @click="count--">－</button>
-      <button class="btn btn-reset" @click="reset">重置</button>
+      <button class="btn btn-reset" @click="reset">{{ t('counter.reset') }}</button>
       <button class="btn btn-inc" @click="count++">＋</button>
     </div>
     <div class="keepalive-note">
       <span class="note-icon">💡</span>
-      <span>最小化後重新開啟，計數器仍保留<br/>— 這就是 <code>KeepAlive</code> 的效果</span>
+      <span>{{ t('counter.keepAliveNote') }}</span>
     </div>
     <div class="history-panel">
-      <div class="history-label">最近操作</div>
+      <div class="history-label">{{ t('counter.history') }}</div>
       <div class="history-list">
         <div v-for="(h, i) in history" :key="i" class="history-row">
           <span class="h-time">{{ h.time }}</span>
           <span class="h-val" :class="h.delta > 0 ? 'up' : h.delta < 0 ? 'down' : 'rst'">
-            {{ h.delta > 0 ? `+${h.delta}` : h.delta === 0 ? '重置' : h.delta }} → {{ h.value }}
+            {{ h.delta > 0 ? `+${h.delta}` : h.delta === 0 ? t('counter.reset') : h.delta }} → {{ h.value }}
           </span>
         </div>
-        <div v-if="history.length === 0" class="h-empty">尚無操作記錄</div>
+        <div v-if="history.length === 0" class="h-empty">{{ t('counter.emptyHistory') }}</div>
       </div>
     </div>
   </div>
@@ -28,7 +28,9 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+const { t, locale } = useI18n()
 const count = ref(0)
 const renderCount = ref(0)
 const history = ref<{ time: string; value: number; delta: number }[]>([])
@@ -36,7 +38,7 @@ const history = ref<{ time: string; value: number; delta: number }[]>([])
 onMounted(() => { renderCount.value++ })
 
 function now() {
-  return new Date().toLocaleTimeString('zh-TW', { hour12: false })
+  return new Date().toLocaleTimeString(locale.value, { hour12: false })
 }
 
 watch(count, (val, old) => {

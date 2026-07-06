@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.2 - 2026-07-06
+
+### Added
+
+- Added integrated vue-i18n language switching to the Vue demo Settings window, covering desktop icon labels, open window titles, and existing Vue window content.
+
+### Fixed
+
+- Fixed Vue declarative `<DpWindow>` state sync when closed windows remain mounted and reactive props such as vue-i18n `title` / `label` change before reopening.
+
 ## 0.3.1 - 2026-06-18
 
 ### Added

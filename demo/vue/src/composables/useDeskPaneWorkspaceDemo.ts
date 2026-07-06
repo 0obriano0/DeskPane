@@ -1,8 +1,8 @@
-import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
+import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { Desktop } from '@deskpane/desktop'
 import type { WindowManager } from '@deskpane/core/WindowManager'
 import { getAppIdFromWorkspaceWindowId, TaskView, WorkspaceManager } from '@deskpane/workspace'
-import { createDesktopIcons, demoAppMap, demoApps } from '../appCatalog'
+import { createDesktopIcons, demoAppMap, demoApps, getAppLabel, getAppTitle, type Translate } from '../appCatalog'
 import type { WindowTeleportEntry } from '../types'
 
 const WINDOW_SYNC_EVENTS = [
@@ -14,11 +14,16 @@ const WINDOW_SYNC_EVENTS = [
   'window:restored',
 ] as const
 
+interface WorkspaceDemoOptions {
+  t: Translate
+  locale: { value: string }
+}
+
 function getAppIdFromWindowId(windowId: string): string {
   return getAppIdFromWorkspaceWindowId(windowId)
 }
 
-export function useDeskPaneWorkspaceDemo() {
+export function useDeskPaneWorkspaceDemo(options: WorkspaceDemoOptions) {
   const desktopRootEl = ref<HTMLElement | null>(null)
   const windows = shallowRef<WindowTeleportEntry[]>([])
 
@@ -40,9 +45,9 @@ export function useDeskPaneWorkspaceDemo() {
     manager.openWindow({
       workspaceId: current.id,
       appId: app.id,
-      title: app.title,
+      title: getAppTitle(app, options.t),
       icon: app.icon,
-      label: app.label,
+      label: getAppLabel(app, options.t),
       slotType: 'vue',
       content: null,
       width: app.width,
@@ -62,9 +67,9 @@ export function useDeskPaneWorkspaceDemo() {
     workspaceManager.openWindow({
       workspaceId,
       appId: app.id,
-      title: app.title,
+      title: getAppTitle(app, options.t),
       icon: app.icon,
-      label: app.label,
+      label: getAppLabel(app, options.t),
       slotType: 'vue',
       content: null,
       parentId: parentWindowId,
@@ -123,6 +128,27 @@ export function useDeskPaneWorkspaceDemo() {
     workspaceManager?.workspaces.forEach(workspace => syncWorkspaceWindows(workspace.id))
   }
 
+  function syncLocalizedShell() {
+    if (desktop) {
+      const currentItems = new Map(desktop.getItems().map(item => [item.id, item]))
+      const nextItems = createDesktopIcons(openApp, options.t).map(item => {
+        const current = currentItems.get(item.id)
+        return current ? { ...item, x: current.x, y: current.y } : item
+      })
+      desktop.setItems(nextItems)
+    }
+
+    workspaceManager?.workspaces.forEach(workspace => {
+      const wm = workspaceManager?.getWindowManager(workspace.id) as unknown as WindowManager | undefined
+      wm?.getWindowIds().forEach(id => {
+        const app = demoAppMap.get(getAppIdFromWindowId(id))
+        if (app) wm.setTitle(id, getAppTitle(app, options.t))
+      })
+    })
+
+    syncAllWorkspaceWindows()
+  }
+
   function subscribeWorkspace(workspaceId: string) {
     if (!workspaceManager || subscribedWorkspaces.has(workspaceId)) return
     subscribedWorkspaces.add(workspaceId)
@@ -158,7 +184,7 @@ export function useDeskPaneWorkspaceDemo() {
       injectStyles: false,
       dragThreshold: 10,
       dock: { position: 'bottom', showLabels: true, iconSize: 44, items: [] },
-      icons: createDesktopIcons(openApp),
+      icons: createDesktopIcons(openApp, options.t),
     })
 
     workspaceManager = new WorkspaceManager(desktop.getElement(), {
@@ -167,7 +193,7 @@ export function useDeskPaneWorkspaceDemo() {
       windowManagerOptions: { isolated: true, snap: true, injectStyles: false },
     })
 
-    workspaceManager.addWorkspace({ id: 'ws-1', label: '桌面 1' })
+    workspaceManager.addWorkspace({ id: 'ws-1', label: options.t('workspace.desktopOne') })
     subscribeWorkspace('ws-1')
     desktop.syncDockWithWindows(workspaceManager.getWindowManager('ws-1'), {
       getAppIdFromWindowId,
@@ -204,8 +230,13 @@ export function useDeskPaneWorkspaceDemo() {
     windows.value = []
   }
 
+  const stopLocaleWatch = watch(() => options.locale.value, syncLocalizedShell)
+
   onMounted(mountDeskPane)
-  onUnmounted(disposeDeskPane)
+  onUnmounted(() => {
+    stopLocaleWatch()
+    disposeDeskPane()
+  })
 
   return {
     desktopRootEl,

@@ -308,6 +308,7 @@ export const DpWindowManager = defineComponent({
       updateWindow(reg) {
         registrations.set(reg.id, reg);
         if (!wm) return;
+        if (!reg.isOpen()) return;
         const state = wm.getState(reg.id);
         if (state) {
           wm.setTitle(reg.id, reg.getConfig().title);
@@ -489,7 +490,10 @@ export const DpWindow = defineComponent({
         parentId: props.parentId,
         modal: props.modal,
       }),
-      () => manager?.updateWindow(registration),
+      () => {
+        if (!props.open) return;
+        manager?.updateWindow(registration);
+      },
       { deep: true },
     );
 

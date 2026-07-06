@@ -3,8 +3,8 @@ import type { Component } from 'vue'
 export interface DemoAppDefinition {
   id: string
   icon: string
-  label: string
-  title: string
+  labelKey: string
+  titleKey: string
   component: Component
   width: number
   height: number

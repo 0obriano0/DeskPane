@@ -1,11 +1,19 @@
 <template>
   <div class="settings-app">
-    <h2 class="title">⚙️ 系統設定</h2>
+    <h2 class="title">⚙️ {{ t('settings.title') }}</h2>
 
     <section class="card">
-      <div class="card-label">外觀設定</div>
+      <div class="card-label">{{ t('settings.appearance') }}</div>
       <label class="field">
-        <span>主題</span>
+        <span>{{ t('settings.language') }}</span>
+        <select v-model="locale">
+          <option value="zh-TW">{{ t('settings.zhTW') }}</option>
+          <option value="en">{{ t('settings.en') }}</option>
+        </select>
+      </label>
+      <p class="field-hint">{{ t('settings.languageDescription') }}</p>
+      <label class="field">
+        <span>{{ t('settings.theme') }}</span>
         <select>
           <option>Dark desktop</option>
           <option>Light desktop</option>
@@ -13,7 +21,7 @@
         </select>
       </label>
       <label class="field">
-        <span>Dock 位置</span>
+        <span>{{ t('settings.dockPosition') }}</span>
         <select>
           <option>Bottom</option>
           <option>Top</option>
@@ -22,34 +30,38 @@
         </select>
       </label>
       <label class="field">
-        <span>視窗吸附間距</span>
+        <span>{{ t('settings.snapGap') }}</span>
         <input type="number" min="0" max="50" value="0" />
       </label>
     </section>
 
     <section class="card">
-      <div class="card-label">子視窗功能示範</div>
+      <div class="card-label">{{ t('settings.childWindows') }}</div>
       <div class="button-row">
         <button class="action danger" type="button" @click="emit('openModal')">
-          🔴 Modal 確認對話框
+          🔴 {{ t('settings.openModal') }}
         </button>
         <button class="action primary" type="button" @click="emit('openProperties')">
-          🔵 開啟屬性面板（非獨佔）
+          🔵 {{ t('settings.openProperties') }}
         </button>
       </div>
       <p class="hint">
-        🔴 <b>Modal</b>：子視窗開啟後，父視窗加遮罩不可操作；點擊遮罩子視窗會抖動。<br />
-        🔵 <b>非獨佔</b>：子視窗與父視窗可自由切換，Dock 只顯示父視窗項目。
+        🔴 <b>Modal</b>: {{ t('settings.modalHint') }}<br />
+        🔵 <b>Non-modal</b>: {{ t('settings.nonModalHint') }}
       </p>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 const emit = defineEmits<{
   (event: 'openModal'): void
   (event: 'openProperties'): void
 }>()
+
+const { t, locale } = useI18n()
 </script>
 
 <style scoped>
@@ -94,6 +106,13 @@ const emit = defineEmits<{
   gap: 10px;
   margin-top: 9px;
   font-size: 13px;
+}
+
+.field-hint {
+  margin: 7px 0 2px 130px;
+  color: rgba(226, 232, 240, 0.54);
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 select,

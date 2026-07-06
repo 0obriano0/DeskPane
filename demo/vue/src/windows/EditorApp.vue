@@ -3,17 +3,17 @@
     <textarea
       v-model="text"
       class="editor-textarea"
-      placeholder="在此輸入文字..."
+      :placeholder="t('editor.placeholder')"
       spellcheck="false"
     />
     <div class="status-bar">
-      <span class="stat">{{ charCount }} 字元</span>
-      <span class="stat">{{ wordCount }} 詞</span>
-      <span class="stat">{{ lineCount }} 行</span>
+      <span class="stat">{{ charCount }} {{ t('editor.chars') }}</span>
+      <span class="stat">{{ wordCount }} {{ t('editor.words') }}</span>
+      <span class="stat">{{ lineCount }} {{ t('editor.lines') }}</span>
       <div class="spacer" />
-      <button class="btn" @click="clearText" :disabled="!text">清除</button>
+      <button class="btn" @click="clearText" :disabled="!text">{{ t('editor.clear') }}</button>
       <button class="btn btn-primary" @click="copyText" :disabled="!text">
-        {{ copied ? '✓ 已複製' : '複製' }}
+        {{ copied ? '✓ ' + t('editor.copied') : t('editor.copy') }}
       </button>
     </div>
   </div>
@@ -21,8 +21,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-const text = ref('DeskPane Vue 3 Demo\n===================\n\n此為 Vue 文字編輯器示範。\n最小化後重新開啟，內容依然保留（KeepAlive）。\n')
+const { t } = useI18n()
+const text = ref(t('editor.initialText'))
 const copied = ref(false)
 
 const charCount = computed(() => text.value.length)

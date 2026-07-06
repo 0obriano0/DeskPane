@@ -14,7 +14,9 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const display = ref('0')
 let expr = ''
 
@@ -29,7 +31,7 @@ function press(k: string) {
     try {
       const r = Function('return ' + expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'))()
       display.value = String(r); expr = String(r)
-    } catch { display.value = '錯誤'; expr = '' }
+    } catch { display.value = t('calc.error'); expr = '' }
     return
   }
   if (k === '⌫') { expr = expr.slice(0,-1); display.value = expr || '0'; return }

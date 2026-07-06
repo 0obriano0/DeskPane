@@ -1,16 +1,20 @@
 <template>
   <div class="vue-demo">
-    <a class="demo-github-link" href="https://github.com/0obriano0/DeskPane" target="_blank" rel="noopener">GitHub</a>
+    <a class="demo-github-link" href="https://github.com/0obriano0/DeskPane" target="_blank" rel="noopener">
+      {{ t('app.github') }}
+    </a>
     <div ref="desktopRootEl" class="vue-demo__desktop"></div>
     <WindowTeleportHost :windows="windows" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import WindowTeleportHost from './components/WindowTeleportHost.vue'
 import { useDeskPaneWorkspaceDemo } from './composables/useDeskPaneWorkspaceDemo'
 
-const { desktopRootEl, windows } = useDeskPaneWorkspaceDemo()
+const { t, locale } = useI18n()
+const { desktopRootEl, windows } = useDeskPaneWorkspaceDemo({ t, locale })
 </script>
 
 <style scoped>

@@ -1,28 +1,34 @@
 <template>
   <div class="properties-panel">
-    <h2 class="title">📋 進階屬性面板</h2>
+    <h2 class="title">📋 {{ t('properties.title') }}</h2>
     <p class="copy">
-      這是一個非獨佔子視窗。<br />
-      你仍可點擊父視窗（系統設定）進行操作。<br />
-      Dock 不會新增此視窗的項目。
+      {{ t('properties.line1') }}<br />
+      {{ t('properties.line2') }}<br />
+      {{ t('properties.line3') }}
     </p>
 
     <div class="fields">
       <label class="check">
-        <span>選項 A</span>
+        <span>{{ t('properties.optionA') }}</span>
         <input type="checkbox" />
       </label>
       <label class="check">
-        <span>選項 B</span>
+        <span>{{ t('properties.optionB') }}</span>
         <input type="checkbox" />
       </label>
       <label class="number-field">
-        <span>數值</span>
+        <span>{{ t('properties.value') }}</span>
         <input type="number" value="100" />
       </label>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+</script>
 
 <style scoped>
 .properties-panel {

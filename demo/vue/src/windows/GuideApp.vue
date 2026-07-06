@@ -1,38 +1,38 @@
 <template>
   <div class="guide-app">
-    <h2 class="title">🧩 Vue 3 整合指南</h2>
+    <h2 class="title">🧩 {{ t('guide.title') }}</h2>
 
     <section class="card">
-      <div class="card-label">架構說明</div>
-      <p class="hint">DeskPane Desktop 提供桌面殼層（圖示 + Dock），Vue 3 元件透過 <code>Teleport</code> 渲染進視窗 body。</p>
+      <div class="card-label">{{ t('guide.architecture') }}</div>
+      <p class="hint">{{ t('guide.architectureText') }}</p>
     </section>
 
     <section class="card">
-      <div class="card-label">開窗方式</div>
+      <div class="card-label">{{ t('guide.opening') }}</div>
       <pre class="code">wm.open({
   id: 'app-guide',
-  title: 'Vue 指南',
-  slotType: 'vue',   // 留空 body
+  title: t('apps.guide.title'),
+  slotType: 'vue',   // leave body empty
   content: null,
 })</pre>
     </section>
 
     <section class="card">
-      <div class="card-label">Teleport 注入</div>
+      <div class="card-label">{{ t('guide.teleport') }}</div>
       <pre class="code">&lt;Teleport :to="win.bodyEl"&gt;
   &lt;KeepAlive&gt;
     &lt;component :is="win.component" /&gt;
   &lt;/KeepAlive&gt;
 &lt;/Teleport&gt;</pre>
-      <p class="hint">KeepAlive 確保最小化後元件狀態完整保留。</p>
+      <p class="hint">{{ t('guide.keepAlive') }}</p>
     </section>
 
     <section class="card">
-      <div class="card-label">示範元件</div>
+      <div class="card-label">{{ t('guide.components') }}</div>
       <div class="api-list">
-        <div v-for="item in items" :key="item.desc" class="api-item">
+        <div v-for="item in items" :key="item.key" class="api-item">
           <span class="api-icon">{{ item.icon }}</span>
-          <span class="api-desc">{{ item.desc }}</span>
+          <span class="api-desc">{{ t(item.key) }}</span>
         </div>
       </div>
     </section>
@@ -40,11 +40,15 @@
 </template>
 
 <script setup lang="ts">
-const items: Array<{ icon: string; desc: string }> = [
-  { icon: '📝', desc: '文字編輯器 — v-model 雙向綁定，KeepAlive 保留狀態' },
-  { icon: '✅', desc: '待辦清單 — ref 陣列響應式操作' },
-  { icon: '🔢', desc: 'Keep-Alive 計數器 — 最小化後數值不重置' },
-  { icon: '🧮', desc: '計算機 — computed + template 事件處理' },
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+const items: Array<{ icon: string; key: string }> = [
+  { icon: '📝', key: 'guide.editor' },
+  { icon: '✅', key: 'guide.todo' },
+  { icon: '🔢', key: 'guide.counter' },
+  { icon: '🧮', key: 'guide.calc' },
 ]
 </script>
 

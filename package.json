@@ -1,6 +1,6 @@
 {
   "name": "deskpane",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Framework-agnostic web desktop window management engine",
   "repository": {
     "type": "git",

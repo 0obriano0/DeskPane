@@ -3570,6 +3570,8 @@ const DpWindowManager = defineComponent({
                 registrations.set(reg.id, reg);
                 if (!wm)
                     return;
+                if (!reg.isOpen())
+                    return;
                 const state = wm.getState(reg.id);
                 if (state) {
                     wm.setTitle(reg.id, reg.getConfig().title);
@@ -3729,7 +3731,11 @@ const DpWindow = defineComponent({
             resizable: props.resizable,
             parentId: props.parentId,
             modal: props.modal,
-        }), () => manager?.updateWindow(registration), { deep: true });
+        }), () => {
+            if (!props.open)
+                return;
+            manager?.updateWindow(registration);
+        }, { deep: true });
         onBeforeUnmount(() => manager?.unregisterWindow(props.id));
         return () => null;
     },

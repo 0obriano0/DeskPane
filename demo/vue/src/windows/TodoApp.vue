@@ -4,10 +4,10 @@
       <input
         v-model="input"
         class="todo-input"
-        placeholder="新增待辦事項..."
+        :placeholder="t('todo.placeholder')"
         @keydown.enter="addTodo"
       />
-      <button class="btn btn-add" @click="addTodo">新增</button>
+      <button class="btn btn-add" @click="addTodo">{{ t('todo.add') }}</button>
     </div>
 
     <div class="filter-row">
@@ -16,44 +16,46 @@
         class="btn filter-btn"
         :class="{ active: filter === f.id }"
         @click="filter = f.id"
-      >{{ f.label }}</button>
+      >{{ t(f.labelKey) }}</button>
     </div>
 
     <div class="todo-list">
-      <div v-if="visible.length === 0" class="empty">無待辦項目</div>
+      <div v-if="visible.length === 0" class="empty">{{ t('todo.empty') }}</div>
       <div v-for="todo in visible" :key="todo.id" class="todo-item">
         <input type="checkbox" :checked="todo.done" @change="toggle(todo.id)" class="check" />
         <span
           class="todo-text"
           :class="{ done: todo.done }"
           @click="toggle(todo.id)"
-        >{{ todo.text }}</span>
+        >{{ todo.textKey ? t(todo.textKey) : todo.text }}</span>
         <button class="btn btn-del" @click="remove(todo.id)">✕</button>
       </div>
     </div>
 
-    <div class="footer">{{ pending }} 項待完成</div>
+    <div class="footer">{{ pending }} {{ t('todo.pending') }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-interface Todo { id: number; text: string; done: boolean }
+interface Todo { id: number; text?: string; textKey?: string; done: boolean }
 type Filter = 'all' | 'active' | 'done'
 
+const { t } = useI18n()
 const todos = ref<Todo[]>([
-  { id: 1, text: '體驗 DeskPane Vue 3 整合', done: false },
-  { id: 2, text: '開啟計算機視窗並試算', done: false },
-  { id: 3, text: '最小化再開啟驗證 KeepAlive', done: true },
+  { id: 1, textKey: 'todo.samples.integration', done: false },
+  { id: 2, textKey: 'todo.samples.calculator', done: false },
+  { id: 3, textKey: 'todo.samples.keepAlive', done: true },
 ])
 const input = ref('')
 const filter = ref<Filter>('all')
 
 const filters = [
-  { id: 'all' as Filter, label: '全部' },
-  { id: 'active' as Filter, label: '進行中' },
-  { id: 'done' as Filter, label: '已完成' },
+  { id: 'all' as Filter, labelKey: 'todo.filters.all' },
+  { id: 'active' as Filter, labelKey: 'todo.filters.active' },
+  { id: 'done' as Filter, labelKey: 'todo.filters.done' },
 ]
 
 const visible = computed(() =>

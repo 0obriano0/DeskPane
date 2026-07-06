@@ -1,22 +1,26 @@
 <template>
   <div class="confirm-dialog">
     <div class="icon">⚠️</div>
-    <div class="title">確認儲存設定？</div>
+    <div class="title">{{ t('confirm.title') }}</div>
     <p class="copy">
-      此操作將覆蓋現有設定。<br />
-      確定要繼續嗎？
+      {{ t('confirm.copyLine1') }}<br />
+      {{ t('confirm.copyLine2') }}
     </p>
     <div class="actions">
-      <button class="btn ghost" type="button" @click="emit('close')">取消</button>
-      <button class="btn danger" type="button" @click="emit('close')">確認儲存</button>
+      <button class="btn ghost" type="button" @click="emit('close')">{{ t('confirm.cancel') }}</button>
+      <button class="btn danger" type="button" @click="emit('close')">{{ t('confirm.save') }}</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 const emit = defineEmits<{
   (event: 'close'): void
 }>()
+
+const { t } = useI18n()
 </script>
 
 <style scoped>
