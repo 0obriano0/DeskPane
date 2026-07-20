@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.3 - Unreleased
+
+### Added
+
+- Added the opt-in `win7` theme preset with Windows 7 inspired window chrome, Desktop/Dock variables, layout variables, and edge-snap preview styling.
+- Added the Windows 7 desktop demo and a Win7 quick-load preset in Theme Editor.
+
+### Fixed
+
+- Fixed the root `npm run dev` command so static demos can load `dist/` bundles and themes while still opening the demo index.
+
 ## 0.3.2 - 2026-07-06
 
 ### Added

@@ -10,6 +10,7 @@ release/
 .pages-stale-*/
 bak/
 docs-internal/
+videos/
 
 # ── Local/private project notes ──────────────────
 PROJECT_STATUS.md

@@ -291,7 +291,7 @@ export const zhTW: Record<string, string> = {
   // 主題系統
   'theme.badge':          '主題',
   'theme.h1':             '主題系統',
-  'theme.intro':          'DeskPane 內建兩個主題——<strong>light</strong>（亮色）和 <strong>dark</strong>（暗色），各自定義 <strong>22 個 CSS 自訂屬性</strong>（15 個 Core + 7 個 Desktop）。只需一個 <code>&lt;link&gt;</code> 標籤，或呼叫 <code>setTheme()</code> 在執行期切換。',
+  'theme.intro':          'DeskPane 內建四個主題：<strong>light</strong>、<strong>dark</strong>、含視窗外框樣式的 <strong>win7</strong>，以及 <strong>medieval-pixel</strong>。只需一個 <code>&lt;link&gt;</code> 標籤，或呼叫 <code>setTheme()</code> 在執行期切換。',
   'theme.h2Load':         '載入主題',
   'theme.h2SetTheme':     'setTheme(preset, options?)',
   'theme.setThemeDesc':   '在執行期替換 <code>&lt;link id="dp-theme"&gt;</code> 的 <code>href</code>。若指定 id 的 link 元素不存在，會自動建立並插入 <code>&lt;head&gt;</code>。',

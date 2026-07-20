@@ -61,7 +61,7 @@
     "clean:pages": "node scripts/clean-pages-builds.mjs",
     "build:pages": "npm run build:lib && npm run clean:pages && npm run build --prefix demo/vue && npm run build --prefix demo/react && npm run build --prefix demo/docs && node scripts/prepare-pages.mjs",
     "build:watch": "tsc --noEmit --watch",
-    "dev": "npx http-server demo -p 3000 -o",
+    "dev": "npx http-server . -p 3000 -o /demo/",
     "clean": "node scripts/clean.mjs",
     "release": "npm run clean && npm run build:lib && node scripts/pack-release.mjs"
   },

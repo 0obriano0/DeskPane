@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeskPane — Windows 7 Style Desktop Demo</title>
+  <meta name="description" content="A Windows 7 inspired DeskPane desktop demo with draggable icons, taskbar, start menu, windows, tree, tabs, grid, and monitor chart." />
+  <link rel="canonical" href="https://0obriano0.github.io/DeskPane/demo/win7/" />
+  <meta property="og:title" content="DeskPane Windows 7 Style Desktop Demo" />
+  <meta property="og:description" content="A Windows 7 inspired web desktop built with DeskPane Desktop and WindowManager." />
+  <meta property="og:url" content="https://0obriano0.github.io/DeskPane/demo/win7/" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="../../dist/themes/win7.css" />
+  <link rel="stylesheet" href="./win7.css" />
+</head>
+<body>
+  <main id="win7-root" class="win7-shell" aria-label="DeskPane Windows 7 style desktop">
+    <a class="win7-github" href="https://github.com/0obriano0/DeskPane" target="_blank" rel="noopener">GitHub</a>
+    <div id="desktop-root" class="win7-desktop-root"></div>
+
+    <div id="start-menu" class="win7-start-menu" hidden>
+      <div class="start-left">
+        <button data-open="computer"><span class="menu-icon computer-mini"></span>Computer</button>
+        <button data-open="documents"><span class="menu-icon docs-mini"></span>Documents</button>
+        <button data-open="network"><span class="menu-icon network-mini"></span>Network</button>
+        <button data-open="monitor"><span class="menu-icon monitor-mini"></span>System Monitor</button>
+        <div class="start-separator"></div>
+        <button data-open="grid"><span class="menu-icon grid-mini"></span>FabGrid</button>
+        <button data-open="settings"><span class="menu-icon settings-mini"></span>系統設定</button>
+      </div>
+      <div class="start-right">
+        <div class="user-tile">DP</div>
+        <button data-open="computer">Computer</button>
+        <button data-open="network">Network</button>
+        <button data-action="help">說明及支援</button>
+        <button data-action="shutdown" class="shutdown">關機</button>
+      </div>
+    </div>
+
+    <footer class="win7-taskbar" aria-label="Windows 7 style taskbar">
+      <button id="start-button" class="win7-start-button" type="button"><span></span>Start</button>
+      <div class="taskbar-spacer"></div>
+      <time id="win7-clock" class="win7-clock"></time>
+    </footer>
+  </main>
+
+  <script type="module" src="./win7.js"></script>
+</body>
+</html>

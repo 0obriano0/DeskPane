@@ -86,6 +86,7 @@ const sitemapUrls = [
   `${siteUrl}/demo/vanilla/`,
   `${siteUrl}/demo/jquery/`,
   `${siteUrl}/demo/desktop/`,
+  `${siteUrl}/demo/win7/`,
   `${siteUrl}/demo/theme-editor/`,
   `${siteUrl}/demo/layout/`,
 ];
@@ -116,6 +117,7 @@ copyRequired('dist', 'dist');
 copyRequired('demo/index.html', 'demo/index.html');
 copyRequired('demo/shared', 'demo/shared');
 copyRequired('demo/desktop', 'demo/desktop');
+copyRequired('demo/win7', 'demo/win7');
 copyRequired('demo/theme-editor', 'demo/theme-editor');
 copyRequired('demo/vanilla', 'demo/vanilla');
 copyRequired('demo/jquery', 'demo/jquery');
