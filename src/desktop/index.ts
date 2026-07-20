@@ -5,6 +5,7 @@
 export { Desktop } from './Desktop.js';
 export { Dock } from './Dock.js';
 export { DesktopIcon } from './DesktopIcon.js';
+export { SystemTray } from './SystemTray.js';
 export { DesktopCollectionView } from './DesktopCollectionView.js';
 export { getDesktopCSS } from './styles.js';
 export type {
@@ -38,3 +39,15 @@ export type {
   DesktopCollectionMutationOptions,
   DesktopCollectionViewOptions,
 } from './DesktopCollectionView.js';
+export type {
+  SystemTrayBadge,
+  SystemTrayEvent,
+  SystemTrayItemConfig,
+  SystemTrayItemEvent,
+  SystemTrayItemPatch,
+  SystemTrayItemRenderer,
+  SystemTrayItemRendererContext,
+  SystemTrayItemsChangedEvent,
+  SystemTrayItemsChangeReason,
+  SystemTrayOptions,
+} from './SystemTray.js';

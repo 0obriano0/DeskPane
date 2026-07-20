@@ -487,3 +487,89 @@
   animation: dp-group-card-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+
+/* ── Optional SystemTray content for Dock trailing slots ─ */
+.dp-system-tray {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--dp-tray-gap, 2px);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  color: var(--dp-tray-item-color, inherit);
+}
+.dp-system-tray-item {
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--dp-tray-item-size, 32px);
+  height: var(--dp-tray-item-size, 32px);
+  flex: 0 0 var(--dp-tray-item-size, 32px);
+  margin: 0;
+  padding: var(--dp-tray-item-padding, 4px);
+  border: var(--dp-tray-item-border, 0);
+  border-radius: var(--dp-tray-item-radius, 4px);
+  background: var(--dp-tray-item-bg, transparent);
+  color: var(--dp-tray-item-color, inherit);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.dp-system-tray-item:hover:not(:disabled) {
+  background: var(--dp-tray-item-hover-bg, var(--dp-dock-item-hover-bg, rgba(255,255,255,0.12)));
+}
+.dp-system-tray-item:focus-visible {
+  outline: 2px solid var(--dp-tray-focus-ring, var(--dp-dock-focus-ring, rgba(118,190,255,0.95)));
+  outline-offset: 1px;
+}
+.dp-system-tray-item:disabled,
+.dp-system-tray-item[aria-disabled="true"] {
+  opacity: var(--dp-tray-disabled-opacity, 0.45);
+  cursor: default;
+}
+.dp-system-tray-item--status {
+  cursor: default;
+}
+.dp-system-tray-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-tray-icon-size, 18px);
+  height: var(--dp-tray-icon-size, 18px);
+  font-size: var(--dp-tray-icon-font-size, 15px);
+  line-height: 1;
+  overflow: hidden;
+}
+.dp-system-tray-icon > img,
+.dp-system-tray-icon > svg,
+.dp-system-tray-icon > * {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.dp-system-tray-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--dp-tray-badge-bg, #dc2626);
+  color: var(--dp-tray-badge-color, #ffffff);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+.dp-dock-left .dp-system-tray,
+.dp-dock-right .dp-system-tray {
+  width: 100%;
+  height: auto;
+  flex-direction: column;
+}

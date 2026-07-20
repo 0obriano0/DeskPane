@@ -1,5 +1,5 @@
 import { WindowManager } from '../../dist/deskpane.es.js';
-import { Desktop } from '../../dist/deskpane-desktop.es.js';
+import { Desktop, SystemTray } from '../../dist/deskpane-desktop.es.js';
 import { ContextMenu, StartMenu } from '../../dist/deskpane-menu.es.js';
 
 const root = document.getElementById('desktop-root');
@@ -34,24 +34,24 @@ function createStartButton() {
   return button;
 }
 
-function createTray() {
-  const tray = document.createElement('div');
-  tray.className = 'xp-tray';
-  tray.setAttribute('aria-label', 'System tray');
-  tray.innerHTML = [
-    '<span class="xp-tray-icon" title="Network" aria-label="Network connected">↔</span>',
-    '<span class="xp-tray-icon" title="Volume" aria-label="Volume">♪</span>',
-    '<time class="xp-clock"></time>',
-  ].join('');
-  return {
-    element: tray,
-    clock: tray.querySelector('.xp-clock'),
-  };
-}
-
 const startButton = createStartButton();
-const tray = createTray();
-const clock = tray.clock;
+const tray = new SystemTray({
+  items: [
+    { id: 'network', label: 'Network connected', icon: '↔', action: () => openApp('network') },
+    { id: 'volume', label: 'Volume', icon: '♪', action: () => openApp('control') },
+    {
+      id: 'clock',
+      label: 'Current time',
+      interactive: false,
+      renderer: () => {
+        const clock = document.createElement('time');
+        clock.className = 'xp-clock';
+        return clock;
+      },
+    },
+  ],
+});
+tray.getElement().classList.add('xp-tray');
 
 const desktop = new Desktop({
   container: root,
@@ -65,7 +65,7 @@ const desktop = new Desktop({
     itemLayout: 'taskbar',
     items: [],
     leading: startButton,
-    trailing: tray.element,
+    trailing: tray.getElement(),
   },
   icons: [
     // Direct HTMLElement ownership remains stable until the item is removed.
@@ -283,7 +283,7 @@ function makeNotepad() {
 function makeControlPanel() {
   const options = [
     ['Display', 'Change desktop and theme appearance.'],
-    ['Taskbar and Start Menu', 'Inspect the official DeskPane Menu module.'],
+    ['Taskbar and System Tray', 'Inspect the official Dock slots and SystemTray module.'],
     ['Network Connections', 'View demonstration network devices.'],
     ['Window Behavior', 'Drag, resize, minimize, maximize, and edge snap.'],
   ];
@@ -308,7 +308,8 @@ function makeAbout() {
 }
 
 function updateClock() {
-  clock.textContent = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date());
+  const clock = tray.getItemElement('clock')?.querySelector('.xp-clock');
+  if (clock) clock.textContent = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date());
 }
 
 updateClock();

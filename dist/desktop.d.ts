@@ -507,8 +507,96 @@ declare class DesktopIcon {
     destroy(): void;
 }
 
+/** Visual badge content. Pass `null` to clear an existing badge. */
+type SystemTrayBadge = string | number | null;
+/** Context emitted for activation and context-menu interactions. */
+interface SystemTrayItemEvent {
+    id: string;
+    item: Readonly<SystemTrayItemConfig>;
+    element: HTMLElement;
+    originalEvent: MouseEvent;
+}
+/** Context passed to custom item presentation renderers. */
+interface SystemTrayItemRendererContext {
+    item: Readonly<SystemTrayItemConfig>;
+    index: number;
+    /** Managed `.dp-system-tray-item` host. Do not replace this element. */
+    container: HTMLElement;
+    /** Append the built-in icon and badge once. */
+    renderDefault: () => void;
+}
+/**
+ * Render presentation content inside a managed tray item host.
+ * Return a Node, or append directly to `context.container` and return nothing.
+ */
+type SystemTrayItemRenderer = (context: SystemTrayItemRendererContext) => Node | null | undefined | void;
+/** One status or command item in a SystemTray. */
+interface SystemTrayItemConfig {
+    id: string;
+    /** Accessible label and default tooltip. */
+    label: string;
+    /** URL, inline SVG, emoji/text, or a DOM Node owned by this item. */
+    icon?: string | Node;
+    /** Optional compact counter or state marker. */
+    badge?: SystemTrayBadge;
+    /** Optional tooltip override. */
+    title?: string;
+    /** Disable activation while retaining the item in the tray. */
+    disabled?: boolean;
+    /**
+     * Force interactive or status-only semantics.
+     * Defaults to true when `action` is provided, otherwise false.
+     */
+    interactive?: boolean;
+    /** Item-specific renderer. Takes precedence over the tray renderer. */
+    renderer?: SystemTrayItemRenderer;
+    /** Command invoked after `tray:item-activated` unless prevented. */
+    action?: (event: SystemTrayItemEvent) => void;
+}
+interface SystemTrayOptions {
+    items?: SystemTrayItemConfig[];
+    /** Accessible name for the tray toolbar. Defaults to `System tray`. */
+    ariaLabel?: string;
+    /** Fallback renderer used by items without their own renderer. */
+    itemRenderer?: SystemTrayItemRenderer;
+}
+type SystemTrayItemsChangeReason = 'set' | 'add' | 'update' | 'remove';
+interface SystemTrayItemsChangedEvent {
+    reason: SystemTrayItemsChangeReason;
+    items: SystemTrayItemConfig[];
+}
+type SystemTrayEvent = 'tray:item-activated' | 'tray:item-contextmenu' | 'tray:items-changed';
+type SystemTrayItemPatch = Partial<Omit<SystemTrayItemConfig, 'id'>>;
+declare class SystemTray {
+    readonly events: EventBus;
+    private readonly _el;
+    private _items;
+    private _itemRenderer;
+    constructor(options?: SystemTrayOptions);
+    private _assertUniqueIds;
+    private _render;
+    private _createItemElement;
+    private _renderDefaultContent;
+    private _activate;
+    private _emitItemsChanged;
+    setItems(items: SystemTrayItemConfig[]): void;
+    addItem(item: SystemTrayItemConfig, index?: number): void;
+    updateItem(id: string, patch: SystemTrayItemPatch): boolean;
+    removeItem(id: string): boolean;
+    setBadge(id: string, badge: SystemTrayBadge): boolean;
+    setDisabled(id: string, disabled: boolean): boolean;
+    setItemRenderer(renderer: SystemTrayItemRenderer | null): void;
+    /** Re-run renderers without changing item data. */
+    refresh(): void;
+    getItems(): SystemTrayItemConfig[];
+    getItem(id: string): SystemTrayItemConfig | undefined;
+    getItemElement(id: string): HTMLElement | null;
+    getElement(): HTMLElement;
+    destroy(): void;
+}
+
 /** 回傳 Desktop CSS 字串，供 injectStyles:false 的使用者自行管理樣式注入 */
 declare function getDesktopCSS(): string;
 
-export { Desktop, DesktopCollectionView, DesktopIcon, Dock, getDesktopCSS };
-export type { DesktopCollectionChangeAction, DesktopCollectionChangedEvent, DesktopCollectionMutationOptions, DesktopCollectionViewOptions, DesktopConfig, DesktopEvent, DesktopIconConfig, DesktopIconContent, DesktopIconEvent, DesktopIconMoveEvent, DesktopIconRenderer, DesktopIconRendererContext, DesktopItemsEvent, DesktopItemsSource, DockConfig, DockItemConfig, DockItemLayout, DockItemRenderer, DockItemRendererContext, DockPosition, DockSlotContent, DockSlotName, DockSlotRenderer, DockSlotRendererContext, DockSyncOptions, DockSyncWindowEvent, WindowManagerLike };
+export { Desktop, DesktopCollectionView, DesktopIcon, Dock, SystemTray, getDesktopCSS };
+export type { DesktopCollectionChangeAction, DesktopCollectionChangedEvent, DesktopCollectionMutationOptions, DesktopCollectionViewOptions, DesktopConfig, DesktopEvent, DesktopIconConfig, DesktopIconContent, DesktopIconEvent, DesktopIconMoveEvent, DesktopIconRenderer, DesktopIconRendererContext, DesktopItemsEvent, DesktopItemsSource, DockConfig, DockItemConfig, DockItemLayout, DockItemRenderer, DockItemRendererContext, DockPosition, DockSlotContent, DockSlotName, DockSlotRenderer, DockSlotRendererContext, DockSyncOptions, DockSyncWindowEvent, SystemTrayBadge, SystemTrayEvent, SystemTrayItemConfig, SystemTrayItemEvent, SystemTrayItemPatch, SystemTrayItemRenderer, SystemTrayItemRendererContext, SystemTrayItemsChangeReason, SystemTrayItemsChangedEvent, SystemTrayOptions, WindowManagerLike };

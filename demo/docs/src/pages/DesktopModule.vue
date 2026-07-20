@@ -128,6 +128,65 @@
       </tbody>
     </table>
 
+    <h2>{{ t('desktop.h2SystemTray') }}</h2>
+    <p v-html="t('desktop.trayDesc')"></p>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('desktop.col.option') }}</th>
+          <th>{{ t('desktop.col.type') }}</th>
+          <th>{{ t('desktop.col.desc') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>id</code></td><td><code>string</code></td><td v-html="t('desktop.tray.id')"></td></tr>
+        <tr><td><code>label</code></td><td><code>string</code></td><td v-html="t('desktop.tray.label')"></td></tr>
+        <tr><td><code>icon</code></td><td><code>string | Node</code></td><td v-html="t('desktop.tray.icon')"></td></tr>
+        <tr><td><code>badge</code></td><td><code>string | number | null</code></td><td v-html="t('desktop.tray.badge')"></td></tr>
+        <tr><td><code>interactive</code></td><td><code>boolean</code></td><td v-html="t('desktop.tray.interactive')"></td></tr>
+        <tr><td><code>renderer</code></td><td><code>SystemTrayItemRenderer</code></td><td v-html="t('desktop.tray.renderer')"></td></tr>
+        <tr><td><code>action</code></td><td><code>(event) =&gt; void</code></td><td v-html="t('desktop.tray.action')"></td></tr>
+      </tbody>
+    </table>
+
+    <h3>{{ t('desktop.h3TrayMethods') }}</h3>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('desktop.col.option') }}</th>
+          <th>{{ t('desktop.col.type') }}</th>
+          <th>{{ t('desktop.col.desc') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>tray.setItems(items)</code></td><td><code>void</code></td><td v-html="t('desktop.tray.setItems')"></td></tr>
+        <tr><td><code>tray.addItem(item, index?)</code></td><td><code>void</code></td><td v-html="t('desktop.tray.addItem')"></td></tr>
+        <tr><td><code>tray.updateItem(id, patch)</code></td><td><code>boolean</code></td><td v-html="t('desktop.tray.updateItem')"></td></tr>
+        <tr><td><code>tray.removeItem(id)</code></td><td><code>boolean</code></td><td v-html="t('desktop.tray.removeItem')"></td></tr>
+        <tr><td><code>tray.setBadge(id, badge)</code></td><td><code>boolean</code></td><td v-html="t('desktop.tray.setBadge')"></td></tr>
+        <tr><td><code>tray.setDisabled(id, disabled)</code></td><td><code>boolean</code></td><td v-html="t('desktop.tray.setDisabled')"></td></tr>
+        <tr><td><code>tray.refresh()</code></td><td><code>void</code></td><td v-html="t('desktop.tray.refresh')"></td></tr>
+        <tr><td><code>tray.getElement()</code></td><td><code>HTMLElement</code></td><td v-html="t('desktop.tray.getElement')"></td></tr>
+        <tr><td><code>tray.destroy()</code></td><td><code>void</code></td><td v-html="t('desktop.tray.destroy')"></td></tr>
+      </tbody>
+    </table>
+
+    <h3>{{ t('desktop.h3TrayEvents') }}</h3>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('common.event') }}</th>
+          <th>{{ t('common.payload') }}</th>
+          <th>{{ t('desktop.col.desc') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>tray:item-activated</code></td><td><code>SystemTrayItemEvent</code></td><td v-html="t('desktop.tray.eventActivated')"></td></tr>
+        <tr><td><code>tray:item-contextmenu</code></td><td><code>SystemTrayItemEvent</code></td><td v-html="t('desktop.tray.eventContext')"></td></tr>
+        <tr><td><code>tray:items-changed</code></td><td><code>SystemTrayItemsChangedEvent</code></td><td v-html="t('desktop.tray.eventChanged')"></td></tr>
+      </tbody>
+    </table>
+
     <h2>{{ t('desktop.h2Events') }}</h2>
     <table class="api-table">
       <thead>
@@ -155,7 +214,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { Desktop, type DockItemRendererContext } from '@deskpane/desktop'
+import { Desktop, SystemTray, type DockItemRendererContext } from '@deskpane/desktop'
 import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import DocSampleLayout from '../components/DocSampleLayout.vue'
@@ -168,6 +227,7 @@ const { t } = useLocale()
 const viewport = ref<InstanceType<typeof DemoViewport> | null>(null)
 let desktop: Desktop | null = null
 let wm: WindowManager | null = null
+let tray: SystemTray | null = null
 let iconCount = 0
 const activeSample = ref('vanilla')
 
@@ -188,11 +248,31 @@ function createLiveDockControl(label: string) {
   return button
 }
 
-function createLiveDockStatus() {
-  const status = document.createElement('div')
-  status.style.cssText = 'display:flex;height:34px;align-items:center;gap:5px;padding:0 9px;border-left:1px solid rgba(255,255,255,.18);color:#fff;font:11px system-ui;white-space:nowrap;'
-  status.innerHTML = '<span aria-label="Online">●</span><time>12:30</time>'
-  return status
+function createLiveSystemTray() {
+  const nextTray = new SystemTray({
+    ariaLabel: 'Demo system status',
+    items: [
+      {
+        id: 'network',
+        label: 'Network notifications',
+        icon: '●',
+        badge: 2,
+        action: () => nextTray.setBadge('network', null),
+      },
+      {
+        id: 'clock',
+        label: 'Current time',
+        interactive: false,
+        renderer: ({ container }) => {
+          const clock = document.createElement('time')
+          clock.textContent = '12:30'
+          container.appendChild(clock)
+        },
+      },
+    ],
+  })
+  nextTray.getElement().style.cssText = '--dp-tray-item-size:34px;--dp-tray-item-color:#fff;--dp-tray-item-hover-bg:rgba(255,255,255,.14);--dp-tray-badge-bg:#e64040;'
+  return nextTray
 }
 
 function renderLiveDockItem({ item, container, renderDefault }: DockItemRendererContext) {
@@ -205,26 +285,27 @@ function renderLiveDockItem({ item, container, renderDefault }: DockItemRenderer
 }
 
 
-function createLiveDockConfig() {
+function createLiveDockConfig(systemTray: SystemTray) {
   return {
     position: 'bottom' as const,
     itemLayout: 'taskbar' as const,
     itemRenderer: renderLiveDockItem,
     items: [],
     leading: () => createLiveDockControl('+ App'),
-    trailing: createLiveDockStatus(),
+    trailing: systemTray.getElement(),
   }
 }
 function initDesktop() {
   const container = viewport.value?.container
   if (!container) return
+  tray = createLiveSystemTray()
   desktop = new Desktop({
     container,
 
     dragThreshold: 6,
     iconSnap: true,
     iconSnapThreshold: 20,
-    dock: createLiveDockConfig(),
+    dock: createLiveDockConfig(tray),
   })
   wm = new WindowManager({ container: desktop.getElement(), isolated: true, snap: true, snapGap: 4 })
   desktop.syncDockWithWindows(wm)
@@ -255,6 +336,7 @@ function addDemoIcon() {
 
 function onReset() {
   wm?.destroy()
+  tray?.destroy()
   desktop?.destroy?.()
   iconCount = 0
   initDesktop()
@@ -266,7 +348,19 @@ function setCodeForSample() {
       {
         name: 'jquery-desktop.js',
         lang: 'javascript',
-        code: `$('#desktop').dpDesktop({
+        code: `import { SystemTray } from 'deskpane/desktop'
+
+const tray = new SystemTray({
+  items: [{
+    id: 'network',
+    label: 'Network notifications',
+    icon: '●',
+    badge: 2,
+    action: () => console.log('Network'),
+  }],
+})
+
+$('#desktop').dpDesktop({
   dock: {
     position: 'bottom',
     itemLayout: 'taskbar',
@@ -276,7 +370,7 @@ function setCodeForSample() {
     },
     items: [],
     leading: $('<button>', { text: 'Start' })[0],
-    trailing: $('<time>', { text: '12:30' })[0],
+    trailing: tray.getElement(),
   },
   icons: [
     {
@@ -321,7 +415,7 @@ function setCodeForSample() {
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { Desktop } from 'deskpane/desktop'
+import { Desktop, SystemTray } from 'deskpane/desktop'
 import { useWindowManager } from 'deskpane/vue'
 import NotepadWindow from './NotepadWindow.vue'
 
@@ -329,6 +423,16 @@ const desktopRoot = ref<HTMLElement | null>(null)
 const { windows, openVueWindow, wm } = useWindowManager({ isolated: true })
 
 onMounted(() => {
+  const tray = new SystemTray({
+    items: [{
+      id: 'network',
+      label: 'Network notifications',
+      icon: '●',
+      badge: 2,
+      action: () => console.log('Network'),
+    }],
+  })
+
   const desktop = new Desktop({
     container: desktopRoot.value!,
     dock: {
@@ -345,8 +449,7 @@ onMounted(() => {
       items: [],
       leading: () => Object.assign(document.createElement('button'),
         { textContent: 'Start' }),
-      trailing: () => Object.assign(document.createElement('time'),
-        { textContent: '12:30' }),
+      trailing: tray.getElement(),
     },
     icons: [{
       id: 'notepad',
@@ -375,7 +478,7 @@ onMounted(() => {
         lang: 'typescript',
         code: `import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Desktop } from 'deskpane/desktop'
+import { Desktop, SystemTray } from 'deskpane/desktop'
 import { useWindowManager } from 'deskpane/react'
 import NotepadWindow from './NotepadWindow'
 
@@ -384,6 +487,16 @@ export default function ReactDesktop() {
   const { windows, openReactWindow, wm } = useWindowManager({ isolated: true })
 
   useEffect(() => {
+    const tray = new SystemTray({
+      items: [{
+        id: 'network',
+        label: 'Network notifications',
+        icon: '●',
+        badge: 2,
+        action: () => console.log('Network'),
+      }],
+    })
+
     const desktop = new Desktop({
       container: rootRef.current!,
       dock: {
@@ -400,8 +513,7 @@ export default function ReactDesktop() {
         items: [],
         leading: () => Object.assign(document.createElement('button'),
           { textContent: 'Start' }),
-        trailing: () => Object.assign(document.createElement('time'),
-          { textContent: '12:30' }),
+        trailing: tray.getElement(),
       },
       icons: [{
         id: 'notepad',
@@ -416,7 +528,7 @@ export default function ReactDesktop() {
     })
 
     const stopSync = desktop.syncDockWithWindows(wm!)
-    return () => { stopSync(); desktop.destroy?.() }
+    return () => { stopSync(); tray.destroy(); desktop.destroy?.() }
   }, [])
 
   return (
@@ -437,8 +549,18 @@ export default function ReactDesktop() {
     {
       name: 'setup.ts',
       lang: 'typescript',
-      code: `import { Desktop } from 'deskpane/desktop'
+      code: `import { Desktop, SystemTray } from 'deskpane/desktop'
 import { WindowManager } from 'deskpane'
+
+const tray = new SystemTray({
+  items: [{
+    id: 'network',
+    label: 'Network notifications',
+    icon: '●',
+    badge: 2,
+    action: () => console.log('Network'),
+  }],
+})
 
 // 1. Create the desktop
 const desktop = new Desktop({
@@ -457,8 +579,7 @@ const desktop = new Desktop({
     items: [],
     leading: () => Object.assign(document.createElement('button'),
       { textContent: 'Start' }),
-    trailing: () => Object.assign(document.createElement('time'),
-      { textContent: '12:30' }),
+    trailing: tray.getElement(),
   },
   iconSnap: true,
   dragThreshold: 6,
@@ -514,6 +635,8 @@ watch(activeSample, setCodeForSample)
 
 onUnmounted(() => {
   wm?.destroy()
+  desktop?.destroy?.()
+  tray?.destroy()
 })
 </script>
 

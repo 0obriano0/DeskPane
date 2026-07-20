@@ -58,6 +58,7 @@ DeskPane is:
 - ✅ Virtual desktop with draggable icons and localStorage snap positions
 - ✅ **Wijmo-style `itemsSource`** — bind desktop icons to arrays or `DesktopCollectionView`
 - ✅ Optional Dock `leading` / `trailing` slots for Start buttons, clocks, and system tray content
+- ✅ Typed `SystemTray` items with actions, status-only content, badges, custom renderers, and events
 - ✅ Optional Dock `itemRenderer` and taskbar button layout with keyboard activation
 - ✅ Desktop icon events — `items:changed`, `icon:moved`, `icon:activated`, and more
 - ✅ Dock with frosted-glass backdrop-filter, drag reorder
@@ -700,14 +701,36 @@ desktop.getDesktopElement()
 
 `DockConfig.leading` and `DockConfig.trailing` accept either a DOM `Node` or a renderer. Use them for shell chrome that should stay outside the scrollable running-window items, such as a Start button, clock, or system tray.
 
+`SystemTray` is an optional helper for the trailing slot. You can still pass any custom Node directly, so existing Dock integrations keep the same behavior.
+
 ```typescript
+import { Desktop, SystemTray } from 'deskpane/desktop'
+
 const startButton = document.createElement('button')
 startButton.className = 'start-button'
 startButton.textContent = 'Start'
 
-const tray = document.createElement('div')
-tray.className = 'system-tray'
-tray.innerHTML = '<span>Network</span><time>12:30</time>'
+const tray = new SystemTray({
+  items: [
+    {
+      id: 'network',
+      label: 'Network',
+      icon: '📶',
+      badge: 2,
+      action: () => openNetworkSettings(),
+    },
+    {
+      id: 'clock',
+      label: 'Current time',
+      interactive: false,
+      renderer: ({ container }) => {
+        const clock = document.createElement('time')
+        clock.textContent = new Date().toLocaleTimeString()
+        container.appendChild(clock)
+      },
+    },
+  ],
+})
 
 const desktop = new Desktop({
   container: document.getElementById('root')!,
@@ -717,7 +740,7 @@ const desktop = new Desktop({
     leading: startButton,
     trailing: ({ position, container }) => {
       container.dataset.position = position
-      return tray
+      return tray.getElement()
     },
   },
 })
@@ -735,6 +758,54 @@ A renderer runs again whenever Dock rebuilds or changes position. Return a fresh
 
 ### Dock item renderer and taskbar layout
 
+
+### SystemTray
+
+`SystemTray` manages compact status and command items without taking over Dock layout. Items with an `action` render as native buttons; items without an action default to status-only semantics. Set `interactive` explicitly when you need to override that behavior.
+
+```typescript
+const tray = new SystemTray({
+  ariaLabel: 'System status',
+  items: [
+    { id: 'volume', label: 'Volume', icon: '🔊', action: openSoundSettings },
+    { id: 'updates', label: 'Updates', icon: '⬆', badge: 3, action: openUpdates },
+  ],
+})
+
+desktop.getDock().setTrailing(tray.getElement())
+
+tray.events.on('tray:item-activated', ({ id }) => {
+  console.log('activated', id)
+})
+
+tray.events.on('tray:item-contextmenu', ({ id, originalEvent }) => {
+  originalEvent.preventDefault()
+  openTrayMenu(id, originalEvent.clientX, originalEvent.clientY)
+})
+
+tray.setBadge('updates', null)
+```
+
+The default presentation accepts the same URL, inline SVG, emoji/text, or DOM `Node` icon forms as desktop icons. Use an item `renderer` or the tray-level `itemRenderer` for clocks, meters, Web Components, or other custom content. A supplied Node is moved into its item; do not share one Node between multiple items.
+
+#### SystemTray methods
+
+| Method | Description |
+|--------|-------------|
+| `tray.setItems(items)` | Replace all tray items |
+| `tray.addItem(item, index?)` | Add an item at an optional clamped index |
+| `tray.updateItem(id, patch)` | Patch an item and re-render; returns whether it existed |
+| `tray.removeItem(id)` | Remove an item; returns whether it existed |
+| `tray.setBadge(id, badge)` | Set a string/number badge, or pass `null` to clear it |
+| `tray.setDisabled(id, disabled)` | Toggle item activation |
+| `tray.setItemRenderer(renderer)` | Replace the tray-level fallback renderer |
+| `tray.refresh()` | Re-run item renderers without changing data |
+| `tray.getItems()` / `tray.getItem(id)` | Read copied item data |
+| `tray.getItemElement(id)` | Get the managed item host |
+| `tray.getElement()` | Get the root Node for a Dock slot |
+| `tray.destroy()` | Clear listeners and remove the tray root |
+
+Events are available from `tray.events`: `tray:item-activated`, `tray:item-contextmenu`, and `tray:items-changed`. A listener can call `originalEvent.preventDefault()` during `tray:item-activated` to cancel the configured action.
 `DockConfig.itemLayout` defaults to `'dock'`, preserving the existing icon-first appearance and DOM. Opt into `'taskbar'` for horizontal top/bottom window buttons. `itemRenderer` customizes only the content inside each managed `.dp-dock-item`; DeskPane continues to own activation, drag reorder, active classes, keyboard handling, and window previews.
 
 ```typescript

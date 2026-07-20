@@ -1,5 +1,5 @@
 import { WindowManager } from '../../dist/deskpane.es.js';
-import { Desktop } from '../../dist/deskpane-desktop.es.js';
+import { Desktop, SystemTray } from '../../dist/deskpane-desktop.es.js';
 import { ContextMenu, StartMenu } from '../../dist/deskpane-menu.es.js';
 
 const root = document.getElementById('desktop-root');
@@ -35,22 +35,24 @@ function createStartButton() {
   return button;
 }
 
-function createTray() {
-  const tray = document.createElement('div');
-  tray.className = 'win7-tray';
-  tray.setAttribute('aria-label', 'System tray');
-
-  const clock = document.createElement('time');
-  clock.id = 'win7-clock';
-  clock.className = 'win7-clock';
-  tray.appendChild(clock);
-
-  return { element: tray, clock };
-}
-
 const startButton = createStartButton();
-const tray = createTray();
-const clock = tray.clock;
+const tray = new SystemTray({
+  items: [
+    { id: 'network', label: 'Network connected', icon: '↔', badge: 2, action: () => openApp('network') },
+    { id: 'volume', label: 'Volume', icon: '♪', action: () => openApp('settings') },
+    {
+      id: 'clock',
+      label: 'Current time',
+      interactive: false,
+      renderer: () => {
+        const clock = document.createElement('time');
+        clock.className = 'win7-clock';
+        return clock;
+      },
+    },
+  ],
+});
+tray.getElement().classList.add('win7-tray');
 
 const desktop = new Desktop({
   container: root,
@@ -64,7 +66,7 @@ const desktop = new Desktop({
     itemLayout: 'taskbar',
     items: [],
     leading: startButton,
-    trailing: tray.element,
+    trailing: tray.getElement(),
   },
   icons: [
     { id: 'icon-computer', label: 'Computer', icon: icon('computer'), x: 28, y: 22, action: () => openApp('computer') },
@@ -284,7 +286,7 @@ function makeSettings() {
       el('input', { type: 'number', min: '0', max: '48', value: '0', oninput: event => wm.setSnapGap(Number(event.target.value) || 0) }),
     ]),
 
-    el('p', {}, ['這個 demo 使用官方 StartMenu、ContextMenu 與 Dock leading/trailing slots；Start、執行中視窗和系統時鐘都由 DeskPane Dock 管理。']),
+    el('p', {}, ['這個 demo 使用官方 StartMenu、ContextMenu、SystemTray 與 Dock slots；Start、執行中視窗、狀態圖示和時鐘都由 DeskPane 管理。']),
   ]);
 }
 
@@ -323,7 +325,8 @@ function createMonitorRows() {
 }
 
 function updateClock() {
-  clock.textContent = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' }).format(new Date());
+  const clock = tray.getItemElement('clock')?.querySelector('.win7-clock');
+  if (clock) clock.textContent = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' }).format(new Date());
 }
 
 

@@ -15,6 +15,7 @@ videos/
 
 # ── Local/private project notes ──────────────────
 PROJECT_STATUS.md
+.project-compass/
 
 # ── Vite cache (moved to os.tmpdir() but just in case) ──
 .vite/

@@ -140,23 +140,32 @@ body { background: #245ec7; color: #1f1f1f; font: 13px Tahoma, "Segoe UI", Arial
 .xp-shell .dp-dock-label { min-width: 0; margin: 0; overflow: hidden; color: #fff; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 
 .xp-tray {
+  --dp-tray-gap: 2px;
+  --dp-tray-item-size: 20px;
   position: relative;
   z-index: 2;
   display: flex;
+  box-sizing: border-box;
   width: 130px;
   flex: 0 0 130px;
   align-items: center;
   justify-content: flex-end;
-  gap: 5px;
-  padding: 0 9px 0 8px;
+  padding: 0 8px;
   border-left: 1px solid #0f4eb3;
   background: linear-gradient(#19a4ed, #0c88d6 88%, #0876c1);
   box-shadow: inset 1px 1px rgba(115,215,255,.72);
   color: #fff;
   text-shadow: 1px 1px #0b5894;
 }
-.xp-tray-icon { display: grid; width: 18px; height: 18px; place-items: center; font-size: 12px; }
-.xp-clock { margin-left: 3px; font-size: 11px; white-space: nowrap; }
+.xp-tray .dp-system-tray-item { color: #fff; }
+.xp-tray .dp-system-tray-item:hover { background: rgba(255,255,255,.14); }
+.xp-tray .dp-system-tray-icon { font-size: 12px; }
+.xp-tray .dp-system-tray-item[data-id="clock"] {
+  width: 70px;
+  flex-basis: 70px;
+  padding-inline: 2px;
+}
+.xp-clock { font-size: 11px; white-space: nowrap; }
 
 .xp-shell .dp-body { overflow: hidden; }
 .xp-shell .dp-window .dp-title { display: flex; align-items: center; gap: 5px; }
@@ -235,7 +244,7 @@ body { background: #245ec7; color: #1f1f1f; font: 13px Tahoma, "Segoe UI", Arial
   .xp-shell .dp-dock-items { padding-inline: 3px; }
   .xp-shell .dp-dock-label { display: none; }
   .xp-tray { width: 94px; flex-basis: 94px; padding-inline: 5px; }
-  .xp-tray-icon { display: none; }
+  .xp-tray .dp-system-tray-item:not([data-id="clock"]) { display: none; }
   .xp-explorer-content { grid-template-columns: 1fr; }
   .xp-tasks { display: none; }
   .xp-folder-grid, .xp-control-grid { grid-template-columns: 1fr; }

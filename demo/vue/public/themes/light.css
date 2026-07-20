@@ -34,6 +34,11 @@
   --dp-dock-backdrop-filter: blur(4px);
   --dp-dock-border:          rgba(0, 0, 0, 0.12);
   --dp-dock-item-hover-bg:   rgba(0, 0, 0, 0.08);
+  /* Optional SystemTray */
+  --dp-tray-item-color:       #172033;
+  --dp-tray-item-hover-bg:    rgba(37, 99, 235, 0.10);
+  --dp-tray-focus-ring:       #2563eb;
+  --dp-tray-badge-bg:         #dc2626;
   --dp-font:                 system-ui, -apple-system, sans-serif;
 
   /* Optional Menu module */

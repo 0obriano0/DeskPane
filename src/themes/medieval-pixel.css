@@ -38,6 +38,11 @@
   --dp-dock-backdrop-filter:        none;
   --dp-dock-border:                 rgba(215, 170, 84, 0.42);
   --dp-dock-item-hover-bg:          rgba(215, 170, 84, 0.22);
+  /* Optional SystemTray */
+  --dp-tray-item-color:              #fff0c2;
+  --dp-tray-item-hover-bg:           rgba(215, 170, 84, 0.22);
+  --dp-tray-focus-ring:              #f1c45c;
+  --dp-tray-badge-bg:                #8b1e16;
   --dp-font:                        Georgia, "Times New Roman", serif;
 
   /* Optional Menu module */

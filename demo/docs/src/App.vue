@@ -95,7 +95,7 @@ const sidebarOpen = ref(false)
 
 const demoLinks = computed(() => [
   { label: 'GitHub', href: 'https://github.com/0obriano0/DeskPane', external: true, active: false },
-  { label: 'v0.3.2', href: 'https://github.com/0obriano0/DeskPane/releases', external: true, active: false },
+  { label: 'v0.3.3', href: 'https://github.com/0obriano0/DeskPane/releases', external: true, active: false },
 ])
 
 const PAGE_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {

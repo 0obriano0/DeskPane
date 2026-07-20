@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.3 - Unreleased
+## 0.3.3 - 2026-07-20
 
 ### Added
 
@@ -13,6 +13,7 @@
 - Added a demo-local XP-like showcase theme, an original XP-like desktop demo, Theme Editor quick-load support, documentation, and GitHub Pages discovery.
 - Added opt-in Dock `leading` and `trailing` slots with DOM Node/renderer content, dynamic replacement APIs, orientation-aware layout, and a scrollable center item strip.
 - Added opt-in Dock `itemRenderer` and `itemLayout: 'taskbar'`, runtime layout/renderer setters, taskbar CSS variables, and Enter/Space item activation while preserving the classic Dock default.
+- Added the optional `SystemTray` helper with typed command/status items, badges, custom renderers, runtime item APIs, accessible semantics, events, and themeable structural CSS for Dock trailing slots.
 
 ### Changed
 
@@ -22,6 +23,8 @@
 - Refactored the Win7 demo to use the official `StartMenu` and `ContextMenu` module, including a desktop right-click menu.
 - Refactored the Win7 demo taskbar to use the official Dock `leading` and `trailing` slots for its Start button and clock tray.
 - Refactored the XP-like demo to place its Start button and system tray directly inside the official Dock slots instead of overlaying a separate taskbar.
+- Refactored the Win7 and XP-like demo status areas to use the official `SystemTray` API while keeping their showcase styling demo-local.
+- Updated the bilingual Desktop developer docs and all framework samples with `SystemTray` usage, API methods, and events.
 - Refactored Win7 and XP-like running-window buttons to use the official taskbar item layout and CSS variables instead of duplicating structural item CSS.
 - Updated Theme Editor with opt-in Dock/taskbar preview controls and editable taskbar item sizing, spacing, padding, radius, and alignment variables.
 
