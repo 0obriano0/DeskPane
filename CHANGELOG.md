@@ -11,10 +11,13 @@
 - Added menu theme variables to the light, dark, Win7, XP-like, and Medieval Pixel presets plus a bilingual developer docs page with Vanilla, jQuery, Vue, and React examples.
 - Added direct DOM `Node` content and `iconRenderer(context)` to `DesktopIconConfig`, while preserving existing URL, inline SVG, and emoji strings.
 - Added the opt-in `xp` theme preset, an original XP-like desktop demo, Theme Editor quick-load support, documentation, and GitHub Pages discovery.
+- Added opt-in Dock `leading` and `trailing` slots with DOM Node/renderer content, dynamic replacement APIs, orientation-aware layout, and a scrollable center item strip.
 
 ### Changed
 
 - Refactored the Win7 demo to use the official `StartMenu` and `ContextMenu` module, including a desktop right-click menu.
+- Refactored the Win7 demo taskbar to use the official Dock `leading` and `trailing` slots for its Start button and clock tray.
+- Refactored the XP-like demo to place its Start button and system tray directly inside the official Dock slots instead of overlaying a separate taskbar.
 
 ### Fixed
 

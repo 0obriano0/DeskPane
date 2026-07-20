@@ -172,6 +172,64 @@
   overflow-x: hidden;
 }
 
+/* ── Optional Dock leading / center / trailing regions ─ */
+.dp-dock.dp-dock--slotted {
+  overflow: hidden;
+}
+.dp-dock-slot,
+.dp-dock-items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+}
+.dp-dock-slot {
+  flex: 0 0 auto;
+}
+.dp-dock-slot:empty {
+  display: none;
+}
+.dp-dock-items {
+  flex: 1 1 auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.dp-dock-items::-webkit-scrollbar {
+  display: none;
+}
+.dp-dock-bottom .dp-dock-slot,
+.dp-dock-top .dp-dock-slot,
+.dp-dock-bottom .dp-dock-items,
+.dp-dock-top .dp-dock-items {
+  height: 100%;
+  flex-direction: row;
+}
+.dp-dock-bottom .dp-dock-items,
+.dp-dock-top .dp-dock-items {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.dp-dock-left .dp-dock-slot,
+.dp-dock-right .dp-dock-slot,
+.dp-dock-left .dp-dock-items,
+.dp-dock-right .dp-dock-items {
+  width: 100%;
+  flex-direction: column;
+}
+.dp-dock-left .dp-dock-items,
+.dp-dock-right .dp-dock-items {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.dp-dock-left .dp-dock-trailing,
+.dp-dock-right .dp-dock-trailing {
+  margin-top: auto;
+}
+.dp-dock-slot > * {
+  flex-shrink: 0;
+}
+
 /* ── Dock item ───────────────────────────────────────── */
 .dp-dock-item {
   display: flex;

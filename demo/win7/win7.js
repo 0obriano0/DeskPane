@@ -4,8 +4,6 @@ import { ContextMenu, StartMenu } from '../../dist/deskpane-menu.es.js';
 
 const root = document.getElementById('desktop-root');
 const shell = document.getElementById('win7-root');
-const startButton = document.getElementById('start-button');
-const clock = document.getElementById('win7-clock');
 
 function icon(name) {
   const palettes = {
@@ -27,12 +25,46 @@ function icon(name) {
   </svg>`;
 }
 
+function createStartButton() {
+  const button = document.createElement('button');
+  button.id = 'start-button';
+  button.className = 'win7-start-button';
+  button.type = 'button';
+  button.setAttribute('aria-label', 'Open Start menu');
+  button.innerHTML = '<span aria-hidden="true"></span>Start';
+  return button;
+}
+
+function createTray() {
+  const tray = document.createElement('div');
+  tray.className = 'win7-tray';
+  tray.setAttribute('aria-label', 'System tray');
+
+  const clock = document.createElement('time');
+  clock.id = 'win7-clock';
+  clock.className = 'win7-clock';
+  tray.appendChild(clock);
+
+  return { element: tray, clock };
+}
+
+const startButton = createStartButton();
+const tray = createTray();
+const clock = tray.clock;
+
 const desktop = new Desktop({
   container: root,
   injectStyles: true,
   storageKey: 'dp-win7-demo',
   dragThreshold: 10,
-  dock: { position: 'bottom', showLabels: true, iconSize: 42, items: [] },
+  dock: {
+    position: 'bottom',
+    showLabels: true,
+    iconSize: 42,
+    items: [],
+    leading: startButton,
+    trailing: tray.element,
+  },
   icons: [
     { id: 'icon-computer', label: 'Computer', icon: icon('computer'), x: 28, y: 22, action: () => openApp('computer') },
     { id: 'icon-network', label: 'Network', icon: icon('network'), x: 28, y: 122, action: () => openApp('network') },
@@ -251,7 +283,7 @@ function makeSettings() {
       el('input', { type: 'number', min: '0', max: '48', value: '0', oninput: event => wm.setSnapGap(Number(event.target.value) || 0) }),
     ]),
 
-    el('p', {}, ['這個 demo 使用官方 StartMenu 與 ContextMenu 模組；玻璃 taskbar 仍由 demo 自訂，方便後續評估 Dock shell 擴充。']),
+    el('p', {}, ['這個 demo 使用官方 StartMenu、ContextMenu 與 Dock leading/trailing slots；Start、執行中視窗和系統時鐘都由 DeskPane Dock 管理。']),
   ]);
 }
 

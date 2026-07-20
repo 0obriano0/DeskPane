@@ -468,6 +468,24 @@ interface DockItemConfig {
     icon: string;
     action: () => void;
 }
+/** Dock slot position relative to the center item strip. */
+type DockSlotName = 'leading' | 'trailing';
+/** Context passed whenever a Dock slot renderer is invoked. */
+interface DockSlotRendererContext {
+    /** Slot being rendered. */
+    slot: DockSlotName;
+    /** Current Dock edge; useful for orientation-aware content. */
+    position: DockPosition;
+    /** Existing slot host element. Append content here or return a Node. */
+    container: HTMLElement;
+}
+/**
+ * Render custom Dock chrome such as a Start button, system tray, or clock.
+ * Return a Node, or append directly to `context.container` and return nothing.
+ */
+type DockSlotRenderer = (context: DockSlotRendererContext) => Node | null | undefined | void;
+/** Static DOM content or a renderer for one Dock edge slot. */
+type DockSlotContent = Node | DockSlotRenderer;
 /** Dock 停靠位置 */
 type DockPosition = 'bottom' | 'top' | 'left' | 'right';
 /** Dock 工具列設定 */
@@ -475,6 +493,10 @@ interface DockConfig {
     /** 停靠位置，預設 'bottom' */
     position?: DockPosition;
     items?: DockItemConfig[];
+    /** Content before the center item strip (left/top depending on Dock position). */
+    leading?: DockSlotContent;
+    /** Content after the center item strip (right/bottom depending on Dock position). */
+    trailing?: DockSlotContent;
     /** 圖示大小（px），預設 44 */
     iconSize?: number;
     /** 是否顯示文字標籤，預設 true */

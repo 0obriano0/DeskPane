@@ -42,17 +42,25 @@ body { font: 13px "Segoe UI", Tahoma, Arial, sans-serif; color: #10233b; backgro
 .win7-shell .dp-desktop-icon-area { bottom: 44px !important; }
 .win7-shell .dp-window-area { bottom: 44px !important; }
 .win7-shell .dp-dock.dp-dock-bottom {
-  left: 98px !important;
-  right: 92px !important;
+  left: 0 !important;
+  right: 0 !important;
   bottom: 0 !important;
   height: 44px !important;
-  padding: 5px 2px !important;
-  gap: 5px;
+  padding: 5px 10px !important;
+  gap: 4px;
   border: 0 !important;
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  border-top: 1px solid rgba(190,228,255,.72) !important;
+  background: linear-gradient(rgba(17, 83, 159, .82), rgba(3, 36, 101, .96)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22);
+  backdrop-filter: blur(12px) saturate(1.3) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.3) !important;
   z-index: 16000;
+}
+.win7-shell .dp-dock-leading,
+.win7-shell .dp-dock-trailing { height: 100%; }
+.win7-shell .dp-dock-items {
+  gap: 5px;
+  padding: 0 4px;
 }
 .win7-shell .dp-dock-item {
   width: 128px;
@@ -98,14 +106,6 @@ body { font: 13px "Segoe UI", Tahoma, Arial, sans-serif; color: #10233b; backgro
 
 .win7-shell .dp-body { overflow: hidden; }
 
-.win7-taskbar {
-  position: absolute; z-index: 15000; right: 0; bottom: 0; left: 0;
-  height: 44px; display: flex; align-items: center; gap: 8px; padding: 5px 10px;
-  border-top: 1px solid rgba(190,228,255,.72);
-  background: linear-gradient(rgba(17, 83, 159, .82), rgba(3, 36, 101, .96));
-  box-shadow: inset 0 1px rgba(255,255,255,.22);
-  backdrop-filter: blur(12px) saturate(1.3);
-}
 .win7-start-button {
   height: 34px; min-width: 80px; padding: 0 12px 0 8px; display: inline-flex; gap: 6px; align-items: center;
   border: 1px solid rgba(255,255,255,.72); border-radius: 5px;
@@ -115,7 +115,7 @@ body { font: 13px "Segoe UI", Tahoma, Arial, sans-serif; color: #10233b; backgro
 }
 .win7-start-button span { width: 18px; height: 18px; display: inline-block; border-radius: 4px; background: conic-gradient(#31a53a 0 25%, #f6c02f 0 50%, #2579da 0 75%, #db4437 0); }
 .win7-start-button.active { filter: brightness(.96); box-shadow: inset 0 2px 6px rgba(0,0,0,.22); }
-.taskbar-spacer { flex: 1; }
+.win7-tray { display: flex; width: 74px; height: 100%; flex: 0 0 74px; align-items: center; justify-content: flex-end; }
 .win7-clock { color: #fff; font-size: 12px; text-shadow: 0 1px 2px #001d46; }
 
 

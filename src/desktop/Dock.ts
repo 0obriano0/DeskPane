@@ -3,7 +3,13 @@
 // 工具列：支援圖示新增/移除 + 拖曳排序
 // ============================================================
 
-import { DockConfig, DockItemConfig, DockPosition } from './types.js';
+import {
+  DockConfig,
+  DockItemConfig,
+  DockPosition,
+  DockSlotContent,
+  DockSlotName,
+} from './types.js';
 import { appendIconContent } from './iconUtils.js';
 
 function resolveIconEl(icon: string, size: number): HTMLElement {
@@ -23,6 +29,8 @@ export class Dock {
   private _position: DockPosition;
   private readonly _iconSize: number;
   private readonly _showLabels: boolean;
+  private _leading: DockSlotContent | null;
+  private _trailing: DockSlotContent | null;
   private _dragSrcIndex = -1;
   private _activeId: string | null = null;
   private readonly _renderCallbacks = new Set<() => void>();
@@ -32,6 +40,8 @@ export class Dock {
     this._position = config.position ?? 'bottom';
     this._iconSize = config.iconSize ?? 44;
     this._showLabels = config.showLabels ?? true;
+    this._leading = config.leading ?? null;
+    this._trailing = config.trailing ?? null;
 
     this._el = document.createElement('div');
     this._el.className = `dp-dock dp-dock-${this._position}`;
@@ -41,11 +51,49 @@ export class Dock {
   // ── Private ───────────────────────────────────────────────
 
   private _render(): void {
-    this._el.innerHTML = '';
+    this._el.replaceChildren();
+
+    const hasSlots = this._hasSlots();
+    this._el.classList.toggle('dp-dock--slotted', hasSlots);
+
+    if (!hasSlots) {
+      this._items.forEach((item, index) => {
+        this._el.appendChild(this._createItemEl(item, index));
+      });
+      this._renderCallbacks.forEach(cb => cb());
+      return;
+    }
+
+    const leadingEl = this._createSlotEl('leading', this._leading);
+    const itemsEl = document.createElement('div');
+    itemsEl.className = 'dp-dock-items';
+    itemsEl.setAttribute('role', 'list');
     this._items.forEach((item, index) => {
-      this._el.appendChild(this._createItemEl(item, index));
+      itemsEl.appendChild(this._createItemEl(item, index));
     });
+
+    const trailingEl = this._createSlotEl('trailing', this._trailing);
+    this._el.append(leadingEl, itemsEl, trailingEl);
     this._renderCallbacks.forEach(cb => cb());
+  }
+
+  private _hasSlots(): boolean {
+    return this._leading !== null || this._trailing !== null;
+  }
+
+  private _createSlotEl(slot: DockSlotName, content: DockSlotContent | null): HTMLElement {
+    const el = document.createElement('div');
+    el.className = `dp-dock-slot dp-dock-${slot}`;
+    el.dataset.slot = slot;
+
+    if (typeof content === 'function') {
+      const rendered = content({ slot, position: this._position, container: el });
+      if (rendered instanceof Node) el.appendChild(rendered);
+    } else if (content instanceof Node) {
+      el.appendChild(content);
+    }
+
+    return el;
   }
 
   private _createItemEl(item: DockItemConfig, index: number): HTMLElement {
@@ -110,6 +158,7 @@ export class Dock {
         const [moved] = this._items.splice(this._dragSrcIndex, 1);
         this._items.splice(targetIndex, 0, moved);
         this._render();
+        if (this._activeId) this._applyActive(this._activeId);
       }
       this._dragSrcIndex = -1;
     });
@@ -159,6 +208,7 @@ export class Dock {
     if (idx !== -1) {
       this._items.splice(idx, 1);
       this._render();
+      if (this._activeId) this._applyActive(this._activeId);
     }
   }
 
@@ -172,6 +222,45 @@ export class Dock {
     this._el.classList.remove(`dp-dock-${this._position}`);
     this._position = position;
     this._el.classList.add(`dp-dock-${this._position}`);
+    if (this._hasSlots()) {
+      this._render();
+      if (this._activeId) this._applyActive(this._activeId);
+    }
+  }
+
+  /**
+   * Replace one optional Dock slot. Pass null to clear it.
+   * When both slots are clear, Dock restores the legacy direct-item DOM.
+   */
+  setSlot(slot: DockSlotName, content: DockSlotContent | null): void {
+    if (slot === 'leading') {
+      this._leading = content;
+    } else {
+      this._trailing = content;
+    }
+    this._render();
+    if (this._activeId) this._applyActive(this._activeId);
+  }
+
+  setLeading(content: DockSlotContent | null): void {
+    this.setSlot('leading', content);
+  }
+
+  setTrailing(content: DockSlotContent | null): void {
+    this.setSlot('trailing', content);
+  }
+
+  /** Return a slot host when slotted mode is active. */
+  getSlotElement(slot: DockSlotName): HTMLElement | null {
+    return this._el.querySelector<HTMLElement>(`:scope > .dp-dock-${slot}`);
+  }
+
+  /**
+   * Return the scrollable center item strip.
+   * Legacy mode returns the Dock root because items remain direct children.
+   */
+  getItemsElement(): HTMLElement {
+    return this._el.querySelector<HTMLElement>(':scope > .dp-dock-items') ?? this._el;
   }
 
   /** 取得特定 item 的 DOM 元素 */

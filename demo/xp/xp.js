@@ -4,8 +4,6 @@ import { ContextMenu, StartMenu } from '../../dist/deskpane-menu.es.js';
 
 const root = document.getElementById('desktop-root');
 const shell = document.getElementById('xp-shell');
-const startButton = document.getElementById('start-button');
-const clock = document.getElementById('xp-clock');
 
 function svgIcon(name) {
   const icons = {
@@ -26,12 +24,48 @@ function createIconNode(name) {
   return node;
 }
 
+function createStartButton() {
+  const button = document.createElement('button');
+  button.id = 'start-button';
+  button.className = 'xp-start-button';
+  button.type = 'button';
+  button.setAttribute('aria-label', 'Open Start menu');
+  button.innerHTML = '<span class="xp-start-mark" aria-hidden="true">DP</span><span>start</span>';
+  return button;
+}
+
+function createTray() {
+  const tray = document.createElement('div');
+  tray.className = 'xp-tray';
+  tray.setAttribute('aria-label', 'System tray');
+  tray.innerHTML = [
+    '<span class="xp-tray-icon" title="Network" aria-label="Network connected">↔</span>',
+    '<span class="xp-tray-icon" title="Volume" aria-label="Volume">♪</span>',
+    '<time class="xp-clock"></time>',
+  ].join('');
+  return {
+    element: tray,
+    clock: tray.querySelector('.xp-clock'),
+  };
+}
+
+const startButton = createStartButton();
+const tray = createTray();
+const clock = tray.clock;
+
 const desktop = new Desktop({
   container: root,
   injectStyles: true,
   storageKey: 'dp-xp-demo',
   dragThreshold: 10,
-  dock: { position: 'bottom', showLabels: true, iconSize: 30, items: [] },
+  dock: {
+    position: 'bottom',
+    showLabels: true,
+    iconSize: 30,
+    items: [],
+    leading: startButton,
+    trailing: tray.element,
+  },
   icons: [
     // Direct HTMLElement ownership remains stable until the item is removed.
     { id: 'icon-computer', label: 'My Computer', icon: createIconNode('computer'), x: 22, y: 18, action: () => openApp('computer') },

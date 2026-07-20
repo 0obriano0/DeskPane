@@ -57,6 +57,7 @@ DeskPane is:
 ### Desktop Module (`deskpane/desktop`)
 - ✅ Virtual desktop with draggable icons and localStorage snap positions
 - ✅ **Wijmo-style `itemsSource`** — bind desktop icons to arrays or `DesktopCollectionView`
+- ✅ Optional Dock `leading` / `trailing` slots for Start buttons, clocks, and system tray content
 - ✅ Desktop icon events — `items:changed`, `icon:moved`, `icon:activated`, and more
 - ✅ Dock with frosted-glass backdrop-filter, drag reorder
 - ✅ **Windows-style group thumbnail preview** — hover Dock item to see live window thumbnails
@@ -688,11 +689,59 @@ desktop.getDesktopElement()
 | `icons` | `DesktopIconConfig[]` | `[]` | Initial desktop icons |
 | `itemsSource` | `DesktopIconConfig[] \| DesktopCollectionView` | `icons ?? []` | Wijmo-style data source for desktop icons |
 
+### Dock leading and trailing slots
+
+`DockConfig.leading` and `DockConfig.trailing` accept either a DOM `Node` or a renderer. Use them for shell chrome that should stay outside the scrollable running-window items, such as a Start button, clock, or system tray.
+
+```typescript
+const startButton = document.createElement('button')
+startButton.className = 'start-button'
+startButton.textContent = 'Start'
+
+const tray = document.createElement('div')
+tray.className = 'system-tray'
+tray.innerHTML = '<span>Network</span><time>12:30</time>'
+
+const desktop = new Desktop({
+  container: document.getElementById('root')!,
+  dock: {
+    position: 'bottom',
+    items: [],
+    leading: startButton,
+    trailing: ({ position, container }) => {
+      container.dataset.position = position
+      return tray
+    },
+  },
+})
+```
+
+With either slot enabled, Dock renders three stable regions:
+
+```text
+[.dp-dock-leading] [.dp-dock-items........] [.dp-dock-trailing]
+```
+
+The center `.dp-dock-items` region owns scrolling, so leading and trailing controls remain visible. For left and right Docks, the same regions flow from top to bottom. When neither slot is configured, DeskPane preserves the legacy DOM and keeps every `.dp-dock-item` as a direct Dock child.
+
+A renderer runs again whenever Dock rebuilds or changes position. Return a fresh Node when appropriate, or pass a persistent Node directly. Do not share one Node between both slots.
+
+### Dock Methods
+
+| Method | Description |
+|--------|-------------|
+| `dock.setSlot('leading' \| 'trailing', content)` | Replace one slot dynamically; pass `null` to clear it |
+| `dock.setLeading(content)` | Replace or clear the leading slot |
+| `dock.setTrailing(content)` | Replace or clear the trailing slot |
+| `dock.getSlotElement(name)` | Get the current slot host, or `null` in legacy mode |
+| `dock.getItemsElement()` | Get the scrollable center strip; returns the Dock root in legacy mode |
+
 ### Desktop icon content and custom rendering
 
 `DesktopIconConfig.icon` keeps the existing URL, inline SVG, and emoji behavior, and also accepts a real DOM `Node`. Use `iconRenderer` when each refresh should create fresh content or when rendering Canvas, Web Components, or eventful HTML.
 
 ```typescript
+
 const statusIcon = document.createElement('span')
 statusIcon.className = 'status-icon'
 statusIcon.textContent = '42'

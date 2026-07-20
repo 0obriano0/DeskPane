@@ -417,6 +417,24 @@ interface DockItemConfig {
     icon: string;
     action: () => void;
 }
+/** Dock slot position relative to the center item strip. */
+type DockSlotName = 'leading' | 'trailing';
+/** Context passed whenever a Dock slot renderer is invoked. */
+interface DockSlotRendererContext {
+    /** Slot being rendered. */
+    slot: DockSlotName;
+    /** Current Dock edge; useful for orientation-aware content. */
+    position: DockPosition;
+    /** Existing slot host element. Append content here or return a Node. */
+    container: HTMLElement;
+}
+/**
+ * Render custom Dock chrome such as a Start button, system tray, or clock.
+ * Return a Node, or append directly to `context.container` and return nothing.
+ */
+type DockSlotRenderer = (context: DockSlotRendererContext) => Node | null | undefined | void;
+/** Static DOM content or a renderer for one Dock edge slot. */
+type DockSlotContent = Node | DockSlotRenderer;
 /** WindowManager 事件資料（最小需求） */
 interface DockSyncWindowEvent {
     id: string;
@@ -501,6 +519,10 @@ interface DockConfig {
     /** 停靠位置，預設 'bottom' */
     position?: DockPosition;
     items?: DockItemConfig[];
+    /** Content before the center item strip (left/top depending on Dock position). */
+    leading?: DockSlotContent;
+    /** Content after the center item strip (right/bottom depending on Dock position). */
+    trailing?: DockSlotContent;
     /** 圖示大小（px），預設 44 */
     iconSize?: number;
     /** 是否顯示文字標籤，預設 true */
@@ -550,11 +572,15 @@ declare class Dock {
     private _position;
     private readonly _iconSize;
     private readonly _showLabels;
+    private _leading;
+    private _trailing;
     private _dragSrcIndex;
     private _activeId;
     private readonly _renderCallbacks;
     constructor(config?: DockConfig);
     private _render;
+    private _hasSlots;
+    private _createSlotEl;
     private _createItemEl;
     private _clearDragover;
     addItem(item: DockItemConfig): void;
@@ -571,6 +597,20 @@ declare class Dock {
     getItems(): DockItemConfig[];
     /** 動態變更 Dock 停靠位置 */
     setPosition(position: DockPosition): void;
+    /**
+     * Replace one optional Dock slot. Pass null to clear it.
+     * When both slots are clear, Dock restores the legacy direct-item DOM.
+     */
+    setSlot(slot: DockSlotName, content: DockSlotContent | null): void;
+    setLeading(content: DockSlotContent | null): void;
+    setTrailing(content: DockSlotContent | null): void;
+    /** Return a slot host when slotted mode is active. */
+    getSlotElement(slot: DockSlotName): HTMLElement | null;
+    /**
+     * Return the scrollable center item strip.
+     * Legacy mode returns the Dock root because items remain direct children.
+     */
+    getItemsElement(): HTMLElement;
     /** 取得特定 item 的 DOM 元素 */
     getItemElement(id: string): HTMLElement | null;
     /** 取得目前 Dock 停靠位置 */

@@ -44,6 +44,27 @@
       </tbody>
     </table>
 
+    <h2>{{ t('desktop.h2DockConfig') }}</h2>
+    <p v-html="t('desktop.dockConfigDesc')"></p>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>{{ t('desktop.col.option') }}</th>
+          <th>{{ t('desktop.col.type') }}</th>
+          <th>{{ t('wmopt.col.default') }}</th>
+          <th>{{ t('desktop.col.desc') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>position</code></td><td><code>DockPosition</code></td><td><code>'bottom'</code></td><td v-html="t('desktop.dockConf.position')"></td></tr>
+        <tr><td><code>items</code></td><td><code>DockItemConfig[]</code></td><td><code>[]</code></td><td v-html="t('desktop.dockConf.items')"></td></tr>
+        <tr><td><code>leading</code></td><td><code>Node | DockSlotRenderer</code></td><td><code>undefined</code></td><td v-html="t('desktop.dockConf.leading')"></td></tr>
+        <tr><td><code>trailing</code></td><td><code>Node | DockSlotRenderer</code></td><td><code>undefined</code></td><td v-html="t('desktop.dockConf.trailing')"></td></tr>
+        <tr><td><code>iconSize</code></td><td><code>number</code></td><td><code>44</code></td><td v-html="t('desktop.dockConf.iconSize')"></td></tr>
+        <tr><td><code>showLabels</code></td><td><code>boolean</code></td><td><code>true</code></td><td v-html="t('desktop.dockConf.showLabels')"></td></tr>
+      </tbody>
+    </table>
+
     <h2>{{ t('desktop.h2AddIcon') }}</h2>
     <table class="api-table">
       <thead>
@@ -94,6 +115,11 @@
       <tbody>
         <tr><td><code>dock.addItemAt(item, index)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.addItemAt')"></td></tr>
         <tr><td><code>dock.onRender(cb)</code></td><td><code>() => void</code></td><td v-html="t('desktop.dock.onRender')"></td></tr>
+        <tr><td><code>dock.setSlot(name, content)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.setSlot')"></td></tr>
+        <tr><td><code>dock.setLeading(content)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.setLeading')"></td></tr>
+        <tr><td><code>dock.setTrailing(content)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.setTrailing')"></td></tr>
+        <tr><td><code>dock.getSlotElement(name)</code></td><td><code>HTMLElement | null</code></td><td v-html="t('desktop.dock.getSlotElement')"></td></tr>
+        <tr><td><code>dock.getItemsElement()</code></td><td><code>HTMLElement</code></td><td v-html="t('desktop.dock.getItemsElement')"></td></tr>
       </tbody>
     </table>
 
@@ -148,15 +174,40 @@ const samples = [
   { id: 'react', label: 'React 18', description: 'Use Desktop as the shell and render React window content with createPortal.' },
 ] as const
 
+function createLiveDockControl(label: string) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.textContent = label
+  button.style.cssText = 'height:34px;padding:0 10px;border:1px solid rgba(255,255,255,.3);border-radius:4px;background:#087f9b;color:#fff;font:600 11px system-ui;cursor:pointer;'
+  button.addEventListener('click', addDemoIcon)
+  return button
+}
+
+function createLiveDockStatus() {
+  const status = document.createElement('div')
+  status.style.cssText = 'display:flex;height:34px;align-items:center;gap:5px;padding:0 9px;border-left:1px solid rgba(255,255,255,.18);color:#fff;font:11px system-ui;white-space:nowrap;'
+  status.innerHTML = '<span aria-label="Online">●</span><time>12:30</time>'
+  return status
+}
+
+function createLiveDockConfig() {
+  return {
+    position: 'bottom' as const,
+    items: [],
+    leading: () => createLiveDockControl('+ App'),
+    trailing: createLiveDockStatus(),
+  }
+}
 function initDesktop() {
   const container = viewport.value?.container
   if (!container) return
   desktop = new Desktop({
     container,
+
     dragThreshold: 6,
     iconSnap: true,
     iconSnapThreshold: 20,
-    dock: { position: 'bottom', items: [] },
+    dock: createLiveDockConfig(),
   })
   wm = new WindowManager({ container: desktop.getElement(), isolated: true, snap: true, snapGap: 4 })
   desktop.syncDockWithWindows(wm)
@@ -199,7 +250,12 @@ function setCodeForSample() {
         name: 'jquery-desktop.js',
         lang: 'javascript',
         code: `$('#desktop').dpDesktop({
-  dock: { position: 'bottom', items: [] },
+  dock: {
+    position: 'bottom',
+    items: [],
+    leading: $('<button>', { text: 'Start' })[0],
+    trailing: $('<time>', { text: '12:30' })[0],
+  },
   icons: [
     {
       id: 'notepad',
@@ -253,7 +309,14 @@ const { windows, openVueWindow, wm } = useWindowManager({ isolated: true })
 onMounted(() => {
   const desktop = new Desktop({
     container: desktopRoot.value!,
-    dock: { position: 'bottom', items: [] },
+    dock: {
+      position: 'bottom',
+      items: [],
+      leading: () => Object.assign(document.createElement('button'),
+        { textContent: 'Start' }),
+      trailing: () => Object.assign(document.createElement('time'),
+        { textContent: '12:30' }),
+    },
     icons: [{
       id: 'notepad',
       label: 'Notepad',
@@ -292,7 +355,14 @@ export default function ReactDesktop() {
   useEffect(() => {
     const desktop = new Desktop({
       container: rootRef.current!,
-      dock: { position: 'bottom', items: [] },
+      dock: {
+        position: 'bottom',
+        items: [],
+        leading: () => Object.assign(document.createElement('button'),
+          { textContent: 'Start' }),
+        trailing: () => Object.assign(document.createElement('time'),
+          { textContent: '12:30' }),
+      },
       icons: [{
         id: 'notepad',
         label: 'Notepad',
@@ -333,7 +403,14 @@ import { WindowManager } from 'deskpane'
 // 1. Create the desktop
 const desktop = new Desktop({
   container: document.getElementById('root')!,
-  dock: { position: 'bottom', items: [] },
+  dock: {
+    position: 'bottom',
+    items: [],
+    leading: () => Object.assign(document.createElement('button'),
+      { textContent: 'Start' }),
+    trailing: () => Object.assign(document.createElement('time'),
+      { textContent: '12:30' }),
+  },
   iconSnap: true,
   dragThreshold: 6,
 })
