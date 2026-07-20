@@ -152,6 +152,12 @@
     '--dp-dock-bg': 'Dock 背景',
     '--dp-dock-backdrop-filter': 'Dock 模糊效果',
     '--dp-dock-border': 'Dock 邊框',
+    '--dp-taskbar-item-width': '工作列按鈕寬度',
+    '--dp-taskbar-item-height': '工作列按鈕高度',
+    '--dp-taskbar-item-gap': '工作列按鈕間距',
+    '--dp-taskbar-item-padding': '工作列按鈕內距',
+    '--dp-taskbar-item-radius': '工作列按鈕圓角',
+    '--dp-taskbar-item-justify': '工作列內容對齊',
     '--dp-font': '介面字體',
     '--dp-desktop-icon-hover-bg': '桌面圖示滑過',
     '--dp-dock-item-hover-bg': 'Dock 項目滑過'
@@ -176,7 +182,7 @@
     },
     {
       title: '桌面與 Dock', hint: '桌面背景與快捷列', icon: 'monitor',
-      vars: ['--dp-desktop-bg', '--dp-desktop-icon-text', '--dp-dock-bg', '--dp-dock-backdrop-filter', '--dp-dock-border', '--dp-desktop-icon-hover-bg', '--dp-dock-item-hover-bg']
+      vars: ['--dp-desktop-bg', '--dp-desktop-icon-text', '--dp-dock-bg', '--dp-dock-backdrop-filter', '--dp-dock-border', '--dp-taskbar-item-width', '--dp-taskbar-item-height', '--dp-taskbar-item-gap', '--dp-taskbar-item-padding', '--dp-taskbar-item-radius', '--dp-taskbar-item-justify', '--dp-desktop-icon-hover-bg', '--dp-dock-item-hover-bg']
     },
     {
       title: '字體', hint: '全域介面字體', icon: 'text-aa',

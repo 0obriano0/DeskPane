@@ -2,7 +2,7 @@
 // 將 src/themes/ 下的 CSS 檔案複製到 dist/themes/ 及各 demo 的 public/themes/
 // 將 src/styles/ 下的 CSS 檔案複製到 dist/styles/
 
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -33,9 +33,15 @@ const targets = [
   join(root, 'demo', 'react', 'public', 'themes'),
 ];
 
+const themeCssFiles = readdirSync(src).filter((name) => name.endsWith('.css'));
+const themeCssSet = new Set(themeCssFiles);
+
 for (const dest of targets) {
   mkdirSync(dest, { recursive: true });
-  for (const file of readdirSync(src).filter((name) => name.endsWith('.css'))) {
+  for (const file of readdirSync(dest).filter((name) => name.endsWith('.css') && !themeCssSet.has(name))) {
+    retrySync(() => unlinkSync(join(dest, file)));
+  }
+  for (const file of themeCssFiles) {
     retrySync(() => copyFileSync(join(src, file), join(dest, file)));
   }
   const assetsSrc = join(src, 'assets');

@@ -6,6 +6,8 @@
 import {
   DockConfig,
   DockItemConfig,
+  DockItemLayout,
+  DockItemRenderer,
   DockPosition,
   DockSlotContent,
   DockSlotName,
@@ -29,6 +31,8 @@ export class Dock {
   private _position: DockPosition;
   private readonly _iconSize: number;
   private readonly _showLabels: boolean;
+  private _itemLayout: DockItemLayout;
+  private _itemRenderer: DockItemRenderer | null;
   private _leading: DockSlotContent | null;
   private _trailing: DockSlotContent | null;
   private _dragSrcIndex = -1;
@@ -40,11 +44,14 @@ export class Dock {
     this._position = config.position ?? 'bottom';
     this._iconSize = config.iconSize ?? 44;
     this._showLabels = config.showLabels ?? true;
+    this._itemLayout = config.itemLayout ?? 'dock';
+    this._itemRenderer = config.itemRenderer ?? null;
     this._leading = config.leading ?? null;
     this._trailing = config.trailing ?? null;
 
     this._el = document.createElement('div');
     this._el.className = `dp-dock dp-dock-${this._position}`;
+    this._syncItemLayoutClass();
     this._render();
   }
 
@@ -77,6 +84,10 @@ export class Dock {
     this._renderCallbacks.forEach(cb => cb());
   }
 
+  private _syncItemLayoutClass(): void {
+    this._el.classList.toggle('dp-dock--taskbar', this._itemLayout === 'taskbar');
+  }
+
   private _hasSlots(): boolean {
     return this._leading !== null || this._trailing !== null;
   }
@@ -96,14 +107,7 @@ export class Dock {
     return el;
   }
 
-  private _createItemEl(item: DockItemConfig, index: number): HTMLElement {
-    const el = document.createElement('div');
-    el.className = 'dp-dock-item';
-    el.draggable = true;
-    el.dataset.index = String(index);
-    el.dataset.id = item.id;
-    el.title = '';   // 使用自訂 tooltip，避免瀏覽器原生 title
-
+  private _renderDefaultItemContent(el: HTMLElement, item: DockItemConfig): void {
     el.appendChild(resolveIconEl(item.icon, this._iconSize));
 
     if (this._showLabels) {
@@ -111,15 +115,57 @@ export class Dock {
       label.className = 'dp-dock-label';
       label.textContent = item.label;
       el.appendChild(label);
+      return;
+    }
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'dp-dock-tooltip';
+    tooltip.textContent = item.label;
+    el.appendChild(tooltip);
+  }
+
+  private _createItemEl(item: DockItemConfig, index: number): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'dp-dock-item';
+    el.draggable = true;
+    el.dataset.index = String(index);
+    el.dataset.id = item.id;
+    el.title = '';   // 使用自訂 tooltip，避免瀏覽器原生 title
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', item.label);
+
+    let defaultRendered = false;
+    const renderDefault = () => {
+      if (defaultRendered) return;
+      defaultRendered = true;
+      this._renderDefaultItemContent(el, item);
+    };
+    if (this._itemRenderer) {
+      const rendered = this._itemRenderer({
+        item,
+        index,
+        position: this._position,
+        layout: this._itemLayout,
+        container: el,
+        renderDefault,
+      });
+      if (rendered instanceof Node && rendered !== el && !el.contains(rendered)) {
+        el.appendChild(rendered);
+      }
     } else {
-      const tooltip = document.createElement('div');
-      tooltip.className = 'dp-dock-tooltip';
-      tooltip.textContent = item.label;
-      el.appendChild(tooltip);
+      renderDefault();
     }
 
     // Click
-    el.addEventListener('click', () => item.action());
+    el.addEventListener('click', event => {
+      if (!event.defaultPrevented) item.action();
+    });
+    el.addEventListener('keydown', event => {
+      if (event.target !== el || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      item.action();
+    });
 
     // ── HTML5 Drag-to-reorder ─────────────────────────────
     el.addEventListener('dragstart', (e) => {
@@ -222,10 +268,31 @@ export class Dock {
     this._el.classList.remove(`dp-dock-${this._position}`);
     this._position = position;
     this._el.classList.add(`dp-dock-${this._position}`);
-    if (this._hasSlots()) {
+    if (this._hasSlots() || this._itemRenderer !== null) {
       this._render();
       if (this._activeId) this._applyActive(this._activeId);
     }
+  }
+
+  /** Switch between the classic Dock arrangement and a horizontal taskbar button layout. */
+  setItemLayout(layout: DockItemLayout): void {
+    if (layout === this._itemLayout) return;
+    this._itemLayout = layout;
+    this._syncItemLayoutClass();
+    this._render();
+    if (this._activeId) this._applyActive(this._activeId);
+  }
+
+  getItemLayout(): DockItemLayout {
+    return this._itemLayout;
+  }
+
+  /** Replace the custom item content renderer. Pass null to restore built-in content. */
+  setItemRenderer(renderer: DockItemRenderer | null): void {
+    if (renderer === this._itemRenderer) return;
+    this._itemRenderer = renderer;
+    this._render();
+    if (this._activeId) this._applyActive(this._activeId);
   }
 
   /**

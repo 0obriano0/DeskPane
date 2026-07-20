@@ -58,6 +58,8 @@
       <tbody>
         <tr><td><code>position</code></td><td><code>DockPosition</code></td><td><code>'bottom'</code></td><td v-html="t('desktop.dockConf.position')"></td></tr>
         <tr><td><code>items</code></td><td><code>DockItemConfig[]</code></td><td><code>[]</code></td><td v-html="t('desktop.dockConf.items')"></td></tr>
+        <tr><td><code>itemLayout</code></td><td><code>'dock' | 'taskbar'</code></td><td><code>'dock'</code></td><td v-html="t('desktop.dockConf.itemLayout')"></td></tr>
+        <tr><td><code>itemRenderer</code></td><td><code>DockItemRenderer</code></td><td><code>undefined</code></td><td v-html="t('desktop.dockConf.itemRenderer')"></td></tr>
         <tr><td><code>leading</code></td><td><code>Node | DockSlotRenderer</code></td><td><code>undefined</code></td><td v-html="t('desktop.dockConf.leading')"></td></tr>
         <tr><td><code>trailing</code></td><td><code>Node | DockSlotRenderer</code></td><td><code>undefined</code></td><td v-html="t('desktop.dockConf.trailing')"></td></tr>
         <tr><td><code>iconSize</code></td><td><code>number</code></td><td><code>44</code></td><td v-html="t('desktop.dockConf.iconSize')"></td></tr>
@@ -114,6 +116,9 @@
       </thead>
       <tbody>
         <tr><td><code>dock.addItemAt(item, index)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.addItemAt')"></td></tr>
+        <tr><td><code>dock.setItemLayout(layout)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.setItemLayout')"></td></tr>
+        <tr><td><code>dock.getItemLayout()</code></td><td><code>DockItemLayout</code></td><td v-html="t('desktop.dock.getItemLayout')"></td></tr>
+        <tr><td><code>dock.setItemRenderer(renderer)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.setItemRenderer')"></td></tr>
         <tr><td><code>dock.onRender(cb)</code></td><td><code>() => void</code></td><td v-html="t('desktop.dock.onRender')"></td></tr>
         <tr><td><code>dock.setSlot(name, content)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.setSlot')"></td></tr>
         <tr><td><code>dock.setLeading(content)</code></td><td><code>void</code></td><td v-html="t('desktop.dock.setLeading')"></td></tr>
@@ -150,7 +155,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { Desktop } from '@deskpane/desktop'
+import { Desktop, type DockItemRendererContext } from '@deskpane/desktop'
 import { WindowManager } from '@deskpane/core/WindowManager'
 import DemoViewport from '../components/DemoViewport.vue'
 import DocSampleLayout from '../components/DocSampleLayout.vue'
@@ -190,9 +195,21 @@ function createLiveDockStatus() {
   return status
 }
 
+function renderLiveDockItem({ item, container, renderDefault }: DockItemRendererContext) {
+  renderDefault()
+  const running = document.createElement('span')
+  running.setAttribute('aria-label', `${item.label} running`)
+  running.title = 'Running'
+  running.style.cssText = 'width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#55d98b;box-shadow:0 0 0 2px rgba(85,217,139,.18);'
+  container.appendChild(running)
+}
+
+
 function createLiveDockConfig() {
   return {
     position: 'bottom' as const,
+    itemLayout: 'taskbar' as const,
+    itemRenderer: renderLiveDockItem,
     items: [],
     leading: () => createLiveDockControl('+ App'),
     trailing: createLiveDockStatus(),
@@ -252,6 +269,11 @@ function setCodeForSample() {
         code: `$('#desktop').dpDesktop({
   dock: {
     position: 'bottom',
+    itemLayout: 'taskbar',
+    itemRenderer: function ({ container, renderDefault }) {
+      renderDefault()
+      return $('<span>', { text: '●', title: 'Running' }).css('color', '#4ade80')[0]
+    },
     items: [],
     leading: $('<button>', { text: 'Start' })[0],
     trailing: $('<time>', { text: '12:30' })[0],
@@ -311,6 +333,15 @@ onMounted(() => {
     container: desktopRoot.value!,
     dock: {
       position: 'bottom',
+      itemLayout: 'taskbar',
+      itemRenderer: ({ renderDefault }) => {
+        renderDefault()
+        const running = document.createElement('span')
+        running.textContent = '●'
+        running.title = 'Running'
+        running.style.color = '#4ade80'
+        return running
+      },
       items: [],
       leading: () => Object.assign(document.createElement('button'),
         { textContent: 'Start' }),
@@ -357,6 +388,15 @@ export default function ReactDesktop() {
       container: rootRef.current!,
       dock: {
         position: 'bottom',
+        itemLayout: 'taskbar',
+        itemRenderer: ({ renderDefault }) => {
+          renderDefault()
+          const running = document.createElement('span')
+          running.textContent = '●'
+          running.title = 'Running'
+          running.style.color = '#4ade80'
+          return running
+        },
         items: [],
         leading: () => Object.assign(document.createElement('button'),
           { textContent: 'Start' }),
@@ -405,6 +445,15 @@ const desktop = new Desktop({
   container: document.getElementById('root')!,
   dock: {
     position: 'bottom',
+    itemLayout: 'taskbar',
+    itemRenderer: ({ renderDefault }) => {
+      renderDefault()
+      const running = document.createElement('span')
+      running.textContent = '●'
+      running.title = 'Running'
+      running.style.color = '#4ade80'
+      return running
+    },
     items: [],
     leading: () => Object.assign(document.createElement('button'),
       { textContent: 'Start' }),

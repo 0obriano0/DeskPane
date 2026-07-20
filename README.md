@@ -58,6 +58,7 @@ DeskPane is:
 - ✅ Virtual desktop with draggable icons and localStorage snap positions
 - ✅ **Wijmo-style `itemsSource`** — bind desktop icons to arrays or `DesktopCollectionView`
 - ✅ Optional Dock `leading` / `trailing` slots for Start buttons, clocks, and system tray content
+- ✅ Optional Dock `itemRenderer` and taskbar button layout with keyboard activation
 - ✅ Desktop icon events — `items:changed`, `icon:moved`, `icon:activated`, and more
 - ✅ Dock with frosted-glass backdrop-filter, drag reorder
 - ✅ **Windows-style group thumbnail preview** — hover Dock item to see live window thumbnails
@@ -75,7 +76,7 @@ DeskPane is:
 
 ### Layouts & Theming
 - ✅ **BorderLayout** — N/S/E/W/Center docking layout, collapsible panels, draggable splitters
-- ✅ **Theme system** — `setTheme('light' | 'dark' | 'win7' | 'xp' | 'medieval-pixel')`, CSS custom properties, and opt-in window chrome presets
+- ✅ **Theme system** — bundled light/dark themes, CSS custom properties, custom theme names or direct CSS paths, plus legacy `medieval-pixel` compatibility
 - ✅ Vue 3 adapter — `useWindowManager`, `DpDesktop`, `DpDesktopIcon`, `DpWindowManager`, `DpWindow`
 - ✅ React 18 adapter — `useWindowManager` hook + `createPortal` support
 
@@ -507,7 +508,9 @@ wm.events.on('window:child-closed', ({ parentId, childId }) => { })
 
 ## Theming
 
-Built-in `dist/themes/light.css`, `dist/themes/dark.css`, `dist/themes/win7.css`, `dist/themes/xp.css`, and `dist/themes/medieval-pixel.css` contain Core + Desktop CSS custom properties. The Win7, XP-like, and Medieval Pixel presets also include opt-in chrome rules; a single `<link>` tag covers both the window manager and the Desktop module.
+The general-purpose bundled themes are `dist/themes/light.css` and `dist/themes/dark.css`. `dist/themes/medieval-pixel.css` remains published as a legacy compatibility theme for existing applications.
+
+The Win7 and XP-like themes are showcase CSS owned by `demo/win7/win7-theme.css` and `demo/xp/xp-theme.css`. They demonstrate how far DeskPane can be customized, but they are not npm package themes. Copy and adapt them in your application when you want that visual direction.
 
 Structural styles are provided separately as `dist/styles/deskpane.css` (window structure), `dist/styles/deskpane-desktop.css` (Desktop / Dock / Icon), `dist/styles/deskpane-workspace.css` (workspace slide animation), `dist/styles/deskpane-taskview.css` (TaskView overlay), and the optional `dist/styles/deskpane-menu.css` (StartMenu / ContextMenu). These are independent of theme variables and can be `<link>`ed directly:
 
@@ -562,17 +565,21 @@ import { getMenuCSS } from 'deskpane/menu'
 <link id="dp-theme" rel="stylesheet" href="dist/themes/light.css">
 ```
 
-### `setTheme(preset, options?)`
+### `setTheme(theme, options?)`
 
 ```typescript
 import { setTheme } from 'deskpane'
 
-setTheme('dark')                               // default basePath: 'themes'
-setTheme('light', { basePath: '/themes' })     // Vite SPA
-setTheme('win7', { basePath: 'dist/themes' })  // Windows-like chrome preset
-setTheme('xp', { basePath: 'dist/themes' })    // XP-inspired chrome preset
+setTheme('dark')                               // resolves to themes/dark.css
+setTheme('light', { basePath: '/themes' })     // resolves to /themes/light.css
 setTheme('medieval-pixel', { basePath: 'dist/themes' })
 setTheme('dark',  { basePath: 'dist/themes' }) // relative path
+
+// Direct .css paths and URLs are used as-is.
+setTheme('/DeskPane/demo/win7/win7-theme.css')
+setTheme('/DeskPane/demo/xp/xp-theme.css')
+setTheme('https://example.com/themes/company.css')
+
 // UMD: DeskPane.setTheme('dark', { basePath: 'dist/themes' })
 ```
 
@@ -726,10 +733,54 @@ The center `.dp-dock-items` region owns scrolling, so leading and trailing contr
 
 A renderer runs again whenever Dock rebuilds or changes position. Return a fresh Node when appropriate, or pass a persistent Node directly. Do not share one Node between both slots.
 
+### Dock item renderer and taskbar layout
+
+`DockConfig.itemLayout` defaults to `'dock'`, preserving the existing icon-first appearance and DOM. Opt into `'taskbar'` for horizontal top/bottom window buttons. `itemRenderer` customizes only the content inside each managed `.dp-dock-item`; DeskPane continues to own activation, drag reorder, active classes, keyboard handling, and window previews.
+
+```typescript
+const desktop = new Desktop({
+  container: document.getElementById('root')!,
+  dock: {
+    position: 'bottom',
+    itemLayout: 'taskbar',
+    itemRenderer: ({ item, container, renderDefault }) => {
+      renderDefault() // append the built-in icon and label
+
+      const running = document.createElement('span')
+      running.textContent = '●'
+      running.title = `${item.label} is running`
+      running.style.color = '#4ade80'
+      container.dataset.appId = item.id
+      return running
+    },
+  },
+})
+```
+
+The renderer can return a Node or append directly to `container`. Call `renderDefault()` once when you want to decorate the standard content; omit it when replacing the content completely. Keep activation handlers on `DockItemConfig.action` so mouse, Enter, Space, previews, and drag behavior stay consistent.
+
+Taskbar dimensions can be themed without replacing structural CSS:
+
+```css
+.my-desktop {
+  --dp-taskbar-item-width: 152px;
+  --dp-taskbar-item-height: 34px;
+  --dp-taskbar-item-gap: 7px;
+  --dp-taskbar-item-padding: 3px 8px;
+  --dp-taskbar-item-radius: 4px;
+  --dp-taskbar-item-justify: flex-start;
+}
+```
+
+`taskbar` changes horizontal top/bottom items only. Left/right Docks retain their compact vertical arrangement. Existing projects that do not set `itemLayout` or `itemRenderer` keep their prior appearance.
+
 ### Dock Methods
 
 | Method | Description |
 |--------|-------------|
+| `dock.setItemLayout('dock' \| 'taskbar')` | Switch the built-in item arrangement dynamically |
+| `dock.getItemLayout()` | Get the current item arrangement |
+| `dock.setItemRenderer(renderer)` | Replace the item content renderer; pass `null` to restore built-in content |
 | `dock.setSlot('leading' \| 'trailing', content)` | Replace one slot dynamically; pass `null` to clear it |
 | `dock.setLeading(content)` | Replace or clear the leading slot |
 | `dock.setTrailing(content)` | Replace or clear the trailing slot |
@@ -741,7 +792,6 @@ A renderer runs again whenever Dock rebuilds or changes position. Return a fresh
 `DesktopIconConfig.icon` keeps the existing URL, inline SVG, and emoji behavior, and also accepts a real DOM `Node`. Use `iconRenderer` when each refresh should create fresh content or when rendering Canvas, Web Components, or eventful HTML.
 
 ```typescript
-
 const statusIcon = document.createElement('span')
 statusIcon.className = 'status-icon'
 statusIcon.textContent = '42'
@@ -1287,9 +1337,7 @@ When collapsed, a region shrinks to a **28px mini strip**: expand button → ico
 | `dist/jquery.d.ts` | TypeScript | — | jQuery adapter type declarations |
 | `dist/themes/light.css` | CSS | ~2 KB | Light theme (Core + Desktop) |
 | `dist/themes/dark.css` | CSS | ~2 KB | Dark theme (Core + Desktop) |
-| `dist/themes/xp.css` | CSS | ~4 KB | XP-inspired theme (Core + Desktop + window chrome) |
-| `dist/themes/win7.css` | CSS | ~4 KB | Windows 7 inspired theme (Core + Desktop + window chrome) |
-| `dist/themes/medieval-pixel.css` | CSS | ~3 KB | Medieval pixel theme (Core + Desktop + pixel UI assets) |
+| `dist/themes/medieval-pixel.css` | CSS | ~3 KB | Legacy compatibility theme (Core + Desktop + pixel UI assets) |
 | `dist/themes/assets/medieval-pixel/` | Assets | — | Pixel UI source assets used by the Medieval Pixel theme |
 | `dist/styles/deskpane.css` | CSS | — | Core window structure styles (direct `<link>`) |
 | `dist/styles/deskpane-desktop.css` | CSS | — | Desktop / Dock / Icon styles (direct `<link>`) |
@@ -1327,7 +1375,7 @@ Any modern browser supporting ES2020 (`optional chaining`, `nullish coalescing`,
 - [ ] Angular adapter
 - [ ] Window state persistence (localStorage / IndexedDB)
 - [ ] Accessibility (ARIA roles, keyboard navigation)
-- [x] More built-in themes
+- [x] Theme customization and showcase themes
 
 ---
 

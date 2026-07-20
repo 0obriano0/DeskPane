@@ -292,8 +292,8 @@
       <div class="cfe-preset-bar">
         <span class="cfe-preset-label">快速載入：</span>
         <button class="cfe-preset-btn active" id="cfe-preset-default" onclick="cfeLoadPreset('default')">🎨 預設</button>
-        <button class="cfe-preset-btn" id="cfe-preset-win7" onclick="cfeLoadPreset('win7')">🪟 Win7</button>
-        <button class="cfe-preset-btn" id="cfe-preset-xp" onclick="cfeLoadPreset('xp')">🟩 XP-like</button>
+        <button class="cfe-preset-btn" id="cfe-preset-win7" onclick="cfeLoadPreset('win7')">🪟 Win7 Demo</button>
+        <button class="cfe-preset-btn" id="cfe-preset-xp" onclick="cfeLoadPreset('xp')">🟩 XP Demo</button>
         <button class="cfe-preset-btn" id="cfe-preset-win11" onclick="cfeLoadPreset('win11')">🪟 Win11</button>
         <button class="cfe-preset-btn" id="cfe-preset-medieval" onclick="cfeLoadPreset('medieval')">🏰 Medieval Pixel</button>
       </div>
@@ -335,6 +335,11 @@
           <option value="top">頂部 ↑</option>
           <option value="left">左側 ←</option>
           <option value="right">右側 →</option>
+        </select>
+        <span style="font-size:11px;color:var(--d-text-dim)">樣式：</span>
+        <select class="bg-select" id="dock-layout-select">
+          <option value="dock" selected>圖示 Dock</option>
+          <option value="taskbar">工作列</option>
         </select>
         <label style="font-size:11px;color:var(--d-muted);display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none">
           <input type="checkbox" id="dock-labels-toggle" checked style="cursor:pointer"> 標籤
@@ -416,6 +421,12 @@ const DESKTOP_VAR_DEFS = [
     { name: '--dp-dock-bg',                type: 'text',  tip: 'Dock 背景，支援 rgba / 漸層（設 transparent 可完全透明）' },
     { name: '--dp-dock-backdrop-filter',   type: 'text',  tip: 'Dock 毛玻璃模糊效果，例如 blur(14px) 或 none' },
     { name: '--dp-dock-border',            type: 'text',  tip: 'Dock 邊框顏色，支援 rgba' },
+    { name: '--dp-taskbar-item-width',      type: 'text',  tip: '工作列按鈕寬度，例如 160px' },
+    { name: '--dp-taskbar-item-height',     type: 'text',  tip: '工作列按鈕高度，例如 48px' },
+    { name: '--dp-taskbar-item-gap',        type: 'text',  tip: '工作列按鈕間距，例如 8px' },
+    { name: '--dp-taskbar-item-padding',    type: 'text',  tip: '工作列按鈕內距，例如 4px 10px' },
+    { name: '--dp-taskbar-item-radius',     type: 'text',  tip: '工作列按鈕圓角，例如 6px' },
+    { name: '--dp-taskbar-item-justify',    type: 'text',  tip: '工作列按鈕內容對齊，例如 flex-start 或 center' },
   ]},
   { group: '🔤 Font', vars: [
     { name: '--dp-font', type: 'text', tip: '全域 font-family（Core + Desktop 共用）' },
@@ -425,6 +436,15 @@ const DESKTOP_VAR_DEFS = [
     { name: '--dp-dock-item-hover-bg',    type: 'text', tip: 'Dock 項目 hover 背景（支援 rgba）' },
   ]},
 ];
+
+const TASKBAR_VAR_DEFAULTS = {
+  '--dp-taskbar-item-width':   '160px',
+  '--dp-taskbar-item-height':  '48px',
+  '--dp-taskbar-item-gap':     '8px',
+  '--dp-taskbar-item-padding': '4px 10px',
+  '--dp-taskbar-item-radius':  '6px',
+  '--dp-taskbar-item-justify': 'flex-start',
+};
 
 /* ═══════════════════════════════════════════════════════════
    UNIFIED THEME REGISTRY
@@ -767,14 +787,15 @@ function applyTheme(id) {
   }
   if (!vars) return;
   Object.assign(coreValues,    themeCorePart(vars));
-  Object.assign(desktopValues, themeDesktopPart(vars));
+  Object.assign(desktopValues, TASKBAR_VAR_DEFAULTS, themeDesktopPart(vars));
   applyAllVars(vars);
   syncEditorToValues('var-editor-scroll', CORE_VAR_DEFS,    coreValues);
+  applyAllVars(desktopValues);
   syncEditorToValues('var-editor-scroll', DESKTOP_VAR_DEFS, desktopValues);
 }
 
 const coreValues    = Object.assign({}, themeCorePart(THEMES['preset-dark'].vars));
-const desktopValues = Object.assign({}, themeDesktopPart(THEMES['preset-dark'].vars));
+const desktopValues = Object.assign({}, TASKBAR_VAR_DEFAULTS, themeDesktopPart(THEMES['preset-dark'].vars));
 
 /* ── Helpers ────────────────────────────────────────────── */
 function rgbToHex(r, g, b) {
@@ -1027,14 +1048,19 @@ function initDesktopPreview() {
 
 function buildRealDesktop() {
   const area = document.getElementById('desktop-preview-area');
-  area.innerHTML = '';
+  realWm?.destroy();
+  realDesktop?.destroy();
+  realWm = null;
+  realDesktop = null;
+  area.replaceChildren();
 
   const dockPos    = document.getElementById('dock-position-select').value;
   const showLabels = document.getElementById('dock-labels-toggle').checked;
+  const itemLayout = document.getElementById('dock-layout-select').value;
 
   realDesktop = new DeskPaneDesktop.Desktop({
     container: area,
-    dock: { position: dockPos, showLabels: showLabels, iconSize: 36, items: [] },
+    dock: { position: dockPos, itemLayout: itemLayout, showLabels: showLabels, iconSize: 36, items: [] },
     icons: Object.entries(CFE_APPS).map(([id, app]) => ({
       id: 'di-' + id, label: app.label, icon: app.icon, action: () => cfeOpenApp(id),
     })),
@@ -1143,9 +1169,11 @@ function rebuildRealDesktop() {
   if (!desktopInited) return;
   buildRealDesktop();
   applyAllVars(desktopValues);
+  setTimeout(() => { cfeOpenApp('settings'); cfeOpenApp('layout'); }, 150);
 }
 document.getElementById('dock-position-select').addEventListener('change', rebuildRealDesktop);
 document.getElementById('dock-labels-toggle').addEventListener('change', rebuildRealDesktop);
+document.getElementById('dock-layout-select').addEventListener('change', rebuildRealDesktop);
 
 /* ── Init ─────────────────────────────────────────────────── */
 applyAllVars(coreValues);
@@ -1385,7 +1413,7 @@ async function cfeLoadWin7Preset() {
   }
   document.getElementById('cfe-status').textContent = '載入 Windows 7…';
   try {
-    const res = await fetch('../../dist/themes/win7.css');
+    const res = await fetch('../win7/win7-theme.css');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const css = await res.text();
     document.getElementById('cfe-textarea').value = css;
@@ -1397,7 +1425,7 @@ async function cfeLoadWin7Preset() {
     cfeSetPreset('win7');
   } catch (e) {
     document.getElementById('cfe-textarea').value =
-      '/* 無法載入 ../../dist/themes/win7.css\\n   請先執行 npm run build:lib */';
+      '/* 無法載入 ../win7/win7-theme.css */';
     document.getElementById('cfe-status').textContent = '載入失敗';
     cfeUpdateLineNums();
   }
@@ -1411,7 +1439,7 @@ async function cfeLoadXpPreset() {
   }
   document.getElementById('cfe-status').textContent = '載入 XP-like…';
   try {
-    const res = await fetch('../../dist/themes/xp.css');
+    const res = await fetch('../xp/xp-theme.css');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const css = await res.text();
     document.getElementById('cfe-textarea').value = css;
@@ -1423,7 +1451,7 @@ async function cfeLoadXpPreset() {
     cfeSetPreset('xp');
   } catch (e) {
     document.getElementById('cfe-textarea').value =
-      '/* 無法載入 ../../dist/themes/xp.css\n   請先執行 npm run build:lib */';
+      '/* 無法載入 ../xp/xp-theme.css */';
     document.getElementById('cfe-status').textContent = '載入失敗';
     cfeUpdateLineNums();
   }

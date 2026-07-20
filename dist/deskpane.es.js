@@ -2012,7 +2012,10 @@ class WindowManager {
  * 第一次呼叫時，若頁面中不存在指定 id 的 `<link>` 元素，
  * 會自動建立一個並插入 `<head>`。
  *
- * @param preset  Built-in theme name: light, dark, win7, xp, or medieval-pixel.
+ * A `.css` path or URL is used directly. Other values resolve as
+ * `${basePath}/${theme}.css`.
+ *
+ * @param theme   Bundled theme name, custom theme name, or direct CSS path/URL.
  * @param options 選填設定（basePath / linkId）
  *
  * @example
@@ -2025,10 +2028,15 @@ class WindowManager {
  *
  * // 自訂路徑（例如主題放在 /assets/themes/）
  * setTheme('dark', { basePath: '/assets/themes' });
+ *
+ * // Direct app or demo theme path
+ * setTheme('/demo/win7/win7-theme.css');
  */
-function setTheme(preset, options = {}) {
+function setTheme(theme, options = {}) {
     const { basePath = 'themes', linkId = 'dp-theme' } = options;
-    const href = `${basePath}/${preset}.css`;
+    const directPath = /^(?:[a-z][a-z\d+.-]*:|\/|\.{1,2}\/)/i.test(theme)
+        || /\.css(?:[?#].*)?$/i.test(theme);
+    const href = directPath ? theme : `${basePath}/${theme}.css`;
     let link = document.getElementById(linkId);
     if (!link) {
         link = document.createElement('link');

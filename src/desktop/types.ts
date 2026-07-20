@@ -96,6 +96,33 @@ export interface DockItemConfig {
   action: () => void;
 }
 
+/** Built-in visual arrangement for Dock items. */
+export type DockItemLayout = 'dock' | 'taskbar';
+
+/** Context passed whenever custom Dock item content is rendered. */
+export interface DockItemRendererContext {
+  /** Item whose managed `.dp-dock-item` host is being rendered. */
+  item: Readonly<DockItemConfig>;
+  /** Current item index after any drag reordering. */
+  index: number;
+  /** Current Dock edge. */
+  position: DockPosition;
+  /** Current built-in item layout. */
+  layout: DockItemLayout;
+  /** Managed item host. Attach presentation content here, not click handlers. */
+  container: HTMLElement;
+  /** Append the standard icon and label/tooltip content once. */
+  renderDefault: () => void;
+}
+
+/**
+ * Render presentation content inside a managed Dock item host.
+ * Return a Node, or append directly to `context.container` and return nothing.
+ */
+export type DockItemRenderer = (
+  context: DockItemRendererContext,
+) => Node | null | undefined | void;
+
 /** Dock slot position relative to the center item strip. */
 export type DockSlotName = 'leading' | 'trailing';
 
@@ -205,6 +232,10 @@ export interface DockConfig {
   /** 停靠位置，預設 'bottom' */
   position?: DockPosition;
   items?: DockItemConfig[];
+  /** Built-in item arrangement. `dock` preserves the classic icon-first layout. */
+  itemLayout?: DockItemLayout;
+  /** Optional renderer for the presentation inside every managed item host. */
+  itemRenderer?: DockItemRenderer;
   /** Content before the center item strip (left/top depending on Dock position). */
   leading?: DockSlotContent;
   /** Content after the center item strip (right/bottom depending on Dock position). */

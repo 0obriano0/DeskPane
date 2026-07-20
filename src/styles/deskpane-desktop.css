@@ -243,6 +243,36 @@
   transition: transform 0.15s, background 0.12s;
   flex-shrink: 0;
 }
+.dp-dock-item:focus-visible {
+  outline: 2px solid var(--dp-dock-focus-ring, rgba(118, 190, 255, 0.95));
+  outline-offset: 1px;
+}
+.dp-dock.dp-dock--taskbar.dp-dock-bottom .dp-dock-item,
+.dp-dock.dp-dock--taskbar.dp-dock-top .dp-dock-item {
+  box-sizing: border-box;
+  width: var(--dp-taskbar-item-width, 160px);
+  height: var(--dp-taskbar-item-height, 48px);
+  flex: 0 0 var(--dp-taskbar-item-width, 160px);
+  flex-direction: row;
+  justify-content: var(--dp-taskbar-item-justify, flex-start);
+  gap: var(--dp-taskbar-item-gap, 8px);
+  padding: var(--dp-taskbar-item-padding, 4px 10px);
+  border-radius: var(--dp-taskbar-item-radius, 6px);
+}
+.dp-dock.dp-dock--taskbar.dp-dock-bottom .dp-dock-item:hover,
+.dp-dock.dp-dock--taskbar.dp-dock-top .dp-dock-item:hover,
+.dp-dock.dp-dock--taskbar.dp-dock-bottom .dp-dock-item.dp-dock-dragover,
+.dp-dock.dp-dock--taskbar.dp-dock-top .dp-dock-item.dp-dock-dragover {
+  transform: none;
+}
+.dp-dock.dp-dock--taskbar.dp-dock-bottom .dp-dock-label,
+.dp-dock.dp-dock--taskbar.dp-dock-top .dp-dock-label {
+  min-width: 0;
+  max-width: none;
+  flex: 1 1 auto;
+  margin-top: 0;
+  text-align: left;
+}
 .dp-dock-item:hover {
   background: var(--dp-dock-item-hover-bg, rgba(255,255,255,0.12));
   transform: scale(1.15) translateY(-3px);

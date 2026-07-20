@@ -143,6 +143,28 @@ interface DockItemConfig {
     icon: string;
     action: () => void;
 }
+/** Built-in visual arrangement for Dock items. */
+type DockItemLayout = 'dock' | 'taskbar';
+/** Context passed whenever custom Dock item content is rendered. */
+interface DockItemRendererContext {
+    /** Item whose managed `.dp-dock-item` host is being rendered. */
+    item: Readonly<DockItemConfig>;
+    /** Current item index after any drag reordering. */
+    index: number;
+    /** Current Dock edge. */
+    position: DockPosition;
+    /** Current built-in item layout. */
+    layout: DockItemLayout;
+    /** Managed item host. Attach presentation content here, not click handlers. */
+    container: HTMLElement;
+    /** Append the standard icon and label/tooltip content once. */
+    renderDefault: () => void;
+}
+/**
+ * Render presentation content inside a managed Dock item host.
+ * Return a Node, or append directly to `context.container` and return nothing.
+ */
+type DockItemRenderer = (context: DockItemRendererContext) => Node | null | undefined | void;
 /** Dock slot position relative to the center item strip. */
 type DockSlotName = 'leading' | 'trailing';
 /** Context passed whenever a Dock slot renderer is invoked. */
@@ -245,6 +267,10 @@ interface DockConfig {
     /** 停靠位置，預設 'bottom' */
     position?: DockPosition;
     items?: DockItemConfig[];
+    /** Built-in item arrangement. `dock` preserves the classic icon-first layout. */
+    itemLayout?: DockItemLayout;
+    /** Optional renderer for the presentation inside every managed item host. */
+    itemRenderer?: DockItemRenderer;
     /** Content before the center item strip (left/top depending on Dock position). */
     leading?: DockSlotContent;
     /** Content after the center item strip (right/bottom depending on Dock position). */
@@ -298,6 +324,8 @@ declare class Dock {
     private _position;
     private readonly _iconSize;
     private readonly _showLabels;
+    private _itemLayout;
+    private _itemRenderer;
     private _leading;
     private _trailing;
     private _dragSrcIndex;
@@ -305,8 +333,10 @@ declare class Dock {
     private readonly _renderCallbacks;
     constructor(config?: DockConfig);
     private _render;
+    private _syncItemLayoutClass;
     private _hasSlots;
     private _createSlotEl;
+    private _renderDefaultItemContent;
     private _createItemEl;
     private _clearDragover;
     addItem(item: DockItemConfig): void;
@@ -323,6 +353,11 @@ declare class Dock {
     getItems(): DockItemConfig[];
     /** 動態變更 Dock 停靠位置 */
     setPosition(position: DockPosition): void;
+    /** Switch between the classic Dock arrangement and a horizontal taskbar button layout. */
+    setItemLayout(layout: DockItemLayout): void;
+    getItemLayout(): DockItemLayout;
+    /** Replace the custom item content renderer. Pass null to restore built-in content. */
+    setItemRenderer(renderer: DockItemRenderer | null): void;
     /**
      * Replace one optional Dock slot. Pass null to clear it.
      * When both slots are clear, Dock restores the legacy direct-item DOM.
@@ -476,4 +511,4 @@ declare class DesktopIcon {
 declare function getDesktopCSS(): string;
 
 export { Desktop, DesktopCollectionView, DesktopIcon, Dock, getDesktopCSS };
-export type { DesktopCollectionChangeAction, DesktopCollectionChangedEvent, DesktopCollectionMutationOptions, DesktopCollectionViewOptions, DesktopConfig, DesktopEvent, DesktopIconConfig, DesktopIconContent, DesktopIconEvent, DesktopIconMoveEvent, DesktopIconRenderer, DesktopIconRendererContext, DesktopItemsEvent, DesktopItemsSource, DockConfig, DockItemConfig, DockPosition, DockSlotContent, DockSlotName, DockSlotRenderer, DockSlotRendererContext, DockSyncOptions, DockSyncWindowEvent, WindowManagerLike };
+export type { DesktopCollectionChangeAction, DesktopCollectionChangedEvent, DesktopCollectionMutationOptions, DesktopCollectionViewOptions, DesktopConfig, DesktopEvent, DesktopIconConfig, DesktopIconContent, DesktopIconEvent, DesktopIconMoveEvent, DesktopIconRenderer, DesktopIconRendererContext, DesktopItemsEvent, DesktopItemsSource, DockConfig, DockItemConfig, DockItemLayout, DockItemRenderer, DockItemRendererContext, DockPosition, DockSlotContent, DockSlotName, DockSlotRenderer, DockSlotRendererContext, DockSyncOptions, DockSyncWindowEvent, WindowManagerLike };

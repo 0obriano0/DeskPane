@@ -20,7 +20,7 @@ export type {
 } from './core/WindowManager.js';
 export type { SnapRect, SnapGuide, SnapResult } from './core/SnapHelper.js';
 export { snapPosition } from './core/SnapHelper.js';
-export type { WosThemePreset, SetThemeOptions } from './themes/setTheme.js';
+export type { DeskPaneThemeName, WosThemePreset, SetThemeOptions } from './themes/setTheme.js';
 export { setTheme } from './themes/setTheme.js';
 export { BorderLayout } from './layout/BorderLayout.js';
 export type { RegionConfig, BorderLayoutOptions, LayoutRegion } from './layout/BorderLayout.js';

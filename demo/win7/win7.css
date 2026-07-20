@@ -10,6 +10,11 @@ body { font: 13px "Segoe UI", Tahoma, Arial, sans-serif; color: #10233b; backgro
   min-height: 320px;
   overflow: hidden;
 
+  --dp-taskbar-item-width: 128px;
+  --dp-taskbar-item-height: 34px;
+  --dp-taskbar-item-gap: 8px;
+  --dp-taskbar-item-padding: 3px 9px;
+  --dp-taskbar-item-radius: 4px;
   --dp-dock-bg: linear-gradient(rgba(22, 91, 167, .78), rgba(5, 43, 109, .94));
   --dp-dock-border: rgba(173, 219, 255, .68);
   --dp-dock-backdrop-filter: blur(14px) saturate(1.35);
@@ -63,14 +68,7 @@ body { font: 13px "Segoe UI", Tahoma, Arial, sans-serif; color: #10233b; backgro
   padding: 0 4px;
 }
 .win7-shell .dp-dock-item {
-  width: 128px;
-  height: 34px;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: 8px;
-  padding: 3px 9px;
   border: 1px solid rgba(255,255,255,.28);
-  border-radius: 4px;
   background: linear-gradient(rgba(255,255,255,.24), rgba(255,255,255,.08));
   box-shadow: inset 0 1px rgba(255,255,255,.24), 0 1px 4px rgba(0,22,70,.28);
   color: #fff;

@@ -61,6 +61,7 @@ const desktop = new Desktop({
     position: 'bottom',
     showLabels: true,
     iconSize: 42,
+    itemLayout: 'taskbar',
     items: [],
     leading: startButton,
     trailing: tray.element,

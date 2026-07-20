@@ -10,11 +10,15 @@
     <pre class="code-block" v-pre>&lt;!-- In your HTML &lt;head&gt; --&gt;
 &lt;link id="dp-theme" rel="stylesheet" href="dist/themes/light.css"&gt;
 
-&lt;!-- Opt-in Windows 7 inspired window chrome --&gt;
-&lt;link id="dp-theme" rel="stylesheet" href="dist/themes/win7.css"&gt;
+&lt;!-- Or the bundled dark theme --&gt;
+&lt;link id="dp-theme" rel="stylesheet" href="dist/themes/dark.css"&gt;
 
-&lt;!-- Or the XP-inspired chrome preset --&gt;
-&lt;link id="dp-theme" rel="stylesheet" href="dist/themes/xp.css"&gt;</pre>
+&lt;!-- Legacy compatibility theme --&gt;
+&lt;link id="dp-theme" rel="stylesheet" href="dist/themes/medieval-pixel.css"&gt;
+
+&lt;!-- Demo-local showcases, not package built-ins --&gt;
+&lt;link id="dp-theme" rel="stylesheet" href="../win7/win7-theme.css"&gt;
+&lt;link id="dp-theme" rel="stylesheet" href="../xp/xp-theme.css"&gt;</pre>
 
     <h2>{{ t('theme.h2SetTheme') }}</h2>
     <p v-html="t('theme.setThemeDesc')"></p>
@@ -202,11 +206,12 @@ onMounted(() => {
 <!-- Or dark theme -->
 <link id="dp-theme" rel="stylesheet" href="dist/themes/dark.css">
 
-<!-- Or Windows 7 inspired window chrome -->
-<link id="dp-theme" rel="stylesheet" href="dist/themes/win7.css">
+<!-- Legacy compatibility theme -->
+<link id="dp-theme" rel="stylesheet" href="dist/themes/medieval-pixel.css">
 
-<!-- Or XP-inspired window chrome -->
-<link id="dp-theme" rel="stylesheet" href="dist/themes/xp.css">`,
+<!-- Demo-local showcases, not package built-ins -->
+<link id="dp-theme" rel="stylesheet" href="../win7/win7-theme.css">
+<link id="dp-theme" rel="stylesheet" href="../xp/xp-theme.css">`,
     },
     {
       name: 'setTheme.ts',
@@ -219,11 +224,12 @@ setTheme('dark')
 // With explicit base path (Vite SPA)
 setTheme('light', { basePath: '/themes' })
 
-// Opt-in Windows 7 inspired window chrome
-setTheme('win7', { basePath: '/themes' })
+// Legacy compatibility theme
+setTheme('medieval-pixel', { basePath: 'dist/themes' })
 
-// Opt-in XP-inspired window chrome
-setTheme('xp', { basePath: '/themes' })
+// Direct app or demo CSS paths are used as-is
+setTheme('../win7/win7-theme.css')
+setTheme('../xp/xp-theme.css')
 
 // Relative to dist/
 setTheme('dark', { basePath: 'dist/themes' })

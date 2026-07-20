@@ -9,6 +9,12 @@ body { background: #245ec7; color: #1f1f1f; font: 13px Tahoma, "Segoe UI", Arial
   min-width: 320px;
   min-height: 300px;
   overflow: hidden;
+  --dp-taskbar-item-width: 152px;
+  --dp-taskbar-item-height: 34px;
+  --dp-taskbar-item-gap: 7px;
+  --dp-taskbar-item-padding: 3px 8px;
+  --dp-taskbar-item-radius: 3px;
+  --dp-taskbar-item-justify: flex-start;
 }
 
 .xp-sky {
@@ -121,14 +127,7 @@ body { background: #245ec7; color: #1f1f1f; font: 13px Tahoma, "Segoe UI", Arial
   padding: 4px 6px;
 }
 .xp-shell .dp-dock-item {
-  width: 152px;
-  height: 34px;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: 7px;
-  padding: 3px 8px;
   border: 1px solid #1748a3;
-  border-radius: 3px;
   background: linear-gradient(#4a8aec, #2f6ad3);
   box-shadow: inset 1px 1px rgba(125,177,255,.68);
   color: #fff;
@@ -224,11 +223,16 @@ body { background: #245ec7; color: #1f1f1f; font: 13px Tahoma, "Segoe UI", Arial
 .xp-shell .dp-start-menu-footer .dp-menu-item:hover { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.45); }
 
 @media (max-width: 680px) {
+  .xp-shell {
+    --dp-taskbar-item-width: 38px;
+    --dp-taskbar-item-gap: 0;
+    --dp-taskbar-item-padding: 3px;
+    --dp-taskbar-item-justify: center;
+  }
   .xp-github { top: 7px; right: 7px; min-height: 24px; padding: 0 7px; font-size: 11px; }
   .xp-start-button { width: 92px; flex-basis: 92px; padding-right: 9px; font-size: 14px; }
   .xp-start-mark { width: 22px; height: 22px; }
   .xp-shell .dp-dock-items { padding-inline: 3px; }
-  .xp-shell .dp-dock-item { width: 38px; flex: 0 0 38px; justify-content: center; padding: 3px; }
   .xp-shell .dp-dock-label { display: none; }
   .xp-tray { width: 94px; flex-basis: 94px; padding-inline: 5px; }
   .xp-tray-icon { display: none; }

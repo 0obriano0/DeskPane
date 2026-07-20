@@ -4,25 +4,32 @@
 
 ### Added
 
-- Added the opt-in `win7` theme preset with Windows 7 inspired window chrome, Desktop/Dock variables, layout variables, and edge-snap preview styling.
-- Added the Windows 7 desktop demo and a Win7 quick-load preset in Theme Editor.
+- Added a demo-local Win7 showcase theme with window chrome, Desktop/Dock variables, layout variables, and edge-snap preview styling.
+- Added the Windows 7 desktop demo and a Win7 Demo quick-load option in Theme Editor.
 - Added the optional `deskpane/menu` bundle with `StartMenu`, `ContextMenu`, ESM/UMD builds, TypeScript declarations, and standalone structural CSS.
 - Added nested submenus, disabled and checked items, separators, shortcut labels, command callbacks, keyboard navigation, outside-click closing, viewport-aware placement, and `menu:open` / `menu:close` / `menu:select` events.
-- Added menu theme variables to the light, dark, Win7, XP-like, and Medieval Pixel presets plus a bilingual developer docs page with Vanilla, jQuery, Vue, and React examples.
+- Added menu theme variables to the light and dark themes, the legacy Medieval Pixel compatibility theme, and the demo-local Win7/XP showcase themes, plus a bilingual developer docs page with Vanilla, jQuery, Vue, and React examples.
 - Added direct DOM `Node` content and `iconRenderer(context)` to `DesktopIconConfig`, while preserving existing URL, inline SVG, and emoji strings.
-- Added the opt-in `xp` theme preset, an original XP-like desktop demo, Theme Editor quick-load support, documentation, and GitHub Pages discovery.
+- Added a demo-local XP-like showcase theme, an original XP-like desktop demo, Theme Editor quick-load support, documentation, and GitHub Pages discovery.
 - Added opt-in Dock `leading` and `trailing` slots with DOM Node/renderer content, dynamic replacement APIs, orientation-aware layout, and a scrollable center item strip.
+- Added opt-in Dock `itemRenderer` and `itemLayout: 'taskbar'`, runtime layout/renderer setters, taskbar CSS variables, and Enter/Space item activation while preserving the classic Dock default.
 
 ### Changed
 
+- Moved the unreleased Win7 and XP showcase CSS out of `src/themes/` and the npm theme bundle into their respective demo folders.
+- Extended `setTheme()` to accept custom theme names and direct CSS paths/URLs while retaining the deprecated `WosThemePreset` type alias for compatibility.
+- Kept `medieval-pixel` in the package as a legacy compatibility theme; light and dark remain the general-purpose bundled themes.
 - Refactored the Win7 demo to use the official `StartMenu` and `ContextMenu` module, including a desktop right-click menu.
 - Refactored the Win7 demo taskbar to use the official Dock `leading` and `trailing` slots for its Start button and clock tray.
 - Refactored the XP-like demo to place its Start button and system tray directly inside the official Dock slots instead of overlaying a separate taskbar.
+- Refactored Win7 and XP-like running-window buttons to use the official taskbar item layout and CSS variables instead of duplicating structural item CSS.
+- Updated Theme Editor with opt-in Dock/taskbar preview controls and editable taskbar item sizing, spacing, padding, radius, and alignment variables.
 
 ### Fixed
 
 - Fixed the root `npm run dev` command so static demos can load `dist/` bundles and themes while still opening the demo index.
 - Fixed StartMenu and ContextMenu positioning when a custom target is wider than the viewport or partially off-screen, keeping menus inside mobile viewport bounds.
+- Fixed Theme Editor Desktop preview controls dropping sample windows and Dock items after a rebuild, and now dispose replaced Desktop/WindowManager instances before recreating the preview.
 
 ## 0.3.2 - 2026-07-06
 
