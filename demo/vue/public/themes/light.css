@@ -1,4 +1,4 @@
-﻿/* DeskPane — Light Theme */
+/* DeskPane — Light Theme */
 :root {
   --dp-window-border:               #d0d0d0;
   --dp-window-border-active:        #b0b8c8;
@@ -35,4 +35,15 @@
   --dp-dock-border:          rgba(0, 0, 0, 0.12);
   --dp-dock-item-hover-bg:   rgba(0, 0, 0, 0.08);
   --dp-font:                 system-ui, -apple-system, sans-serif;
+
+  /* Optional Menu module */
+  --dp-menu-bg:              #ffffff;
+  --dp-menu-color:           #172033;
+  --dp-menu-border:          rgba(15, 23, 42, 0.20);
+  --dp-menu-shadow:          0 12px 32px rgba(15, 23, 42, 0.22);
+  --dp-menu-hover-bg:        rgba(37, 99, 235, 0.10);
+  --dp-menu-muted-color:     #64748b;
+  --dp-menu-separator:       rgba(15, 23, 42, 0.14);
+  --dp-start-menu-primary-bg:#ffffff;
+  --dp-start-menu-secondary-bg:#e8edf4;
 }

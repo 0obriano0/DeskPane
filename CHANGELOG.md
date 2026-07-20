@@ -6,10 +6,18 @@
 
 - Added the opt-in `win7` theme preset with Windows 7 inspired window chrome, Desktop/Dock variables, layout variables, and edge-snap preview styling.
 - Added the Windows 7 desktop demo and a Win7 quick-load preset in Theme Editor.
+- Added the optional `deskpane/menu` bundle with `StartMenu`, `ContextMenu`, ESM/UMD builds, TypeScript declarations, and standalone structural CSS.
+- Added nested submenus, disabled and checked items, separators, shortcut labels, command callbacks, keyboard navigation, outside-click closing, viewport-aware placement, and `menu:open` / `menu:close` / `menu:select` events.
+- Added menu theme variables to the light, dark, Win7, and Medieval Pixel presets plus a bilingual developer docs page with Vanilla, jQuery, Vue, and React examples.
+
+### Changed
+
+- Refactored the Win7 demo to use the official `StartMenu` and `ContextMenu` module, including a desktop right-click menu.
 
 ### Fixed
 
 - Fixed the root `npm run dev` command so static demos can load `dist/` bundles and themes while still opening the demo index.
+- Fixed StartMenu and ContextMenu positioning when a custom target is wider than the viewport or partially off-screen, keeping menus inside mobile viewport bounds.
 
 ## 0.3.2 - 2026-07-06
 

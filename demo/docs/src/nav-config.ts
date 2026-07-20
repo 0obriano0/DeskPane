@@ -40,6 +40,7 @@ export function getNavConfig(t: (key: string) => string): NavCategory[] {
       label: t('nav.desktopModule'),
       items: [
         { id: 'desktop',       label: t('nav.desktopDock') },
+        { id: 'menus',         label: t('nav.menus') },
         { id: 'border-layout', label: t('nav.borderLayout') },
       ],
     },

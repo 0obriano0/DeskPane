@@ -77,11 +77,11 @@ function toggle(label: string) {
 
 <style scoped>
 .side-nav {
-  padding: 12px 0 28px;
+  padding: 18px 10px 32px 0;
 }
 
 .nav-category {
-  margin-bottom: 2px;
+  margin-bottom: 12px;
 }
 
 .nav-cat-label {
@@ -91,11 +91,11 @@ function toggle(label: string) {
   gap: 10px;
   border: 0;
   background: transparent;
-  padding: 8px 16px 8px 18px;
+  padding: 8px 16px 8px 22px;
   font: inherit;
-  font-size: 15px;
-  font-weight: 500;
-  color: #263744;
+  font-size: 12px;
+  font-weight: 800;
+  color: #3d4b5c;
   text-align: left;
   cursor: pointer;
 }
@@ -105,10 +105,10 @@ function toggle(label: string) {
 }
 
 .cat-arrow {
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid #1c2730;
-  border-bottom: 2px solid #1c2730;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid #647184;
+  border-bottom: 1.5px solid #647184;
   transform: rotate(-45deg);
   transition: transform 0.14s ease;
   flex-shrink: 0;
@@ -129,7 +129,7 @@ function toggle(label: string) {
   cursor: pointer;
   font-size: 14px;
   color: #2c3a45;
-  border-left: 4px solid transparent;
+  border-left: 3px solid transparent;
   transition: background 0.12s, color 0.12s;
 }
 
@@ -138,9 +138,9 @@ function toggle(label: string) {
 }
 
 .nav-item.active {
-  background: #e1eef5;
-  color: #1684a0;
-  border-left-color: #2f9bb3;
+  background: #e6f2f5;
+  color: #087f9c;
+  border-left-color: #1597b4;
   font-weight: 600;
 }
 

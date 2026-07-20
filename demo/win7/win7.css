@@ -118,34 +118,6 @@ body { font: 13px "Segoe UI", Tahoma, Arial, sans-serif; color: #10233b; backgro
 .taskbar-spacer { flex: 1; }
 .win7-clock { color: #fff; font-size: 12px; text-shadow: 0 1px 2px #001d46; }
 
-.win7-start-menu {
-  position: absolute; left: 9px; bottom: 46px; z-index: 20000;
-  width: 418px; min-height: 306px; display: grid; grid-template-columns: 1fr 138px; gap: 6px;
-  padding: 7px; border: 1px solid rgba(64,114,172,.92); border-radius: 7px;
-  background: linear-gradient(rgba(238,247,255,.94), rgba(185,219,250,.9));
-  box-shadow: 0 10px 32px rgba(0,25,80,.45), inset 0 1px rgba(255,255,255,.8);
-  backdrop-filter: blur(15px);
-}
-.win7-start-menu[hidden] { display: none; }
-.start-left, .start-right { display: flex; flex-direction: column; gap: 1px; }
-.start-left { padding: 5px; border-radius: 4px; background: #fff; }
-.start-right { padding: 5px; color: #fff; }
-.win7-start-menu button {
-  height: 38px; display: flex; align-items: center; gap: 10px; border: 0; border-radius: 3px;
-  background: transparent; color: #111827; cursor: pointer; text-align: left; padding: 0 8px; font: 13px "Segoe UI", sans-serif;
-}
-.start-right button { color: #0d315f; font-weight: 600; }
-.win7-start-menu button:hover { background: linear-gradient(#eaf4ff, #cbe4ff); outline: 1px solid #7fb8ee; }
-.start-separator { height: 1px; margin: 5px 0; background: #d7dfe8; }
-.user-tile { width: 54px; height: 54px; margin: -18px auto 10px; display: grid; place-items: center; border-radius: 8px; border: 1px solid rgba(255,255,255,.8); background: linear-gradient(#5fb8ff, #14559d); color: #fff; font-weight: 900; font-size: 20px; box-shadow: 0 3px 12px rgba(0,30,90,.35); }
-.menu-icon { width: 18px; height: 18px; border: 1px solid #8ea6c4; border-radius: 2px; display: inline-block; flex: 0 0 auto; }
-.computer-mini { background: linear-gradient(145deg, #71b9f4, #134a86); }
-.docs-mini { background: #f9fbff; }
-.network-mini { background: #8b99c3; }
-.monitor-mini { background: #8b4e75; }
-.grid-mini { background: repeating-linear-gradient(90deg, #fff 0 7px, #d7e5f8 8px 9px), repeating-linear-gradient(#fff 0 7px, #d7e5f8 8px 9px); }
-.settings-mini { background: conic-gradient(#7fd24d, #319be2, #f6d047, #db584f, #7fd24d); }
-.shutdown { margin-top: auto; }
 
 .win7-app { height: 100%; min-width: 0; min-height: 0; background: #fff; color: #111; }
 .computer-app { display: grid; grid-template-columns: 222px minmax(0, 1fr); gap: 8px; padding: 8px; }
@@ -200,6 +172,4 @@ body { font: 13px "Segoe UI", Tahoma, Arial, sans-serif; color: #10233b; backgro
 @media (max-width: 760px) {
   .computer-app { grid-template-columns: 1fr; }
   .west-pane { display: none; }
-  .win7-start-menu { width: min(418px, calc(100vw - 18px)); grid-template-columns: 1fr; }
-  .start-right { display: none; }
 }

@@ -29,6 +29,11 @@
       "import": "./dist/deskpane-workspace.es.js",
       "require": "./dist/deskpane-workspace.umd.js"
     },
+    "./menu": {
+      "types": "./dist/menu.d.ts",
+      "import": "./dist/deskpane-menu.es.js",
+      "require": "./dist/deskpane-menu.umd.js"
+    },
     "./vue": {
       "types": "./dist/vue.d.ts",
       "import": "./dist/deskpane-vue.es.js",
@@ -80,6 +85,8 @@
     "window-manager",
     "web-desktop",
     "desktop",
+    "start-menu",
+    "context-menu",
     "floating-window",
     "draggable",
     "resizable",

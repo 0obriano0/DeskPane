@@ -11,6 +11,7 @@ release/
 bak/
 docs-internal/
 videos/
+.codex-audit/
 
 # ── Local/private project notes ──────────────────
 PROJECT_STATUS.md

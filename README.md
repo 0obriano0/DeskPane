@@ -21,7 +21,7 @@ DeskPane is:
 - 🪶 **Zero core dependencies** — pure TypeScript core; framework adapters use optional peer dependencies
 - 🔌 **Framework-agnostic** — works with Vue 3, React 18, jQuery, or plain JS
 - 🎨 **Themeable** — 30 CSS custom properties, light/dark built-in, fully customizable
-- 📦 **Modular** — use only what you need (core / desktop / workspace)
+- 📦 **Modular** — use only what you need (core / desktop / workspace / menu)
 - 🏗️ **Production-ready** — used in real ERP systems
 
 ---
@@ -33,6 +33,7 @@ DeskPane is:
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
 - [Desktop Module](#desktop-module)
+- [Menu Module](#menu-module)
 - [Workspace Module](#workspace-module)
 - [Developer Documentation](#developer-documentation)
 - [Troubleshooting](#troubleshooting)
@@ -60,6 +61,11 @@ DeskPane is:
 - ✅ Dock with frosted-glass backdrop-filter, drag reorder
 - ✅ **Windows-style group thumbnail preview** — hover Dock item to see live window thumbnails
 - ✅ `syncDockWithWindows()` — zero-config Dock ↔ window sync
+
+### Menu Module (`deskpane/menu`)
+- ✅ Optional `StartMenu` and `ContextMenu` bundle; existing Desktop and Dock APIs stay unchanged
+- ✅ Nested submenus, disabled / checked items, separators, shortcuts, and command callbacks
+- ✅ Keyboard navigation, outside-click close, viewport clamping, and theme variables
 
 ### Workspace Module (`deskpane/workspace`)
 - ✅ **WorkspaceManager** — multiple virtual desktops with slide animation
@@ -502,7 +508,7 @@ wm.events.on('window:child-closed', ({ parentId, childId }) => { })
 
 Built-in `dist/themes/light.css`, `dist/themes/dark.css`, `dist/themes/win7.css`, and `dist/themes/medieval-pixel.css` contain Core + Desktop CSS custom properties. The Win7 and Medieval Pixel presets also include opt-in chrome rules; a single `<link>` tag covers both the window manager and the Desktop module.
 
-Structural styles are provided separately as `dist/styles/deskpane.css` (window structure), `dist/styles/deskpane-desktop.css` (Desktop / Dock / Icon), `dist/styles/deskpane-workspace.css` (workspace slide animation), and `dist/styles/deskpane-taskview.css` (TaskView overlay). These are independent of theme variables and can be `<link>`ed directly:
+Structural styles are provided separately as `dist/styles/deskpane.css` (window structure), `dist/styles/deskpane-desktop.css` (Desktop / Dock / Icon), `dist/styles/deskpane-workspace.css` (workspace slide animation), `dist/styles/deskpane-taskview.css` (TaskView overlay), and the optional `dist/styles/deskpane-menu.css` (StartMenu / ContextMenu). These are independent of theme variables and can be `<link>`ed directly:
 
 ```html
 <link rel="stylesheet" href="dist/styles/deskpane.css">
@@ -510,6 +516,8 @@ Structural styles are provided separately as `dist/styles/deskpane.css` (window 
 <!-- optional: only needed when using WorkspaceManager / TaskView -->
 <link rel="stylesheet" href="dist/styles/deskpane-workspace.css">
 <link rel="stylesheet" href="dist/styles/deskpane-taskview.css">
+<!-- optional: only needed when using StartMenu / ContextMenu -->
+<link rel="stylesheet" href="dist/styles/deskpane-menu.css">
 ```
 
 DeskPane supports two stable CSS loading modes:
@@ -525,6 +533,8 @@ const wm = new WindowManager()
 import 'deskpane/styles/deskpane.css'
 import 'deskpane/styles/deskpane-desktop.css'
 import 'deskpane/styles/deskpane-workspace.css'
+// Optional:
+import 'deskpane/styles/deskpane-menu.css'
 
 const desktop = new Desktop({ injectStyles: false })
 const ws = new WorkspaceManager(desktop.getElement(), {
@@ -535,12 +545,13 @@ const ws = new WorkspaceManager(desktop.getElement(), {
 
 When runtime injection is enabled, DeskPane first checks for an existing matching `<link>` or bundler-created `<style>` and skips duplicate injection. Runtime styles are inserted before app-level stylesheets in `<head>`, so project overrides loaded later remain authoritative. `WorkspaceManager.injectStyles:false` is also propagated to the internally-created `WindowManager` unless `windowManagerOptions.injectStyles` is set explicitly.
 
-Alternatively, use `getCoreCSS()` / `getDesktopCSS()` / `getWorkspaceCSS()` / `getTaskViewCSS()` for programmatic injection:
+Alternatively, use `getCoreCSS()` / `getDesktopCSS()` / `getWorkspaceCSS()` / `getTaskViewCSS()` / `getMenuCSS()` for programmatic injection:
 
 ```typescript
 import { getCoreCSS } from 'deskpane'
 import { getDesktopCSS } from 'deskpane/desktop'
 import { getWorkspaceCSS, getTaskViewCSS } from 'deskpane/workspace'
+import { getMenuCSS } from 'deskpane/menu'
 // inject into shadow root, iframe, or custom container
 ```
 
@@ -760,6 +771,76 @@ desktop.events.on('dock:position-changed', event => {})
 > **Theme Demo** — `demo/desktop/index.html` is the main desktop demo, featuring the Medieval Pixel theme, Dock, draggable icons, virtual desktops, and 9-slice panel borders.
 >
 > **GitHub Pages** — run `npm run build:pages` to build the library, Vue demo, React demo, docs, and the static Pages artifact in `.pages/`. Vue/React/docs demos are served from their generated `dist/` folders on Pages. The CI Pages deployment runs from version tags (`v*`), and GitHub Releases also include a downloadable `deskpane-pages-vX.X.X.zip` demo bundle.
+
+---
+
+## Menu Module
+
+`deskpane/menu` is an independent, opt-in bundle. Importing it does not change existing `WindowManager`, `Desktop`, or `Dock` behavior.
+
+```typescript
+import { ContextMenu, StartMenu } from 'deskpane/menu'
+import 'deskpane/styles/deskpane-menu.css'
+
+const startMenu = new StartMenu({
+  anchor: document.getElementById('start-button')!,
+  injectStyles: false,
+  header: { label: 'My Desktop', icon: 'DP' },
+  items: [
+    { id: 'orders', label: 'Orders', icon: '📦', action: openOrders },
+    {
+      id: 'settings',
+      label: 'Settings',
+      children: [
+        { id: 'theme', label: 'Theme', action: openThemeSettings },
+      ],
+    },
+  ],
+  secondaryItems: [
+    { id: 'help', label: 'Help', action: openHelp },
+  ],
+  footerItems: [
+    { id: 'sign-out', label: 'Sign out', action: signOut },
+  ],
+})
+
+const contextMenu = new ContextMenu({
+  injectStyles: false,
+  items: [
+    { id: 'open', label: 'Open', action: openSelected },
+    { id: 'refresh', label: 'Refresh', shortcut: 'F5', action: refreshDesktop },
+    { type: 'separator' },
+    { id: 'properties', label: 'Properties', action: openProperties },
+  ],
+})
+
+// Prevent the browser menu and open DeskPane at the pointer position.
+const unbind = contextMenu.bindTo(document.getElementById('desktop')!)
+
+// Lifecycle cleanup:
+unbind()
+startMenu.destroy()
+contextMenu.destroy()
+```
+
+Both menu classes support URL, data URL, inline SVG, and emoji icons. Submenus automatically flip near viewport edges. Arrow keys, Home, End, Enter, and Escape work without extra wiring.
+
+### Menu Methods
+
+| Class | Methods |
+|-------|---------|
+| `ContextMenu` | `showAt(x, y, items?)`, `showFor(anchor, placement?, offset?, items?)`, `bindTo(element, getItems?)`, `setItems(items)`, `hide()`, `isOpen()`, `getElement()`, `destroy()` |
+| `StartMenu` | `open()`, `close()`, `toggle()`, `setItems(items)`, `setSecondaryItems(items)`, `setFooterItems(items)`, `setHeader(header)`, `isOpen()`, `getElement()`, `destroy()` |
+
+### Menu Events
+
+```typescript
+menu.events.on('menu:open',  ({ source, element }) => {})
+menu.events.on('menu:close', ({ reason, element }) => {})
+menu.events.on('menu:select', ({ id, item, originalEvent }) => {})
+```
+
+For script tags, load `dist/deskpane-menu.umd.min.js` and use `window.DeskPaneMenu`. Runtime style injection is enabled by default; manual CSS users should pass `injectStyles:false`.
 
 ---
 
@@ -1111,11 +1192,14 @@ When collapsed, a region shrinks to a **28px mini strip**: expand button → ico
 | `dist/deskpane-desktop.umd.js / .min.js` | UMD | — | Desktop module (`window.DeskPaneDesktop`) |
 | `dist/deskpane-workspace.es.js / .min.js` | ESM | — | Workspace + TaskView + Session module (ESM) |
 | `dist/deskpane-workspace.umd.js / .min.js` | UMD | — | Workspace module (`window.DeskPaneWorkspace`) |
+| `dist/deskpane-menu.es.js / .min.js` | ESM | — | Optional StartMenu + ContextMenu module (`import 'deskpane/menu'`) |
+| `dist/deskpane-menu.umd.js / .min.js` | UMD | — | Optional Menu module (`window.DeskPaneMenu`) |
 | `dist/deskpane-jquery.es.js / .min.js` | ESM | — | jQuery adapter (`import 'deskpane/jquery'`) |
 | `dist/deskpane-jquery.umd.js / .min.js` | UMD | — | jQuery adapter (`window.DeskPaneJQuery`, auto-installs into `window.jQuery`) |
 | `dist/index.d.ts` | TypeScript | — | Core type declarations |
 | `dist/desktop.d.ts` | TypeScript | — | Desktop type declarations |
 | `dist/workspace.d.ts` | TypeScript | — | Workspace + TaskView + Session type declarations |
+| `dist/menu.d.ts` | TypeScript | — | StartMenu + ContextMenu type declarations |
 | `dist/jquery.d.ts` | TypeScript | — | jQuery adapter type declarations |
 | `dist/themes/light.css` | CSS | ~2 KB | Light theme (Core + Desktop) |
 | `dist/themes/dark.css` | CSS | ~2 KB | Dark theme (Core + Desktop) |
@@ -1127,6 +1211,7 @@ When collapsed, a region shrinks to a **28px mini strip**: expand button → ico
 | `dist/styles/deskpane-layout.css` | CSS | — | BorderLayout / Panel styles (direct `<link>`) |
 | `dist/styles/deskpane-workspace.css` | CSS | — | Workspace container / slide animation styles (direct `<link>`) |
 | `dist/styles/deskpane-taskview.css` | CSS | — | TaskView overlay / card / thumbnail styles (direct `<link>`) |
+| `dist/styles/deskpane-menu.css` | CSS | — | Optional StartMenu / ContextMenu styles (direct `<link>`) |
 
 ---
 

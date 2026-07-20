@@ -1,4 +1,4 @@
-﻿// rollup.lib.config.mjs — Library build
+// rollup.lib.config.mjs — Library build
 // Outputs:
 //   dist/deskpane.es.js        ES Module  (import { WindowManager } from '...')
 //   dist/deskpane.es.min.js    ES Module  (minified)
@@ -17,6 +17,10 @@
 //   dist/deskpane-workspace.umd.js  UMD bundle (<script src="..."> → window.DeskPaneWorkspace)
 //   dist/deskpane-workspace.umd.min.js UMD bundle (minified)
 //   dist/workspace.d.ts          TypeScript declaration (workspace)
+//
+//   dist/deskpane-menu.es.js     ES Module  (import { StartMenu } from 'deskpane/menu')
+//   dist/deskpane-menu.umd.js    UMD bundle (<script src="..."> → window.DeskPaneMenu)
+//   dist/menu.d.ts               TypeScript declaration (menu)
 //
 //   dist/deskpane-vue.es.js      ES Module  (import { DpDesktop } from 'deskpane/vue')
 //   dist/vue.d.ts                TypeScript declaration (Vue adapter)
@@ -49,6 +53,7 @@ function rawCss() {
 const coreInput      = 'src/index.ts'
 const desktopInput   = 'src/desktop/index.ts'
 const workspaceInput = 'src/workspace/index.ts'
+const menuInput      = 'src/menu/index.ts'
 const vueInput       = 'src/adapters/vue/index.ts'
 const jqueryInput    = 'src/adapters/jquery/index.ts'
 const external       = ['vue', 'react', 'react-dom']   // peer deps — not bundled
@@ -262,6 +267,76 @@ export default [
     plugins: [dts()],
     output: {
       file: 'dist/workspace.d.ts',
+      format: 'es',
+    },
+  },
+
+  // ════════════════════════════════════════════════════════
+  // MENU — ESM + UMD (unminified)
+  // ════════════════════════════════════════════════════════
+  {
+    input: menuInput,
+    external,
+    plugins: [
+      rawCss(),
+      resolve(),
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: false,
+        declarationMap: false,
+        sourceMap: true,
+      }),
+    ],
+    output: [
+      {
+        file: 'dist/deskpane-menu.es.js',
+        format: 'es',
+        sourcemap: true,
+      },
+      {
+        file: 'dist/deskpane-menu.umd.js',
+        format: 'umd',
+        name: 'DeskPaneMenu',
+        sourcemap: true,
+      },
+    ],
+  },
+  // ── MENU — ESM + UMD (minified) ─────────────────────────
+  {
+    input: menuInput,
+    external,
+    plugins: [
+      rawCss(),
+      resolve(),
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: false,
+        declarationMap: false,
+        sourceMap: false,
+      }),
+      terser(),
+    ],
+    output: [
+      {
+        file: 'dist/deskpane-menu.es.min.js',
+        format: 'es',
+        sourcemap: false,
+      },
+      {
+        file: 'dist/deskpane-menu.umd.min.js',
+        format: 'umd',
+        name: 'DeskPaneMenu',
+        sourcemap: false,
+      },
+    ],
+  },
+  // ── MENU — TypeScript declarations ──────────────────────
+  {
+    input: menuInput,
+    external,
+    plugins: [dts()],
+    output: {
+      file: 'dist/menu.d.ts',
       format: 'es',
     },
   },

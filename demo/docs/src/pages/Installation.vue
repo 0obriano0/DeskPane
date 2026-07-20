@@ -219,6 +219,29 @@ import { useWindowManager } from '@deskpane/adapters/vue/useWindowManager'
         </tr>
       </tbody>
     </table>
+
+    <h2>{{ t('install.h2MenuBundle') }}</h2>
+    <p v-html="t('install.menuBundleDesc')"></p>
+    <table class="api-table">
+      <thead><tr><th>{{ t('install.sizes.file') }}</th><th>{{ t('install.sizes.format') }}</th><th>{{ t('common.description') }}</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>dist/deskpane-menu.es.js</code></td>
+          <td>ESM</td>
+          <td v-html="t('install.sizes.es.use')"></td>
+        </tr>
+        <tr>
+          <td><code>dist/deskpane-menu.umd.js</code></td>
+          <td>UMD</td>
+          <td>{{ t('install.sizes.umd.use') }} — <code>window.DeskPaneMenu</code></td>
+        </tr>
+        <tr>
+          <td><code>dist/styles/deskpane-menu.css</code></td>
+          <td>CSS</td>
+          <td>{{ t('install.menuCssDesc') }}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 

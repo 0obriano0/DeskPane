@@ -41,6 +41,19 @@
   --dp-dock-border:                 rgba(190, 228, 255, 0.72);
   --dp-dock-item-hover-bg:          rgba(255, 255, 255, 0.22);
   --dp-font:                        "Segoe UI", Tahoma, Arial, sans-serif;
+
+  --dp-menu-bg:                     linear-gradient(rgba(238, 247, 255, 0.96), rgba(185, 219, 250, 0.94));
+  --dp-menu-color:                  #10233b;
+  --dp-menu-border:                 rgba(64, 114, 172, 0.94);
+  --dp-menu-shadow:                 0 10px 32px rgba(0, 25, 80, 0.45), inset 0 1px rgba(255, 255, 255, 0.80);
+  --dp-menu-hover-bg:               linear-gradient(#eaf4ff, #cbe4ff);
+  --dp-menu-hover-border:           #7fb8ee;
+  --dp-menu-muted-color:            #4d6684;
+  --dp-menu-separator:              #b9cce2;
+  --dp-menu-radius:                 7px;
+  --dp-start-menu-primary-bg:       #ffffff;
+  --dp-start-menu-secondary-bg:     rgba(196, 224, 249, 0.72);
+  --dp-start-menu-header-color:     #0d315f;
 }
 
 .dp-window {

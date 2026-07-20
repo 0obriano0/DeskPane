@@ -1,12 +1,20 @@
 <template>
   <div class="docs-root">
     <header class="docs-header">
+      <button class="menu-btn header-menu" type="button" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
       <div class="brand">
         <span class="brand-mark">DP</span>
         <span class="brand-name">DeskPane</span>
         <span class="brand-divider"></span>
         <span class="brand-product">{{ t('header.sub') }}</span>
       </div>
+      <label class="header-search">
+        <span class="sr-only">Search documentation</span>
+        <input v-model="searchQuery" type="search" placeholder="Search docs" />
+        <kbd>Ctrl K</kbd>
+      </label>
       <nav class="header-nav">
         <a
           v-for="link in demoLinks"
@@ -22,25 +30,6 @@
       </nav>
     </header>
 
-    <div class="docs-subbar">
-      <button class="menu-btn" type="button" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle navigation">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-      <div class="breadcrumb">
-        <button type="button" @click="currentPageId = 'overview'">Demos</button>
-        <span>/</span>
-        <button type="button" @click="selectFirstInCategory">{{ currentCategoryLabel }}</button>
-        <span>/</span>
-        <strong>{{ currentPageLabel }}</strong>
-      </div>
-      <label class="search-box">
-        <span>Search</span>
-        <input v-model="searchQuery" type="search" placeholder="Search demos, API, framework..." />
-      </label>
-    </div>
-
     <div class="docs-body">
       <aside class="docs-sidebar" :class="{ open: sidebarOpen }">
         <SideNav
@@ -51,13 +40,31 @@
         />
       </aside>
 
-      <main class="docs-main">
+      <main class="docs-main" :class="{ 'is-overview': currentPageId === 'overview' }">
         <div class="content-scroll">
+          <div class="content-breadcrumb">
+            <button type="button" @click="selectFirstInCategory">{{ currentCategoryLabel }}</button>
+            <span>/</span>
+            <strong>{{ currentPageLabel }}</strong>
+          </div>
           <component
             :is="currentPage"
             :key="currentPageId"
+            @navigate="selectPage"
           />
         </div>
+        <aside class="page-toc" aria-label="On this page">
+          <div class="toc-sticky">
+            <p class="toc-title">{{ locale === 'en' ? 'On this page' : '本頁內容' }}</p>
+            <button
+              v-for="entry in currentToc"
+              :key="entry.target"
+              type="button"
+              :class="['toc-link', { nested: entry.nested }]"
+              @click="scrollToSection(entry.target)"
+            >{{ entry.label }}</button>
+          </div>
+        </aside>
       </main>
     </div>
   </div>
@@ -87,11 +94,8 @@ const searchQuery = ref('')
 const sidebarOpen = ref(false)
 
 const demoLinks = computed(() => [
-  { label: t('header.demos'), href: '../../index.html' },
-  { label: 'Docs', href: './index.html', active: true },
-  { label: 'Desktop', href: '../../desktop/index.html' },
-  { label: 'Theme', href: '../../theme-editor/index.html' },
-  { label: 'GitHub', href: 'https://github.com/0obriano0/DeskPane', external: true },
+  { label: 'GitHub', href: 'https://github.com/0obriano0/DeskPane', external: true, active: false },
+  { label: 'v0.3.2', href: 'https://github.com/0obriano0/DeskPane/releases', external: true, active: false },
 ])
 
 const PAGE_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {
@@ -106,6 +110,7 @@ const PAGE_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   'events':         defineAsyncComponent(() => import('./pages/EventsPage.vue')),
   'theme-system':   defineAsyncComponent(() => import('./pages/ThemeSystem.vue')),
   'desktop':            defineAsyncComponent(() => import('./pages/DesktopModule.vue')),
+  'menus':              defineAsyncComponent(() => import('./pages/MenusPage.vue')),
   'border-layout':      defineAsyncComponent(() => import('./pages/BorderLayoutPage.vue')),
   'workspace-manager':  defineAsyncComponent(() => import('./pages/WorkspacePage.vue')),
   'task-view':          defineAsyncComponent(() => import('./pages/TaskViewPage.vue')),
@@ -128,6 +133,25 @@ const currentNavItem = computed(() =>
 const currentCategoryLabel = computed(() => currentNavItem.value?.category ?? 'Demos')
 const currentPageLabel = computed(() => currentNavItem.value?.label ?? 'Overview')
 
+const currentToc = computed(() => {
+  if (currentPageId.value === 'overview') {
+    return locale.value === 'en'
+      ? [
+          { label: 'A desktop engine for the web', target: 'overview-intro' },
+          { label: 'Get started in two steps', target: 'overview-start' },
+          { label: 'Run example', target: 'overview-demo', nested: true },
+          { label: 'Next steps', target: 'overview-next' },
+        ]
+      : [
+          { label: '為網頁而生的桌面引擎', target: 'overview-intro' },
+          { label: '兩個步驟快速開始', target: 'overview-start' },
+          { label: '執行範例', target: 'overview-demo', nested: true },
+          { label: '下一步', target: 'overview-next' },
+        ]
+  }
+  return [{ label: currentPageLabel.value, target: 'page-top' }]
+})
+
 function selectFirstInCategory() {
   const category = navConfig.value.find(group => group.label === currentCategoryLabel.value)
   const first = category?.items[0]
@@ -137,6 +161,16 @@ function selectFirstInCategory() {
 function selectPage(id: string) {
   currentPageId.value = id
   sidebarOpen.value = false
+}
+
+function scrollToSection(target: string) {
+  const content = document.querySelector('.content-scroll')
+  const element = document.getElementById(target)
+  if (!element) {
+    content?.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+  element.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 </script>
 
@@ -155,8 +189,8 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 }
 
 .docs-header {
-  height: 64px;
-  background: #2f9bb3;
+  height: 60px;
+  background: #0785a3;
   display: flex;
   align-items: center;
   padding: 0 24px;
@@ -177,8 +211,8 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 2px solid rgba(255,255,255,0.8);
   font-size: 13px;
   font-weight: 800;
@@ -186,7 +220,7 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 }
 
 .brand-name {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -204,8 +238,24 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   white-space: nowrap;
 }
 
-.header-nav {
+.header-search {
   margin-left: auto;
+  width: min(340px, 32vw);
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 5px;
+  background: #fff;
+}
+.header-search input { min-width: 0; flex: 1; border: 0; outline: 0; font: inherit; font-size: 13px; color: #233245; }
+.header-search kbd { color: #778496; font: 11px/1.4 'Segoe UI', sans-serif; white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+
+.header-nav {
+  margin-left: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -223,7 +273,7 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
+  min-height: 32px;
   padding: 0 10px;
   border: 1px solid transparent;
   color: rgba(255,255,255,0.9);
@@ -246,7 +296,7 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   background: transparent;
   border: 1px solid rgba(255,255,255,0.85);
   color: #fff;
-  min-height: 34px;
+  min-height: 32px;
   padding: 0 12px;
   font-size: 12px;
   cursor: pointer;
@@ -259,13 +309,13 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 .lang-btn:hover { background: rgba(255,255,255,0.16); }
 
 .docs-subbar {
-  height: 45px;
+  height: 42px;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 0 28px;
   border-bottom: 1px solid #d9e0e5;
-  background: #f4f6f8;
+  background: #fff;
   flex-shrink: 0;
 }
 
@@ -312,35 +362,20 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   text-overflow: ellipsis;
 }
 
-.search-box {
-  margin-left: auto;
+
+.content-breadcrumb {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 22px 0 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: min(320px, 34vw);
+  gap: 9px;
+  color: #738093;
+  font-size: 12px;
 }
-
-.search-box span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
-.search-box input {
-  width: 100%;
-  height: 30px;
-  border: 1px solid #b8c2cc;
-  border-radius: 3px;
-  padding: 0 12px;
-  font: inherit;
-  background: #fff;
-}
-
-.search-box input:focus {
-  outline: 2px solid rgba(47,155,179,0.22);
-  border-color: #2f9bb3;
-}
+.content-breadcrumb button { border: 0; background: transparent; color: #0785a3; padding: 0; font: inherit; cursor: pointer; }
+.content-breadcrumb strong { color: #28364a; font-weight: 600; }
+.header-menu { display: none; flex: 0 0 auto; }
 
 .docs-body {
   flex: 1;
@@ -350,7 +385,7 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 }
 
 .docs-sidebar {
-  width: 310px;
+  width: 284px;
   flex-shrink: 0;
   border-right: 1px solid #d9e0e5;
   background: var(--color-sidebar-bg);
@@ -367,14 +402,21 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 .content-scroll {
   flex: 1;
   overflow: auto;
-  padding: 0 34px 56px;
+  padding: 0 28px 64px;
   min-width: 0;
 }
+
+.page-toc { width: 220px; flex: 0 0 220px; border-left: 1px solid #e4e8ec; background: #fff; padding: 28px 22px; overflow: auto; }
+.toc-sticky { position: sticky; top: 0; }
+.toc-title { margin: 0 0 12px; color: #5f6b7a; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.toc-link { display: block; width: 100%; border: 0; border-left: 2px solid transparent; background: transparent; padding: 7px 0 7px 12px; color: #506072; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.toc-link:first-of-type { border-left-color: #1597b4; color: #087d99; }
+.toc-link.nested { padding-left: 24px; font-size: 12px; }
 
 @media (max-width: 1180px) {
   .docs-sidebar {
     position: fixed;
-    top: 109px;
+    top: 60px;
     bottom: 0;
     left: 0;
     z-index: 20;
@@ -390,10 +432,13 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   .menu-btn {
     display: block;
   }
+  .header-menu { display: block; }
 
   .docs-main {
     min-height: 0;
   }
+
+  .page-toc { display: none; }
 }
 
 @media (max-width: 760px) {
@@ -405,6 +450,8 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   .brand-product {
     display: none;
   }
+
+  .header-search { display: none; }
 
   .brand-mark {
     width: 30px;

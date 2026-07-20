@@ -1,9 +1,10 @@
 import { WindowManager } from '../../dist/deskpane.es.js';
 import { Desktop } from '../../dist/deskpane-desktop.es.js';
+import { ContextMenu, StartMenu } from '../../dist/deskpane-menu.es.js';
 
 const root = document.getElementById('desktop-root');
+const shell = document.getElementById('win7-root');
 const startButton = document.getElementById('start-button');
-const startMenu = document.getElementById('start-menu');
 const clock = document.getElementById('win7-clock');
 
 function icon(name) {
@@ -61,6 +62,48 @@ const apps = {
   monitor: { id: 'app-monitor', title: 'System Monitor', label: 'Monitor', icon: '?', width: 700, height: 460, x: 590, y: 190, content: makeMonitor },
   settings: { id: 'app-settings', title: '系統設定', label: '設定', icon: '⚙', width: 420, height: 320, x: 320, y: 150, content: makeSettings },
 };
+
+const startMenu = new StartMenu({
+  anchor: startButton,
+  target: shell,
+  header: { label: 'DeskPane', icon: 'DP' },
+  items: [
+    { id: 'computer', label: 'Computer', icon: '▣', action: () => openApp('computer') },
+    { id: 'documents', label: 'Documents', icon: '□', action: () => openApp('documents') },
+    { id: 'network', label: 'Network', icon: '🔍', action: () => openApp('network') },
+    { id: 'monitor', label: 'System Monitor', icon: '📊', action: () => openApp('monitor') },
+    { type: 'separator' },
+    {
+      id: 'programs',
+      label: 'All Programs',
+      icon: '▦',
+      children: [
+        { id: 'grid', label: 'Data Grid', icon: '▦', action: () => openApp('grid') },
+        { id: 'settings', label: 'System Settings', icon: '⚙', action: () => openApp('settings') },
+      ],
+    },
+  ],
+  secondaryItems: [
+    { id: 'secondary-computer', label: 'Computer', action: () => openApp('computer') },
+    { id: 'secondary-network', label: 'Network', action: () => openApp('network') },
+    { id: 'help', label: 'Help and Support', action: () => openApp('computer', { tab: 'about' }) },
+  ],
+  footerItems: [
+    { id: 'shutdown', label: 'Shut down', icon: '⏻', action: () => Object.values(apps).forEach(app => wm.close(app.id)) },
+  ],
+});
+
+const desktopMenu = new ContextMenu({
+  target: shell,
+  items: [
+    { id: 'open-computer', label: 'Open Computer', icon: '▣', action: () => openApp('computer') },
+    { id: 'open-network', label: 'Open Network', icon: '🔍', action: () => openApp('network') },
+    { type: 'separator' },
+    { id: 'refresh', label: 'Refresh', shortcut: 'F5', action: () => desktop.refresh() },
+    { id: 'settings', label: 'System Settings', icon: '⚙', action: () => openApp('settings') },
+  ],
+});
+desktopMenu.bindTo(root.querySelector('.dp-desktop-icon-area') ?? root);
 
 function openApp(name, options = {}) {
   if (name === 'documents') return openApp('computer', { tab: 'about' });
@@ -208,7 +251,7 @@ function makeSettings() {
       el('input', { type: 'number', min: '0', max: '48', value: '0', oninput: event => wm.setSnapGap(Number(event.target.value) || 0) }),
     ]),
 
-    el('p', {}, ['這個 demo 故意保留自訂 Start menu 與玻璃 taskbar，方便評估 DeskPane 是否需要官方 taskbar/start-menu 模組。']),
+    el('p', {}, ['這個 demo 使用官方 StartMenu 與 ContextMenu 模組；玻璃 taskbar 仍由 demo 自訂，方便後續評估 Dock shell 擴充。']),
   ]);
 }
 
@@ -250,29 +293,9 @@ function updateClock() {
   clock.textContent = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' }).format(new Date());
 }
 
-function toggleStartMenu(force) {
-  const willOpen = force ?? startMenu.hidden;
-  startMenu.hidden = !willOpen;
-  startButton.classList.toggle('active', willOpen);
-}
-
-startButton.addEventListener('click', () => toggleStartMenu());
-startMenu.addEventListener('click', event => {
-  const button = event.target.closest('button');
-  if (!button) return;
-  if (button.dataset.open) openApp(button.dataset.open, button.dataset.open === 'computer' ? { tab: 'grid' } : {});
-  if (button.dataset.action === 'shutdown') Object.values(apps).forEach(app => wm.close(app.id));
-  if (button.dataset.action === 'help') openApp('computer', { tab: 'about' });
-  toggleStartMenu(false);
-});
-document.addEventListener('pointerdown', event => {
-  if (startMenu.hidden) return;
-  if (event.target.closest('#start-menu') || event.target.closest('#start-button')) return;
-  toggleStartMenu(false);
-});
 
 updateClock();
 setInterval(updateClock, 1000);
 openApp('computer', { tab: 'grid' });
 
-window.deskpaneWin7Demo = { desktop, wm, openApp };
+window.deskpaneWin7Demo = { desktop, wm, startMenu, desktopMenu, openApp };

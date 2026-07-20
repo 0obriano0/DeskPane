@@ -1,8 +1,8 @@
 /* ── CSS Variables ── */
 :root {
-  --color-header-bg: #2f9bb3;
+  --color-header-bg: #0785a3;
   --color-header-text: #fff;
-  --color-primary: #1684a0;
+  --color-primary: #0785a3;
   --color-primary-hover: #0f6f87;
   --color-sidebar-bg: #f7f9fb;
   --color-sidebar-border: #d9e0e5;
@@ -13,7 +13,7 @@
   --color-code-text: #1f2937;
   --color-demo-bg: #fff;
   --color-demo-border: #b8c2cc;
-  --radius: 4px;
+  --radius: 6px;
 }
 
 /* ── Reset ── */
@@ -31,7 +31,7 @@ html, body {
 a { color: var(--color-primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 h1 {
-  font-size: 1.55rem;
+  font-size: 2rem;
   font-weight: 600;
   margin: 26px 0 8px;
   color: #111827;
@@ -87,7 +87,7 @@ code {
 .badge-gray  { background: #f3f4f6; color: #4b5563; }
 
 .page {
-  max-width: none !important;
+  max-width: 980px !important;
   padding-top: 1px;
 }
 
