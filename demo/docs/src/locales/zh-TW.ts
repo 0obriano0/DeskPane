@@ -292,7 +292,7 @@ export const zhTW: Record<string, string> = {
   // 主題系統
   'theme.badge':          '主題',
   'theme.h1':             '主題系統',
-  'theme.intro':          'DeskPane 內建四個主題：<strong>light</strong>、<strong>dark</strong>、含視窗外框樣式的 <strong>win7</strong>，以及 <strong>medieval-pixel</strong>。只需一個 <code>&lt;link&gt;</code> 標籤，或呼叫 <code>setTheme()</code> 在執行期切換。',
+  'theme.intro':          'DeskPane 內建五個主題：<strong>light</strong>、<strong>dark</strong>、含視窗外框樣式的 <strong>win7</strong> 與 <strong>xp</strong>，以及 <strong>medieval-pixel</strong>。只需一個 <code>&lt;link&gt;</code> 標籤，或呼叫 <code>setTheme()</code> 在執行期切換。',
   'theme.h2Load':         '載入主題',
   'theme.h2SetTheme':     'setTheme(preset, options?)',
   'theme.setThemeDesc':   '在執行期替換 <code>&lt;link id="dp-theme"&gt;</code> 的 <code>href</code>。若指定 id 的 link 元素不存在，會自動建立並插入 <code>&lt;head&gt;</code>。',
@@ -333,7 +333,8 @@ export const zhTW: Record<string, string> = {
   'desktop.h2AddIcon':            'desktop.addIcon(config)',
   'desktop.icon.id':              '唯一圖示識別碼。',
   'desktop.icon.label':           '圖示下方的標籤文字。',
-  'desktop.icon.icon':            'Emoji 或圖片 URL。',
+  'desktop.icon.icon':            'URL、emoji、inline SVG 字串或真實 DOM Node；DesktopIcon 會掛載傳入的 Node。',
+  'desktop.icon.renderer':        '自訂 renderer，接收 item 與 icon 容器；可回傳字串或 Node，也可直接寫入容器後不回傳。',
   'desktop.icon.action':          '使用者點擊圖示時觸發的回呼函式。',
   'desktop.h2Sync':               'syncDockWithWindows(wm, options?)',
   'desktop.syncDesc':             '視窗開啟/關閉時自動建立或移除對應的 Dock 項目。回傳 <code>() =&gt; void</code> 清除函式，呼叫它可解除同步監聽。',

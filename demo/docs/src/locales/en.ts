@@ -292,7 +292,7 @@ export const en: Record<string, string> = {
   // Theme System
   'theme.badge':          'Theming',
   'theme.h1':             'Theme System',
-  'theme.intro':          'DeskPane ships four built-in themes: <strong>light</strong>, <strong>dark</strong>, the <strong>win7</strong> window chrome preset, and <strong>medieval-pixel</strong>. Load one <code>&lt;link&gt;</code> tag, or call <code>setTheme()</code> to switch at runtime.',
+  'theme.intro':          'DeskPane ships five built-in themes: <strong>light</strong>, <strong>dark</strong>, the <strong>win7</strong> and <strong>xp</strong> window chrome presets, and <strong>medieval-pixel</strong>. Load one <code>&lt;link&gt;</code> tag, or call <code>setTheme()</code> to switch at runtime.',
   'theme.h2Load':         'Load a Theme',
   'theme.h2SetTheme':     'setTheme(preset, options?)',
   'theme.setThemeDesc':   'Swaps the <code>&lt;link id="dp-theme"&gt;</code> <code>href</code> at runtime. If the link element does not exist it is created and appended to <code>&lt;head&gt;</code>.',
@@ -333,7 +333,8 @@ export const en: Record<string, string> = {
   'desktop.h2AddIcon':            'desktop.addIcon(config)',
   'desktop.icon.id':              'Unique icon identifier.',
   'desktop.icon.label':           'Label text displayed below the icon.',
-  'desktop.icon.icon':            'Emoji or image URL for the icon.',
+  'desktop.icon.icon':            'URL, emoji, inline SVG string, or a real DOM Node. DesktopIcon mounts the supplied Node.',
+  'desktop.icon.renderer':        'Custom renderer receiving the item and icon container. It may return a string or Node, or append directly and return nothing.',
   'desktop.icon.action':          'Callback fired when the user clicks the icon.',
   'desktop.h2Sync':               'syncDockWithWindows(wm, options?)',
   'desktop.syncDesc':             'Automatically creates and removes Dock items as windows are opened and closed. Returns a <code>() =&gt; void</code> cleanup function. Call it to detach the sync listener.',

@@ -4,12 +4,42 @@
 
 import type { DesktopCollectionView } from './DesktopCollectionView.js';
 
+/** Desktop icon content accepted by the built-in renderer. */
+export type DesktopIconContent = string | Node;
+
+/** Context passed to a custom desktop icon renderer. */
+export interface DesktopIconRendererContext {
+  /** Current desktop item. Treat this object as read-only. */
+  item: Readonly<DesktopIconConfig>;
+  /** Existing `.dp-desktop-icon-img` host element. */
+  container: HTMLElement;
+}
+
+/**
+ * Custom desktop icon renderer.
+ *
+ * Return a string to use the normal URL / inline SVG / emoji resolver, return
+ * a DOM Node to mount it, or append directly to `context.container` and return
+ * nothing.
+ */
+export type DesktopIconRenderer = (
+  context: DesktopIconRendererContext,
+) => DesktopIconContent | null | undefined | void;
+
 /** 桌面圖示設定 */
 export interface DesktopIconConfig {
   id: string;
   label: string;
-  /** URL、emoji 字元、或內聯 SVG 字串 */
-  icon: string;
+  /**
+   * URL、emoji、inline SVG 字串，或真實 DOM Node。
+   * 傳入 Node 時，DesktopIcon 會接管並掛載該節點；多個 icon 請勿共用同一 Node。
+   */
+  icon?: DesktopIconContent;
+  /**
+   * 自訂 icon renderer。優先於 `icon`，適合 Canvas、Web Component、
+   * 帶事件的 HTML 或每次 render 都需要新節點的情境。
+   */
+  iconRenderer?: DesktopIconRenderer;
   /** 初始 X 位置（px）。未指定則自動排列 */
   x?: number;
   /** 初始 Y 位置（px）。未指定則自動排列 */

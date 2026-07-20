@@ -74,7 +74,7 @@ DeskPane is:
 
 ### Layouts & Theming
 - ✅ **BorderLayout** — N/S/E/W/Center docking layout, collapsible panels, draggable splitters
-- ✅ **Theme system** — `setTheme('light' | 'dark' | 'win7' | 'medieval-pixel')`, CSS custom properties, and opt-in window chrome presets
+- ✅ **Theme system** — `setTheme('light' | 'dark' | 'win7' | 'xp' | 'medieval-pixel')`, CSS custom properties, and opt-in window chrome presets
 - ✅ Vue 3 adapter — `useWindowManager`, `DpDesktop`, `DpDesktopIcon`, `DpWindowManager`, `DpWindow`
 - ✅ React 18 adapter — `useWindowManager` hook + `createPortal` support
 
@@ -506,7 +506,7 @@ wm.events.on('window:child-closed', ({ parentId, childId }) => { })
 
 ## Theming
 
-Built-in `dist/themes/light.css`, `dist/themes/dark.css`, `dist/themes/win7.css`, and `dist/themes/medieval-pixel.css` contain Core + Desktop CSS custom properties. The Win7 and Medieval Pixel presets also include opt-in chrome rules; a single `<link>` tag covers both the window manager and the Desktop module.
+Built-in `dist/themes/light.css`, `dist/themes/dark.css`, `dist/themes/win7.css`, `dist/themes/xp.css`, and `dist/themes/medieval-pixel.css` contain Core + Desktop CSS custom properties. The Win7, XP-like, and Medieval Pixel presets also include opt-in chrome rules; a single `<link>` tag covers both the window manager and the Desktop module.
 
 Structural styles are provided separately as `dist/styles/deskpane.css` (window structure), `dist/styles/deskpane-desktop.css` (Desktop / Dock / Icon), `dist/styles/deskpane-workspace.css` (workspace slide animation), `dist/styles/deskpane-taskview.css` (TaskView overlay), and the optional `dist/styles/deskpane-menu.css` (StartMenu / ContextMenu). These are independent of theme variables and can be `<link>`ed directly:
 
@@ -569,6 +569,7 @@ import { setTheme } from 'deskpane'
 setTheme('dark')                               // default basePath: 'themes'
 setTheme('light', { basePath: '/themes' })     // Vite SPA
 setTheme('win7', { basePath: 'dist/themes' })  // Windows-like chrome preset
+setTheme('xp', { basePath: 'dist/themes' })    // XP-inspired chrome preset
 setTheme('medieval-pixel', { basePath: 'dist/themes' })
 setTheme('dark',  { basePath: 'dist/themes' }) // relative path
 // UMD: DeskPane.setTheme('dark', { basePath: 'dist/themes' })
@@ -686,6 +687,40 @@ desktop.getDesktopElement()
 | `dock` | `DockConfig` | `{}` | Dock configuration |
 | `icons` | `DesktopIconConfig[]` | `[]` | Initial desktop icons |
 | `itemsSource` | `DesktopIconConfig[] \| DesktopCollectionView` | `icons ?? []` | Wijmo-style data source for desktop icons |
+
+### Desktop icon content and custom rendering
+
+`DesktopIconConfig.icon` keeps the existing URL, inline SVG, and emoji behavior, and also accepts a real DOM `Node`. Use `iconRenderer` when each refresh should create fresh content or when rendering Canvas, Web Components, or eventful HTML.
+
+```typescript
+const statusIcon = document.createElement('span')
+statusIcon.className = 'status-icon'
+statusIcon.textContent = '42'
+
+desktop.addIcon({
+  id: 'status',
+  label: 'Status',
+  icon: statusIcon, // DesktopIcon takes ownership of this Node
+  action: openStatus,
+})
+
+desktop.addIcon({
+  id: 'chart',
+  label: 'Live chart',
+  iconRenderer: ({ item, container }) => {
+    container.dataset.appId = item.id
+
+    const canvas = document.createElement('canvas')
+    canvas.width = 48
+    canvas.height = 48
+    drawChart(canvas)
+    return canvas
+  },
+  action: openChart,
+})
+```
+
+Do not share one Node between multiple icons. Use `iconRenderer` to create one Node per rendered icon. A renderer may return a string or Node, or append directly to `container` and return nothing; when both are provided, `iconRenderer` takes priority over `icon`.
 
 ### Desktop Methods
 
@@ -1203,6 +1238,7 @@ When collapsed, a region shrinks to a **28px mini strip**: expand button → ico
 | `dist/jquery.d.ts` | TypeScript | — | jQuery adapter type declarations |
 | `dist/themes/light.css` | CSS | ~2 KB | Light theme (Core + Desktop) |
 | `dist/themes/dark.css` | CSS | ~2 KB | Dark theme (Core + Desktop) |
+| `dist/themes/xp.css` | CSS | ~4 KB | XP-inspired theme (Core + Desktop + window chrome) |
 | `dist/themes/win7.css` | CSS | ~4 KB | Windows 7 inspired theme (Core + Desktop + window chrome) |
 | `dist/themes/medieval-pixel.css` | CSS | ~3 KB | Medieval pixel theme (Core + Desktop + pixel UI assets) |
 | `dist/themes/assets/medieval-pixel/` | Assets | — | Pixel UI source assets used by the Medieval Pixel theme |

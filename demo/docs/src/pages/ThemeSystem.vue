@@ -11,7 +11,10 @@
 &lt;link id="dp-theme" rel="stylesheet" href="dist/themes/light.css"&gt;
 
 &lt;!-- Opt-in Windows 7 inspired window chrome --&gt;
-&lt;link id="dp-theme" rel="stylesheet" href="dist/themes/win7.css"&gt;</pre>
+&lt;link id="dp-theme" rel="stylesheet" href="dist/themes/win7.css"&gt;
+
+&lt;!-- Or the XP-inspired chrome preset --&gt;
+&lt;link id="dp-theme" rel="stylesheet" href="dist/themes/xp.css"&gt;</pre>
 
     <h2>{{ t('theme.h2SetTheme') }}</h2>
     <p v-html="t('theme.setThemeDesc')"></p>
@@ -200,7 +203,10 @@ onMounted(() => {
 <link id="dp-theme" rel="stylesheet" href="dist/themes/dark.css">
 
 <!-- Or Windows 7 inspired window chrome -->
-<link id="dp-theme" rel="stylesheet" href="dist/themes/win7.css">`,
+<link id="dp-theme" rel="stylesheet" href="dist/themes/win7.css">
+
+<!-- Or XP-inspired window chrome -->
+<link id="dp-theme" rel="stylesheet" href="dist/themes/xp.css">`,
     },
     {
       name: 'setTheme.ts',
@@ -215,6 +221,9 @@ setTheme('light', { basePath: '/themes' })
 
 // Opt-in Windows 7 inspired window chrome
 setTheme('win7', { basePath: '/themes' })
+
+// Opt-in XP-inspired window chrome
+setTheme('xp', { basePath: '/themes' })
 
 // Relative to dist/
 setTheme('dark', { basePath: 'dist/themes' })

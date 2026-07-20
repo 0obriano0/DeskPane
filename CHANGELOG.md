@@ -8,7 +8,9 @@
 - Added the Windows 7 desktop demo and a Win7 quick-load preset in Theme Editor.
 - Added the optional `deskpane/menu` bundle with `StartMenu`, `ContextMenu`, ESM/UMD builds, TypeScript declarations, and standalone structural CSS.
 - Added nested submenus, disabled and checked items, separators, shortcut labels, command callbacks, keyboard navigation, outside-click closing, viewport-aware placement, and `menu:open` / `menu:close` / `menu:select` events.
-- Added menu theme variables to the light, dark, Win7, and Medieval Pixel presets plus a bilingual developer docs page with Vanilla, jQuery, Vue, and React examples.
+- Added menu theme variables to the light, dark, Win7, XP-like, and Medieval Pixel presets plus a bilingual developer docs page with Vanilla, jQuery, Vue, and React examples.
+- Added direct DOM `Node` content and `iconRenderer(context)` to `DesktopIconConfig`, while preserving existing URL, inline SVG, and emoji strings.
+- Added the opt-in `xp` theme preset, an original XP-like desktop demo, Theme Editor quick-load support, documentation, and GitHub Pages discovery.
 
 ### Changed
 

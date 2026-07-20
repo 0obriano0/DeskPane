@@ -293,6 +293,7 @@
         <span class="cfe-preset-label">快速載入：</span>
         <button class="cfe-preset-btn active" id="cfe-preset-default" onclick="cfeLoadPreset('default')">🎨 預設</button>
         <button class="cfe-preset-btn" id="cfe-preset-win7" onclick="cfeLoadPreset('win7')">🪟 Win7</button>
+        <button class="cfe-preset-btn" id="cfe-preset-xp" onclick="cfeLoadPreset('xp')">🟩 XP-like</button>
         <button class="cfe-preset-btn" id="cfe-preset-win11" onclick="cfeLoadPreset('win11')">🪟 Win11</button>
         <button class="cfe-preset-btn" id="cfe-preset-medieval" onclick="cfeLoadPreset('medieval')">🏰 Medieval Pixel</button>
       </div>
@@ -1355,6 +1356,8 @@ function cfeLoadPreset(key) {
     });
   } else if (key === 'win7') {
     cfeLoadWin7Preset();
+  } else if (key === 'xp') {
+    cfeLoadXpPreset();
   } else if (key === 'win11') {
     /* Ensure we're on the core file tab (Win11 preset targets core CSS) */
     if (cfeCurrentKey !== 'core') {
@@ -1395,6 +1398,32 @@ async function cfeLoadWin7Preset() {
   } catch (e) {
     document.getElementById('cfe-textarea').value =
       '/* 無法載入 ../../dist/themes/win7.css\\n   請先執行 npm run build:lib */';
+    document.getElementById('cfe-status').textContent = '載入失敗';
+    cfeUpdateLineNums();
+  }
+}
+
+async function cfeLoadXpPreset() {
+  if (cfeCurrentKey !== 'core') {
+    cfeCurrentKey = 'core';
+    document.querySelectorAll('.cfe-file-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('cfe-btn-core').classList.add('active');
+  }
+  document.getElementById('cfe-status').textContent = '載入 XP-like…';
+  try {
+    const res = await fetch('../../dist/themes/xp.css');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const css = await res.text();
+    document.getElementById('cfe-textarea').value = css;
+    cfeUpdateLineNums();
+    cfeInject('core', css);
+    const lines = css.split('\n').length;
+    document.getElementById('cfe-status').textContent = lines + ' 行 (XP-like)';
+    showFeedback('cfe-feedback', '🟩 已載入 XP-like 樣式');
+    cfeSetPreset('xp');
+  } catch (e) {
+    document.getElementById('cfe-textarea').value =
+      '/* 無法載入 ../../dist/themes/xp.css\n   請先執行 npm run build:lib */';
     document.getElementById('cfe-status').textContent = '載入失敗';
     cfeUpdateLineNums();
   }

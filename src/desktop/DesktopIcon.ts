@@ -3,7 +3,7 @@
 // 桌面圖示：可拖曳自由定位，點擊觸發 action
 // ============================================================
 
-import { DesktopIconConfig } from './types.js';
+import { DesktopIconConfig, DesktopIconContent } from './types.js';
 import { appendIconContent } from './iconUtils.js';
 
 export type IconMoveCallback = (id: string, x: number, y: number) => void;
@@ -11,10 +11,31 @@ export type IconSelectCallback = (id: string) => void;
 /** 傳入建議座標與大小，回傳吸附後座標（guides 更新由 Desktop 閉包處理） */
 export type IconSnapFn = (x: number, y: number, w: number, h: number) => { x: number; y: number };
 
-function resolveIconEl(icon: string): HTMLElement {
+function isNode(value: unknown): value is Node {
+  return typeof Node !== 'undefined' && value instanceof Node;
+}
+
+function appendResolvedContent(
+  container: HTMLElement,
+  content: DesktopIconContent | null | undefined | void,
+): void {
+  if (typeof content === 'string') {
+    appendIconContent(container, content);
+  } else if (isNode(content)) {
+    container.appendChild(content);
+  }
+}
+
+function resolveIconEl(config: DesktopIconConfig): HTMLElement {
   const el = document.createElement('div');
   el.className = 'dp-desktop-icon-img';
-  appendIconContent(el, icon);
+
+  if (config.iconRenderer) {
+    appendResolvedContent(el, config.iconRenderer({ item: config, container: el }));
+  } else {
+    appendResolvedContent(el, config.icon);
+  }
+
   return el;
 }
 
@@ -64,7 +85,7 @@ export class DesktopIcon {
     el.className = 'dp-desktop-icon';
     el.dataset.id = this._config.id;
 
-    el.appendChild(resolveIconEl(this._config.icon));
+    el.appendChild(resolveIconEl(this._config));
 
     const label = document.createElement('div');
     label.className = 'dp-desktop-icon-label';

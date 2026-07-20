@@ -57,7 +57,8 @@
       <tbody>
         <tr><td><code>id</code></td><td><code>string</code></td><td><span class="badge badge-blue">{{ t('common.required') }}</span></td><td>{{ t('desktop.icon.id') }}</td></tr>
         <tr><td><code>label</code></td><td><code>string</code></td><td><span class="badge badge-blue">{{ t('common.required') }}</span></td><td>{{ t('desktop.icon.label') }}</td></tr>
-        <tr><td><code>icon</code></td><td><code>string</code></td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td>{{ t('desktop.icon.icon') }}</td></tr>
+        <tr><td><code>icon</code></td><td><code>string | Node</code></td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td>{{ t('desktop.icon.icon') }}</td></tr>
+        <tr><td><code>iconRenderer</code></td><td><code>(context) =&gt; string | Node | void</code></td><td><span class="badge badge-gray">{{ t('common.optional') }}</span></td><td>{{ t('desktop.icon.renderer') }}</td></tr>
         <tr><td><code>action</code></td><td><code>() =&gt; void</code></td><td><span class="badge badge-blue">{{ t('common.required') }}</span></td><td>{{ t('desktop.icon.action') }}</td></tr>
       </tbody>
     </table>
@@ -348,6 +349,32 @@ const wm = new WindowManager({
 // 3. Sync open windows → Dock items automatically
 const stopSync = desktop.syncDockWithWindows(wm)
 // Later: stopSync() to detach`,
+    },
+    {
+      name: 'custom-icons.ts',
+      lang: 'typescript',
+      code: `const htmlIcon = document.createElement('span')
+htmlIcon.textContent = '42'
+htmlIcon.className = 'status-badge'
+
+desktop.addIcon({
+  id: 'status',
+  label: 'Status',
+  icon: htmlIcon,
+})
+
+desktop.addIcon({
+  id: 'chart',
+  label: 'Live chart',
+  iconRenderer: ({ item, container }) => {
+    container.dataset.appId = item.id
+    const canvas = document.createElement('canvas')
+    canvas.width = 48
+    canvas.height = 48
+    drawChart(canvas)
+    return canvas
+  },
+})`,
     },
   ])
 }

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeskPane - XP-like Desktop Demo</title>
+  <meta name="description" content="An original XP-inspired web desktop built with DeskPane Desktop, WindowManager, StartMenu, ContextMenu, and Dock synchronization." />
+  <link rel="canonical" href="https://0obriano0.github.io/DeskPane/demo/xp/" />
+  <meta property="og:title" content="DeskPane XP-like Desktop Demo" />
+  <meta property="og:description" content="Explore an XP-inspired desktop experience built entirely with DeskPane modules and original visual assets." />
+  <meta property="og:url" content="https://0obriano0.github.io/DeskPane/demo/xp/" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="../../dist/themes/xp.css" />
+  <link rel="stylesheet" href="./xp.css" />
+</head>
+<body>
+  <main id="xp-shell" class="xp-shell" aria-label="DeskPane XP-like desktop">
+    <a class="xp-github" href="https://github.com/0obriano0/DeskPane" target="_blank" rel="noopener">GitHub</a>
+    <div class="xp-sky" aria-hidden="true">
+      <span class="xp-cloud cloud-one"></span>
+      <span class="xp-cloud cloud-two"></span>
+      <span class="xp-hill hill-back"></span>
+      <span class="xp-hill hill-front"></span>
+    </div>
+    <div id="desktop-root" class="xp-desktop-root"></div>
+
+    <footer class="xp-taskbar" aria-label="XP-like taskbar">
+      <button id="start-button" class="xp-start-button" type="button" aria-label="Open Start menu">
+        <span class="xp-start-mark" aria-hidden="true">DP</span>
+        <span>start</span>
+      </button>
+      <div class="xp-taskbar-spacer"></div>
+      <div class="xp-tray" aria-label="System tray">
+        <span class="xp-tray-icon" title="Network" aria-label="Network connected">↔</span>
+        <span class="xp-tray-icon" title="Volume" aria-label="Volume">♪</span>
+        <time id="xp-clock" class="xp-clock"></time>
+      </div>
+    </footer>
+  </main>
+
+  <script type="module" src="./xp.js"></script>
+</body>
+</html>

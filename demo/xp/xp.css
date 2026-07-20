@@ -1,0 +1,248 @@
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { background: #245ec7; color: #1f1f1f; font: 13px Tahoma, "Segoe UI", Arial, sans-serif; }
+
+.xp-shell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-width: 320px;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.xp-sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(#2187d5 0%, #63b9ec 57%, #a8d9ec 64%, #6cad42 65%, #3f8c2e 100%);
+}
+
+.xp-sky::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(115deg, rgba(255,255,255,.18), transparent 28% 70%, rgba(0,70,140,.12));
+}
+
+.xp-cloud {
+  position: absolute;
+  width: 160px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.88);
+  filter: blur(.3px);
+  box-shadow: 35px -16px 0 7px rgba(255,255,255,.88), 78px -8px 0 2px rgba(255,255,255,.82);
+}
+.cloud-one { top: 15%; left: 17%; transform: scale(.72); opacity: .72; }
+.cloud-two { top: 24%; right: 15%; transform: scale(.46); opacity: .56; }
+
+.xp-hill { position: absolute; border-radius: 50% 50% 0 0; transform-origin: bottom center; }
+.hill-back { width: 105%; height: 42%; right: -27%; bottom: -8%; background: #69ad42; transform: rotate(-5deg); box-shadow: inset 0 16px 24px rgba(192,231,125,.34); }
+.hill-front { width: 92%; height: 35%; left: -18%; bottom: -12%; background: #3e922d; transform: rotate(7deg); box-shadow: inset 0 18px 34px rgba(137,207,73,.5); }
+
+.xp-desktop-root { position: relative; width: 100%; height: 100%; }
+.xp-shell .dp-desktop { background: transparent !important; }
+.xp-shell .dp-desktop-icon-area,
+.xp-shell .dp-window-area { bottom: 42px !important; }
+
+.xp-github {
+  position: fixed;
+  z-index: 30000;
+  top: 10px;
+  right: 12px;
+  display: inline-flex;
+  min-height: 27px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 3px;
+  background: #245edb;
+  box-shadow: inset 0 1px #77a7ff, 1px 2px 3px rgba(0,44,120,.35);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  text-shadow: 1px 1px #143b8f;
+}
+.xp-github:hover { background: #3675ec; }
+
+.xp-shell .dp-desktop-icon { width: 88px; color: #fff; }
+.xp-shell .dp-desktop-icon-img { width: 50px; height: 50px; filter: drop-shadow(1px 2px 2px rgba(0,37,80,.55)); }
+.xp-custom-icon { display: block; width: 100%; height: 100%; }
+.xp-custom-icon svg { display: block; width: 100%; height: 100%; }
+.xp-shell .dp-desktop-icon-label { margin-top: 3px; padding: 1px 3px; color: #fff; font-size: 12px; line-height: 1.25; text-shadow: 1px 1px 2px #17385f; }
+.xp-shell .dp-icon-selected .dp-desktop-icon-label { background: #316ac5; outline: 1px dotted #fff; }
+.xp-shell .dp-icon-selected .dp-desktop-icon-img { outline: none; }
+
+.xp-taskbar {
+  position: absolute;
+  z-index: 15000;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  height: 42px;
+  align-items: stretch;
+  border-top: 1px solid #3f8cf3;
+  background: linear-gradient(#3168d5 0%, #245edb 12%, #1f56c7 88%, #1941a5 100%);
+  box-shadow: inset 0 2px rgba(87,148,241,.84);
+}
+
+.xp-start-button {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  width: 108px;
+  flex: 0 0 108px;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 0;
+  padding: 0 14px 0 7px;
+  border: 0;
+  border-radius: 0 18px 18px 0;
+  background: linear-gradient(#58b34c, #3c9c35 45%, #2c7b25 92%);
+  box-shadow: inset 0 2px rgba(214,255,196,.72), inset -2px 0 rgba(20,91,23,.58), 2px 0 4px rgba(6,41,91,.34);
+  color: #fff;
+  cursor: pointer;
+  font: italic 700 16px Tahoma, sans-serif;
+  text-shadow: 1px 1px #246520;
+}
+.xp-start-button:hover { filter: brightness(1.08); }
+.xp-start-button.active { filter: brightness(.92); box-shadow: inset 0 2px 7px rgba(0,55,10,.5), inset -2px 0 rgba(20,91,23,.58); }
+.xp-start-mark { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid rgba(255,255,255,.8); border-radius: 5px; background: #f7f7ef; color: #2364bd; font: 800 10px Tahoma, sans-serif; text-shadow: none; transform: rotate(-3deg); }
+.xp-taskbar-spacer { flex: 1; }
+
+.xp-shell .dp-dock.dp-dock-bottom {
+  z-index: 16000;
+  right: 130px !important;
+  bottom: 0 !important;
+  left: 108px !important;
+  height: 42px !important;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 4px 6px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none;
+}
+.xp-shell .dp-dock-item {
+  width: 152px;
+  height: 34px;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 3px 8px;
+  border: 1px solid #1748a3;
+  border-radius: 3px;
+  background: linear-gradient(#4a8aec, #2f6ad3);
+  box-shadow: inset 1px 1px rgba(125,177,255,.68);
+  color: #fff;
+  text-shadow: 1px 1px #143b8f;
+}
+.xp-shell .dp-dock-item:hover { transform: none; background: linear-gradient(#63a0f7, #3976df); }
+.xp-shell .dp-dock-item.dp-dock-active { background: linear-gradient(#1d4fae, #194697); box-shadow: inset 1px 2px 4px rgba(0,32,105,.65); }
+.xp-shell .dp-dock-item.dp-dock-active::after { display: none; }
+.xp-shell .dp-dock-icon { width: 23px !important; height: 23px !important; flex: 0 0 23px; font-size: 15px !important; }
+.xp-shell .dp-dock-label { min-width: 0; margin: 0; overflow: hidden; color: #fff; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+
+.xp-tray {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 130px;
+  flex: 0 0 130px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 0 9px 0 8px;
+  border-left: 1px solid #0f4eb3;
+  background: linear-gradient(#19a4ed, #0c88d6 88%, #0876c1);
+  box-shadow: inset 1px 1px rgba(115,215,255,.72);
+  color: #fff;
+  text-shadow: 1px 1px #0b5894;
+}
+.xp-tray-icon { display: grid; width: 18px; height: 18px; place-items: center; font-size: 12px; }
+.xp-clock { margin-left: 3px; font-size: 11px; white-space: nowrap; }
+
+.xp-shell .dp-body { overflow: hidden; }
+.xp-shell .dp-window .dp-title { display: flex; align-items: center; gap: 5px; }
+
+.xp-app { width: 100%; height: 100%; min-width: 0; min-height: 0; color: #1f1f1f; background: #fff; }
+.xp-explorer { display: grid; grid-template-rows: 23px 38px 30px minmax(0, 1fr) 22px; }
+.xp-menubar { padding: 4px 8px; border-bottom: 1px solid #aca899; background: #ece9d8; font-size: 11px; white-space: pre; }
+.xp-toolbar { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-bottom: 1px solid #aca899; background: #ece9d8; }
+.xp-toolbar button { height: 27px; padding: 0 9px; border: 1px solid transparent; background: transparent; color: #222; font: 11px Tahoma, sans-serif; }
+.xp-toolbar button:hover { border-color: #316ac5; background: #fff; }
+.xp-toolbar-separator { width: 1px; height: 24px; margin: 0 2px; background: #aca899; box-shadow: 1px 0 #fff; }
+.xp-address { display: grid; grid-template-columns: 55px minmax(0, 1fr); align-items: center; gap: 4px; padding: 3px 5px; border-bottom: 1px solid #aca899; background: #ece9d8; font-size: 11px; }
+.xp-address strong { min-width: 0; padding: 3px 7px; overflow: hidden; border: 1px solid #7f9db9; background: #fff; color: #222; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+.xp-explorer-content { display: grid; grid-template-columns: 190px minmax(0, 1fr); min-height: 0; overflow: hidden; }
+.xp-tasks { min-width: 0; overflow: auto; padding: 12px 10px; background: linear-gradient(135deg, #7aa1e6, #637dc4); }
+.xp-tasks section { margin-bottom: 12px; overflow: hidden; border: 1px solid #fff; border-radius: 6px 6px 0 0; background: #d6e6fb; }
+.xp-tasks h3 { margin: 0 0 7px; padding: 6px 8px; background: linear-gradient(90deg, #fff, #c6d9f5); color: #215dc6; font-size: 11px; }
+.xp-tasks a, .xp-tasks p { display: block; margin: 0; padding: 0 9px 7px; color: #214f9c; font-size: 10px; line-height: 1.4; }
+.xp-folder-view { min-width: 0; overflow: auto; padding: 14px 16px; background: #fff; }
+.xp-statusbar { padding: 3px 6px; border-top: 1px solid #aca899; background: #ece9d8; color: #555; font-size: 10px; }
+
+.xp-drive-groups h2 { margin: 0 0 8px; padding: 4px 0; border-bottom: 1px solid #95b4e5; color: #215dc6; font-size: 12px; }
+.xp-drive-groups h2:not(:first-child) { margin-top: 18px; }
+.xp-folder-grid { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 8px 14px; }
+.xp-folder-tile, .xp-drive-tile { display: flex; min-width: 0; min-height: 58px; align-items: center; gap: 10px; padding: 5px; border: 1px solid transparent; background: transparent; color: #111; text-align: left; cursor: default; }
+.xp-folder-tile:hover, .xp-drive-tile:hover { border-color: #7da2ce; background: #eef4fd; }
+.xp-folder-tile > span, .xp-drive-tile > span:first-child { display: grid; width: 45px; height: 45px; flex: 0 0 45px; place-items: center; }
+.xp-folder-tile svg { width: 42px; height: 42px; }
+.xp-folder-tile strong, .xp-drive-tile strong { display: block; font-size: 11px; }
+.xp-drive-icon { color: #8b9baa; font-size: 32px; text-shadow: 0 1px #fff; }
+.xp-drive-tile > span:last-child { min-width: 0; flex: 1; }
+.xp-drive-tile i { display: block; margin: 3px 0; color: #666; font-size: 9px; font-style: normal; }
+.xp-capacity { display: block; width: 100%; height: 8px; border: 1px solid #6c7e8e; background: #fff; }
+.xp-capacity span { display: block; height: 100%; background: #316ac5; }
+.xp-empty { display: grid; justify-items: center; gap: 12px; padding: 34px; color: #53657a; text-align: center; }
+.xp-empty > div { width: 72px; height: 72px; }
+
+.xp-notepad { display: grid; grid-template-rows: 23px minmax(0, 1fr); background: #ece9d8; }
+.xp-notepad textarea { width: 100%; height: 100%; resize: none; border: 1px solid #7f9db9; outline: 0; padding: 8px; background: #fff; color: #111; font: 13px "Lucida Console", Consolas, monospace; line-height: 1.45; }
+
+.xp-control-panel { overflow: auto; padding: 20px; background: #fff; }
+.xp-control-panel header { margin-bottom: 16px; border-bottom: 1px solid #b5c9e8; }
+.xp-control-panel h2 { margin: 0 0 5px; color: #215dc6; font-size: 20px; }
+.xp-control-panel p { margin: 0 0 12px; color: #5c6d80; }
+.xp-control-grid { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 10px; }
+.xp-control-grid button { display: flex; align-items: flex-start; gap: 10px; min-height: 76px; padding: 9px; border: 1px solid transparent; background: transparent; color: #164b9c; text-align: left; }
+.xp-control-grid button:hover { border-color: #8aaee2; background: #eef5ff; }
+.xp-control-grid button > span:first-child { width: 48px; height: 48px; flex: 0 0 48px; }
+.xp-control-grid strong { display: block; margin: 4px 0; font-size: 12px; }
+.xp-control-grid small { display: block; color: #555; font-size: 10px; line-height: 1.35; }
+
+.xp-about { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 18px; align-content: center; padding: 28px; background: linear-gradient(135deg, #fff, #eaf2ff); }
+.xp-about-logo { display: grid; width: 82px; height: 82px; place-items: center; border: 2px solid #fff; border-radius: 16px; background: linear-gradient(135deg, #3f94ff, #1554bc); box-shadow: 0 3px 8px rgba(0,50,130,.35); color: #fff; font-size: 26px; font-weight: 800; }
+.xp-about h2 { margin: 0 0 10px; color: #215dc6; }
+.xp-about p { margin: 7px 0; color: #405269; line-height: 1.45; }
+
+.xp-shell .dp-start-menu { width: 420px; }
+.xp-shell .dp-start-menu-header { min-height: 58px; font-size: 15px; font-weight: 700; text-shadow: 1px 1px #173d86; }
+.xp-shell .dp-start-menu-header-icon { border: 2px solid #fff; border-radius: 6px; background: #f7f7ef; color: #245eb7; }
+.xp-shell .dp-start-menu-columns { grid-template-columns: 1.08fr .92fr; }
+.xp-shell .dp-start-menu-footer { display: flex; justify-content: flex-end; gap: 4px; }
+.xp-shell .dp-start-menu-footer .dp-menu-entry { flex: 0 0 auto; }
+.xp-shell .dp-start-menu-footer .dp-menu-item { color: #fff; }
+.xp-shell .dp-start-menu-footer .dp-menu-item:hover { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.45); }
+
+@media (max-width: 680px) {
+  .xp-github { top: 7px; right: 7px; min-height: 24px; padding: 0 7px; font-size: 11px; }
+  .xp-start-button { width: 92px; flex-basis: 92px; padding-right: 9px; font-size: 14px; }
+  .xp-start-mark { width: 22px; height: 22px; }
+  .xp-shell .dp-dock.dp-dock-bottom { left: 92px !important; right: 94px !important; padding-inline: 3px !important; }
+  .xp-shell .dp-dock-item { width: 38px; flex: 0 0 38px; justify-content: center; padding: 3px; }
+  .xp-shell .dp-dock-label { display: none; }
+  .xp-tray { width: 94px; flex-basis: 94px; padding-inline: 5px; }
+  .xp-tray-icon { display: none; }
+  .xp-explorer-content { grid-template-columns: 1fr; }
+  .xp-tasks { display: none; }
+  .xp-folder-grid, .xp-control-grid { grid-template-columns: 1fr; }
+  .xp-shell .dp-start-menu { width: min(382px, calc(100vw - 8px)); }
+}
+
+@media (max-height: 540px) {
+  .xp-shell .dp-desktop-icon { transform: scale(.88); transform-origin: top left; }
+}

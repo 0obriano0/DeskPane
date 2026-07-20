@@ -2195,10 +2195,26 @@
     // DeskPane-Desktop — DesktopIcon
     // 桌面圖示：可拖曳自由定位，點擊觸發 action
     // ============================================================
-    function resolveIconEl(icon) {
+    function isNode(value) {
+        return typeof Node !== 'undefined' && value instanceof Node;
+    }
+    function appendResolvedContent(container, content) {
+        if (typeof content === 'string') {
+            appendIconContent(container, content);
+        }
+        else if (isNode(content)) {
+            container.appendChild(content);
+        }
+    }
+    function resolveIconEl(config) {
         const el = document.createElement('div');
         el.className = 'dp-desktop-icon-img';
-        appendIconContent(el, icon);
+        if (config.iconRenderer) {
+            appendResolvedContent(el, config.iconRenderer({ item: config, container: el }));
+        }
+        else {
+            appendResolvedContent(el, config.icon);
+        }
         return el;
     }
     class DesktopIcon {
@@ -2224,7 +2240,7 @@
             const el = document.createElement('div');
             el.className = 'dp-desktop-icon';
             el.dataset.id = this._config.id;
-            el.appendChild(resolveIconEl(this._config.icon));
+            el.appendChild(resolveIconEl(this._config));
             const label = document.createElement('div');
             label.className = 'dp-desktop-icon-label';
             label.textContent = this._config.label;

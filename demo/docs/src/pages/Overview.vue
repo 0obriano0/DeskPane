@@ -46,32 +46,7 @@ wm.open({
           <strong>{{ locale === 'en' ? 'Live example' : '即時範例' }}</strong>
           <button type="button" @click="resetDemo">{{ locale === 'en' ? 'Reset' : '重設' }}</button>
         </div>
-        <div ref="desktop" class="desktop-surface">
-          <div class="desktop-shortcuts" aria-label="Desktop shortcuts">
-            <button type="button" aria-label="Open Explorer" @dblclick="runExample">
-              <i class="fa-solid fa-display" aria-hidden="true"></i>
-              <span>Explorer</span>
-            </button>
-            <button type="button" aria-label="Open Notes" @dblclick="runExample">
-              <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
-              <span>Notes.txt</span>
-            </button>
-          </div>
-        </div>
-        <div class="desktop-taskbar">
-          <div class="taskbar-apps">
-            <button class="taskbar-mark" type="button" aria-label="DeskPane">DP</button>
-            <button type="button" aria-label="Files"><i class="fa-solid fa-folder" aria-hidden="true"></i></button>
-            <button type="button" aria-label="Documents"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></button>
-            <button type="button" aria-label="Terminal"><i class="fa-solid fa-terminal" aria-hidden="true"></i></button>
-          </div>
-          <div class="system-tray" aria-label="System status">
-            <i class="fa-solid fa-wifi" aria-label="Wi-Fi connected"></i>
-            <i class="fa-solid fa-volume-high" aria-label="Volume"></i>
-            <time>10:30</time>
-            <i class="fa-regular fa-window-maximize" aria-label="Show desktop"></i>
-          </div>
-        </div>
+        <div ref="desktop" class="desktop-surface"></div>
       </section>
     </div>
 
@@ -95,6 +70,14 @@ wm.open({
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { WindowManager } from '@deskpane/core/WindowManager'
+import { Desktop } from '@deskpane/desktop/Desktop'
+import displayIcon from '@fortawesome/fontawesome-free/svgs/solid/display.svg?url'
+import fileIcon from '@fortawesome/fontawesome-free/svgs/solid/file-lines.svg?url'
+import folderIcon from '@fortawesome/fontawesome-free/svgs/solid/folder.svg?url'
+import terminalIcon from '@fortawesome/fontawesome-free/svgs/solid/terminal.svg?url'
+import wifiIcon from '@fortawesome/fontawesome-free/svgs/solid/wifi.svg?url'
+import volumeIcon from '@fortawesome/fontawesome-free/svgs/solid/volume-high.svg?url'
+import layoutIcon from '@fortawesome/fontawesome-free/svgs/regular/window-maximize.svg?url'
 import { useDocCode } from '../composables/useDocCode'
 import { useLocale } from '../composables/useLocale'
 
@@ -104,6 +87,7 @@ const { locale, t } = useLocale()
 const desktop = ref<HTMLElement | null>(null)
 const copyState = ref('Copy')
 let wm: WindowManager | null = null
+let desk: Desktop | null = null
 
 const sampleCode = [
   "import { WindowManager } from 'deskpane'",
@@ -121,7 +105,38 @@ const sampleCode = [
 
 function initDemo() {
   if (!desktop.value) return
-  wm = new WindowManager({ container: desktop.value, isolated: true })
+
+  desk = new Desktop({
+    container: desktop.value,
+    storageKey: 'deskpane-docs-overview',
+    background: '#2a94ad',
+    iconSnap: true,
+    dock: {
+      position: 'bottom',
+      iconSize: 24,
+      showLabels: false,
+      items: [
+        { id: 'files', label: 'Files', icon: folderIcon, action: runExample },
+        { id: 'documents', label: 'Documents', icon: fileIcon, action: runExample },
+        { id: 'terminal', label: 'Terminal', icon: terminalIcon, action: runExample },
+        { id: 'network', label: 'Wi-Fi connected', icon: wifiIcon, action: () => undefined },
+        { id: 'volume', label: 'Volume', icon: volumeIcon, action: () => undefined },
+        { id: 'layout', label: 'Show desktop', icon: layoutIcon, action: () => wm?.getWindowIds().forEach(id => wm?.minimize(id)) },
+      ],
+    },
+    icons: [
+      { id: 'explorer', label: 'Explorer', icon: displayIcon, x: 16, y: 18, action: runExample },
+      { id: 'notes', label: 'Notes.txt', icon: fileIcon, x: 16, y: 108, action: runExample },
+    ],
+  })
+
+  wm = new WindowManager({ container: desk.getElement(), isolated: true })
+  desk.syncDockWithWindows(wm, {
+    getDockItem: (_appId, event) => ({
+      label: event.label ?? event.title ?? 'Window',
+      icon: event.icon ?? displayIcon,
+    }),
+  })
 }
 
 function runExample() {
@@ -145,6 +160,9 @@ function runExample() {
 
 function resetDemo() {
   wm?.destroy()
+  desk?.destroy()
+  wm = null
+  desk = null
   initDemo()
   runExample()
 }
@@ -160,7 +178,10 @@ onMounted(() => {
   runExample()
   setCode([{ name: 'main.ts', lang: 'typescript', code: sampleCode }])
 })
-onUnmounted(() => wm?.destroy())
+onUnmounted(() => {
+  wm?.destroy()
+  desk?.destroy()
+})
 </script>
 
 <style scoped>
@@ -189,6 +210,11 @@ h1 { max-width: 480px; margin-top: 18px; font-size: clamp(38px, 2.7vw, 48px); li
 .playground { min-width: 0; display: flex; flex-direction: column; align-self: center; border: 1px solid #d7e0e6; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 14px 32px rgba(29, 58, 77, .10); }
 .playground-toolbar { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #d7e0e6; color: #344256; font-size: 13px; }
 .desktop-surface { position: relative; height: 480px; overflow: hidden; background: #2a94ad; }
+.desktop-surface :deep(.dp-desktop) { width: 100%; height: 100%; position: absolute; inset: 0; overflow: hidden; }
+.desktop-surface :deep(.dp-desktop-icon-area) { z-index: 1; }
+.desktop-surface :deep(.dp-desktop-window-area) { z-index: 2; }
+.desktop-surface :deep(.dp-dock) { z-index: 4; }
+.desktop-surface :deep(.dp-desktop-icon) { transform: scale(.78); transform-origin: top left; }
 .desktop-shortcuts { position: absolute; z-index: 1; top: 18px; left: 16px; display: grid; gap: 14px; }
 .desktop-shortcuts button { width: 70px; border: 0; background: transparent; color: #fff; display: grid; justify-items: center; gap: 6px; padding: 5px; font: inherit; font-size: 11px; cursor: default; text-shadow: 0 1px 2px rgba(0,0,0,.28); }
 .desktop-shortcuts button:hover, .desktop-shortcuts button:focus-visible { border-radius: 4px; background: rgba(255,255,255,.16); outline: 1px solid rgba(255,255,255,.48); }
