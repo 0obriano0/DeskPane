@@ -3,12 +3,18 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to retry (for example: v0.3.3)"
+        required: true
+        type: string
 
 permissions:
-  contents: write   # 建立 GitHub Release
-  id-token: write   # npm OIDC Trusted Publisher
-  pages: write      # 發佈 GitHub Pages
+  contents: write # 建立 GitHub Release
+  id-token: write # npm OIDC Trusted Publisher
+  pages: write # 發佈 GitHub Pages
 
 jobs:
   release:
@@ -16,14 +22,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Manual recovery runs the current workflow definition against the
+          # exact source snapshot that belongs to the existing release tag.
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
           # 我們必須設定 registry-url，否則 npm 不會啟動 OIDC
 
+      # npm 11.5.1+ supports Trusted Publisher. Pin it so npm@latest cannot
+      # jump to npm 12, which requires a newer Node.js release than Node 20.
+      - name: Update npm
+        run: npm install -g npm@11.5.1
 
       - name: Install dependencies
         run: npm install
@@ -40,7 +54,21 @@ jobs:
       # 從 tag (e.g. v0.2.0) 取出版本號 0.2.0
       - name: Extract version
         id: ver
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="$GITHUB_REF_NAME"
+          fi
+
+          VERSION="${TAG#v}"
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release tag: $TAG" >&2
+            exit 1
+          fi
+
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       # 將 package.json version 與 tag 同步（不建立額外 git commit）
       - name: Sync package.json version
@@ -80,8 +108,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.ver.outputs.TAG }}
           name: v${{ steps.ver.outputs.VERSION }}
           generate_release_notes: true
+          overwrite_files: true
           files: |
             deskpane-v${{ steps.ver.outputs.VERSION }}.zip
             deskpane-pages-v${{ steps.ver.outputs.VERSION }}.zip
@@ -89,10 +119,6 @@ jobs:
       # 修正 setup-node 產生的空 Token (避免 404 Not Found 錯誤)
       - name: Fix npmrc
         run: if [ -f .npmrc ]; then sed -i '/_authToken/d' .npmrc; fi
-
-      # 升級 npm 至最新版 (Trusted Publisher 完整支援需要 npm 11.5.1+)
-      - name: Update npm
-        run: npm install -g npm@latest
 
       # 發佈到 npm（OIDC Trusted Publisher）
       - name: Publish to npm
