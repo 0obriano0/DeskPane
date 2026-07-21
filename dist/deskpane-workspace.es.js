@@ -2747,10 +2747,13 @@ class SessionManager {
                 resizable: snap.resizable,
                 props: snap.props,
             });
-            if (snap.isMinimized)
-                wm.minimize(snap.id);
+            // Maximize first because maximize() intentionally clears minimized state.
+            // Applying minimize last preserves snapshots captured while a maximized
+            // window was hidden in the Dock.
             if (snap.isMaximized)
                 wm.maximize(snap.id);
+            if (snap.isMinimized)
+                wm.minimize(snap.id);
         }
     }
     static _parse(json) {

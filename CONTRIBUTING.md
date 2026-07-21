@@ -5,12 +5,13 @@ Thanks for helping improve DeskPane. This project is a framework-agnostic deskto
 ## Development Setup
 
 ```bash
-npm install
+npm ci
+npm test
 npm run build
 npm run build:lib
 ```
 
-`npm run build` runs TypeScript checks only. `npm run build:lib` produces the library bundles and copies CSS files into `dist/`.
+`npm test` runs the Vitest/jsdom regression suite. `npm run build` runs TypeScript checks only. `npm run build:lib` produces the library bundles and copies CSS files into `dist/`. Building from source requires Node.js 20 or newer.
 
 ## Demo Projects
 
@@ -27,6 +28,7 @@ The Vue and React demos import DeskPane source directly during development. If y
 Please run the checks that match your change:
 
 ```bash
+npm test
 npm run build
 npm run build:lib
 ```

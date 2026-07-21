@@ -1,6 +1,5 @@
 # ── Dependencies ────────────────────────────────
 node_modules/
-package-lock.json
 
 # ── Build outputs ────────────────────────────────
 # 根目錄 dist/ 保留（Library 交付物），子目錄 dist/ 全部忽略

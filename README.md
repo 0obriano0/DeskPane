@@ -1422,15 +1422,18 @@ When collapsed, a region shrinks to a **28px mini strip**: expand button → ico
 ## Building from Source
 
 ```bash
-npm install
+npm ci
 
+npm test             # Run the Vitest/jsdom regression suite
+npm run test:watch   # Re-run tests while developing
 npm run build        # Type-check only (tsc --noEmit, no JS output)
 npm run build:lib    # Build all bundles → dist/
+npm run build:pages  # Build the complete GitHub Pages artifact → .pages/
 npm run clean        # Clean dist/
 npm run release      # clean + build:lib + package release/
 ```
 
-> Requires **Node.js 18+**. Library build uses Rollup.
+> Requires **Node.js 20+** to build from source. The published browser library targets ES2020. Library builds use Rollup; tests use Vitest and jsdom.
 
 ---
 
@@ -1442,10 +1445,12 @@ Any modern browser supporting ES2020 (`optional chaining`, `nullish coalescing`,
 
 ## Roadmap
 
-- [ ] CDN publish (jsDelivr / unpkg auto-sync after npm publish)
+- [x] CDN distribution through jsDelivr and unpkg
 - [ ] Angular adapter
-- [ ] Window state persistence (localStorage / IndexedDB)
+- [x] Window state persistence through SessionManager JSON snapshots (localStorage / IndexedDB compatible)
 - [ ] Accessibility (ARIA roles, keyboard navigation)
+- [x] Automated unit/integration regression tests and Node.js 20/22 CI
+- [ ] Cross-browser end-to-end test coverage
 - [x] Theme customization and showcase themes
 
 ---
@@ -1457,6 +1462,7 @@ Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 Useful checks:
 
 ```bash
+npm test
 npm run build
 npm run build:lib
 npm --prefix demo/vue run build

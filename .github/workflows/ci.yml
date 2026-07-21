@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test and build (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - 20
+          - 22
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run regression tests
+        run: npm test
+
+      - name: Type-check library
+        run: npm run build
+
+      - name: Build library bundles
+        run: npm run build:lib
+
+  package:
+    name: Build demos and inspect package
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            demo/vue/package-lock.json
+            demo/react/package-lock.json
+            demo/docs/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Vue demo dependencies
+        run: npm ci --prefix demo/vue
+
+      - name: Install React demo dependencies
+        run: npm ci --prefix demo/react
+
+      - name: Install docs dependencies
+        run: npm ci --prefix demo/docs
+
+      - name: Build GitHub Pages artifact
+        run: npm run build:pages
+
+      - name: Inspect npm package contents
+        run: npm pack --dry-run

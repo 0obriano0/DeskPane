@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.4 - Unreleased
+
+### Added
+
+- Added a Vitest + jsdom regression suite covering WindowManager lifecycle and edge snap, Dock slots/item rendering/SystemTray, Menu keyboard behavior, SessionManager restore, and the Vue `DpWindow` closed-window i18n regression.
+- Added a general GitHub Actions CI workflow that runs tests and library builds on Node.js 20 and 22, then builds the complete GitHub Pages artifact and inspects the npm package contents.
+- Added tracked npm lockfiles for reproducible root, Vue, React, and docs CI installs.
+
+### Changed
+
+- Updated the roadmap after the 0.3.3 release to reflect live CDN distribution and the existing SessionManager persistence API.
+- Updated Vitest to 3.2.6 and `@rollup/plugin-terser` to 1.0.0 so the root development dependency audit reports no known vulnerabilities.
+- Building DeskPane from source now requires Node.js 20 or newer; the published browser library still targets ES2020.
+
+### Fixed
+
+- Fixed SessionManager restore order so snapshots captured from minimized, maximized windows preserve both states.
+
 ## 0.3.3 - 2026-07-20
 
 ### Added
